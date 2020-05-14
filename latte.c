@@ -3,13 +3,13 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "zmalloc.h"
+#include "latte.h"
 typedef struct VectorClock {
-    char length;
     union {
         long long single;
         void *multi;
     };
-} VectorClock;
+} __attribute__ ((packed, aligned(4))) VectorClock;
 typedef struct Meta {
     char gid:8;
     long long timestamp;//8
@@ -28,13 +28,14 @@ void copyMeta(Meta* a, Meta* b) {
     a->gid = b->gid;
     a->timestamp = b->timestamp;
 }
-
+typedef long long  VC;
 typedef struct CRDT_LWW_Register {//
-    unsigned char type;
-    unsigned char gid;
-    long long timestamp;//8
-    VectorClock vectorClock;//9
-} __attribute__ ((packed, aligned(4))) CRDT_LWW_Register;
+    // unsigned long long type:8;
+    // unsigned long long gid:4;
+    // unsigned long long timestamp:48;
+    int vc;
+    // VectorClock vc;
+} __attribute__ ((packed, aligned(1))) CRDT_LWW_Register;
 typedef struct Crdt_Final_Object {//
     unsigned char type;
 } __attribute__ ((packed, aligned(2))) Crdt_Final_Object;
@@ -79,38 +80,12 @@ int getGid(void* obj) {
     return gid;
 }
 typedef struct Crdt_Final_Register {//
-    unsigned char type;
-    unsigned char gid;
+    unsigned char a[7];
     long long timestamp;//8
-
 } __attribute__ ((packed, aligned(4))) Crdt_Final_Register;
-int main() {
-    printf("Object sizeof  %lu  \n", sizeof(Crdt_Final_Register));
-    Crdt_Final_Register *r =  malloc(sizeof(Crdt_Final_Register));
-    setType(r, CRDT_DATA | CRDT_EXPIRE);
-    setType(r, CRDT_DATA );
-    assert(getType(r) == CRDT_DATA);
-    setDataType(r, CRDT_HASH | CRDT_REGISTER);
-    setDataType(r, CRDT_REGISTER);
-    assert(getDataType(r) == CRDT_REGISTER);
-    Meta meta;
-    meta.gid = 1000;
-    meta.timestamp = 1000;
+int main(int argc, char **argv) {
     size_t size = zmalloc_used_memory();
-    Meta* m = zmalloc(sizeof(Crdt_Final_Register));
-    printf("size1: %lld sizeof: %lld \n", zmalloc_used_memory() - size, sizeof(Crdt_Final_Register));
-    m->gid = 1000;
-    m->timestamp = 2000; 
-    Meta k = *m;
-    Crdt_Final_Register *other =  zmalloc(sizeof(Crdt_Final_Register));
-    other->gid = 4;
-    other->timestamp = 3000;
-    copyMeta2(r, m);
-    printf("is data  %d  \n", isData(r));
-    printf("gid  %d \n", (r->gid));
-    printf("gid  %lld \n", (r->timestamp));
-    printf("mem_allocator: %s \n",ZMALLOC_LIB);
-    zfree(m);
-    zfree(other);
+    Crdt_Final_Register *r =  zmalloc(sizeof(Crdt_Final_Register));
+    printf("mem_allocator: %s\n CRDT_LWW_Register sizeof  %lu %lu \n",ZMALLOC_LIB, sizeof(Crdt_Final_Register), zmalloc_used_memory() - size);
     return 1;
 }
