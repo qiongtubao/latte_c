@@ -130,13 +130,17 @@ endif
 # FINAL_CFLAGS+= -I./deps/hiLATTE -I./deps/linenoise -I./deps/lua/src
 
 ifeq ($(MALLOC),tcmalloc)
+	
 	FINAL_CFLAGS+= -DUSE_TCMALLOC
 	FINAL_LIBS+= -ltcmalloc
+	
 endif
 
 ifeq ($(MALLOC),tcmalloc_minimal)
+	# FINAL_CFLAGS+= -DUSE_TCMALLOC -I./libs/gperftools/src
 	FINAL_CFLAGS+= -DUSE_TCMALLOC
 	FINAL_LIBS+= -ltcmalloc_minimal
+	# FINAL_LIBS := ./libs/gperftools/.libs/libtcmalloc_minimal.a $(FINAL_LIBS)
 endif
 
 ifeq ($(MALLOC),jemalloc)
@@ -144,12 +148,12 @@ ifeq ($(MALLOC),jemalloc)
 	# FINAL_CFLAGS+= -DUSE_JEMALLOC -I./deps/jemalloc/include
 	# FINAL_LIBS := ./deps/jemalloc/lib/libjemalloc.a $(FINAL_LIBS)
 	DEPENDENCY_TARGETS+= jemalloc
-	FINAL_CFLAGS+= -DUSE_JEMALLOC -I./libs/jemalloc-4.0.3/include
-	FINAL_LIBS := ./libs/jemalloc-4.0.3/lib/libjemalloc.a $(FINAL_LIBS)
+	FINAL_CFLAGS+= -DUSE_JEMALLOC -I./libs/jemalloc/include
+	FINAL_LIBS := ./libs/jemalloc/lib/libjemalloc.a $(FINAL_LIBS)
 endif
 
 LATTE_CC=$(QUIET_CC)$(CC) $(FINAL_CFLAGS)
-LATTE_LD=$(QUIET_LINK)$(CC) $(FINAL_LDFLAGS)
+LATTE_LD=$(QUIET_LINK)$(CC) $(FINAL_LDFLAGS) 
 LATTE_INSTALL=$(QUIET_INSTALL)$(INSTALL)
 
 CCCOLOR="\033[34m"
@@ -201,7 +205,7 @@ persist-settings: distclean
 	echo LATTE_LDFLAGS=$(LATTE_LDFLAGS) >> .make-settings
 	echo PREV_FINAL_CFLAGS=$(FINAL_CFLAGS) >> .make-settings
 	echo PREV_FINAL_LDFLAGS=$(FINAL_LDFLAGS) >> .make-settings
-	-(cd ./deps && $(MAKE) $(DEPENDENCY_TARGETS))
+	-(cd ./libs && $(MAKE) $(DEPENDENCY_TARGETS))
 
 .PHONY: persist-settings
 
@@ -235,7 +239,7 @@ clean:
 .PHONY: clean
 
 distclean: clean
-	-(cd ./deps && $(MAKE) distclean)
+	-(cd ./libs && $(MAKE) distclean)
 	-(rm -f .make-*)
 
 .PHONY: distclean
