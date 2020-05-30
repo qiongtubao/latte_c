@@ -77,6 +77,10 @@ FINAL_LDFLAGS=$(LDFLAGS) $(LATTE_LDFLAGS) $(DEBUG)
 FINAL_LIBS=-lm
 DEBUG=-g -ggdb
 
+ifeq ($(TEST),tcl)
+	FINAL_CFLAGS+= -DTCL_TEST
+endif
+
 ifeq ($(uname_S),SunOS)
 	# SunOS
         ifneq ($(@@),32bit)
@@ -137,10 +141,10 @@ ifeq ($(MALLOC),tcmalloc)
 endif
 
 ifeq ($(MALLOC),tcmalloc_minimal)
-	# FINAL_CFLAGS+= -DUSE_TCMALLOC -I./libs/gperftools/src
+	# FINAL_CFLAGS+= -DUSE_TCMALLOC -I./deps/gperftools/src
 	FINAL_CFLAGS+= -DUSE_TCMALLOC
 	FINAL_LIBS+= -ltcmalloc_minimal
-	# FINAL_LIBS := ./libs/gperftools/.libs/libtcmalloc_minimal.a $(FINAL_LIBS)
+	# FINAL_LIBS := ./deps/gperftools/.libs/libtcmalloc_minimal.a $(FINAL_LIBS)
 endif
 
 ifeq ($(MALLOC),jemalloc)
@@ -148,8 +152,8 @@ ifeq ($(MALLOC),jemalloc)
 	# FINAL_CFLAGS+= -DUSE_JEMALLOC -I./deps/jemalloc/include
 	# FINAL_LIBS := ./deps/jemalloc/lib/libjemalloc.a $(FINAL_LIBS)
 	DEPENDENCY_TARGETS+= jemalloc
-	FINAL_CFLAGS+= -DUSE_JEMALLOC -I./libs/jemalloc/include
-	FINAL_LIBS := ./libs/jemalloc/lib/libjemalloc.a $(FINAL_LIBS)
+	FINAL_CFLAGS+= -DUSE_JEMALLOC -I./deps/jemalloc/include
+	FINAL_LIBS := ./deps/jemalloc/lib/libjemalloc.a $(FINAL_LIBS)
 endif
 
 LATTE_CC=$(QUIET_CC)$(CC) $(FINAL_CFLAGS)
@@ -180,7 +184,7 @@ LATTE_SERVER_OBJ=zmalloc.o latte.o
 # LATTE_CHECK_RDB_NAME=LATTE-check-rdb
 # LATTE_CHECK_AOF_NAME=LATTE-check-aof
 
-all: $(LATTE_SERVER_NAME) $(LATTE_SENTINEL_NAME) $(LATTE_CLI_NAME) $(LATTE_BENCHMARK_NAME) $(LATTE_CHECK_RDB_NAME) $(LATTE_CHECK_AOF_NAME)
+all: $(LATTE_SERVER_NAME) 
 	@echo ""
 	@echo "Hint: It's a good idea to run 'make test' ;)"
 	@echo ""
@@ -205,7 +209,7 @@ persist-settings: distclean
 	echo LATTE_LDFLAGS=$(LATTE_LDFLAGS) >> .make-settings
 	echo PREV_FINAL_CFLAGS=$(FINAL_CFLAGS) >> .make-settings
 	echo PREV_FINAL_LDFLAGS=$(FINAL_LDFLAGS) >> .make-settings
-	-(cd ./libs && $(MAKE) $(DEPENDENCY_TARGETS))
+	-(cd ./deps && $(MAKE) $(DEPENDENCY_TARGETS))
 
 .PHONY: persist-settings
 
@@ -222,10 +226,13 @@ ifneq ($(strip $(PREV_FINAL_LDFLAGS)), $(strip $(FINAL_LDFLAGS)))
 .make-prerequisites: persist-settings
 endif
 
-# LATTE-server
 $(LATTE_SERVER_NAME): $(LATTE_SERVER_OBJ)
+	# LATTE-server
 	$(LATTE_LD) -o $@ $^ $(FINAL_LIBS) 
 
+test: 
+	$(MAKE) clean
+	$(MAKE) TEST="tcl"
 
 # Because the jemalloc.h header is generated as a part of the jemalloc build,
 # building it should complete before building any other object. Instead of
@@ -239,13 +246,13 @@ clean:
 .PHONY: clean
 
 distclean: clean
-	-(cd ./libs && $(MAKE) distclean)
+	-(cd ./deps && $(MAKE) distclean)
 	-(rm -f .make-*)
 
 .PHONY: distclean
 
-test: $(LATTE_SERVER_NAME) $(LATTE_CHECK_AOF_NAME)
-	@(cd ..; ./runtest)
+# test: $(LATTE_SERVER_NAME) $(LATTE_CHECK_AOF_NAME)
+# 	@(cd ..; ./runtest)
 
 check: test
 

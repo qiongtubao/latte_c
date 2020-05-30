@@ -1,0 +1,6 @@
+*.o
+.make-*
+Makefile.dep
+latte-main
+.idea
+.vscode
