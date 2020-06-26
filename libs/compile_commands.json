@@ -1,0 +1,38 @@
+[
+ {
+  "directory": "/Users/zhouguodong/Documents/workspace/libs/latte_c/libs", 
+  "arguments": [
+   "cc", 
+   "-std=c99", 
+   "-pedantic", 
+   "-DLATTE_STATIC=", 
+   "-Wall", 
+   "-W", 
+   "-Wno-missing-field-initializers", 
+   "-O2", 
+   "-g", 
+   "-ggdb", 
+   "-c", 
+   "sds.c"
+  ], 
+  "file": "sds.c"
+ }, 
+ {
+  "directory": "/Users/zhouguodong/Documents/workspace/libs/latte_c/libs", 
+  "arguments": [
+   "cc", 
+   "-std=c99", 
+   "-pedantic", 
+   "-DLATTE_STATIC=", 
+   "-Wall", 
+   "-W", 
+   "-Wno-missing-field-initializers", 
+   "-O2", 
+   "-g", 
+   "-ggdb", 
+   "-c", 
+   "zmalloc.c"
+  ], 
+  "file": "zmalloc.c"
+ }
+]

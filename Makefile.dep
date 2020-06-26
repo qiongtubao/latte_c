@@ -1,0 +1,1 @@
+latte_c.o: latte_c.c libs/sds.h libs/zmalloc.h

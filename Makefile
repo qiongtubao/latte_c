@@ -134,10 +134,10 @@ endif
 # FINAL_CFLAGS+= -I./deps/hiLATTE -I./deps/linenoise -I./deps/lua/src
 
 ifeq ($(MALLOC),tcmalloc)
-	
+
 	FINAL_CFLAGS+= -DUSE_TCMALLOC
 	FINAL_LIBS+= -ltcmalloc
-	
+
 endif
 
 ifeq ($(MALLOC),tcmalloc_minimal)
@@ -157,7 +157,7 @@ ifeq ($(MALLOC),jemalloc)
 endif
 
 LATTE_CC=$(QUIET_CC)$(CC) $(FINAL_CFLAGS)
-LATTE_LD=$(QUIET_LINK)$(CC) $(FINAL_LDFLAGS) 
+LATTE_LD=$(QUIET_LINK)$(CC) $(FINAL_LDFLAGS)
 LATTE_INSTALL=$(QUIET_INSTALL)$(INSTALL)
 
 CCCOLOR="\033[34m"
@@ -174,7 +174,8 @@ QUIET_INSTALL = @printf '    %b %b\n' $(LINKCOLOR)INSTALL$(ENDCOLOR) $(BINCOLOR)
 endif
 
 LATTE_SERVER_NAME=latte-main
-LATTE_SERVER_OBJ=zmalloc.o latte.o
+LATTE_SERVER_OBJ=latte_c.o
+LATTE_SERVER_LIBS_OBJ=libs/zmalloc.o libs/sds.o
 # LATTE_SENTINEL_NAME=LATTE-sentinel
 # LATTE_SERVER_OBJ=adlist.o quicklist.o ae.o anet.o dict.o server.o sds.o zmalloc.o lzf_c.o lzf_d.o pqsort.o zipmap.o sha1.o ziplist.o release.o networking.o util.o object.o db.o replication.o rdb.o t_string.o t_list.o t_set.o t_zset.o t_hash.o config.o aof.o pubsub.o multi.o debug.o sort.o intset.o syncio.o cluster.o crc16.o endianconv.o slowlog.o scripting.o bio.o rio.o rand.o memtest.o crc64.o bitops.o sentinel.o notify.o setproctitle.o blocked.o hyperloglog.o latency.o sparkline.o LATTE-check-rdb.o LATTE-check-aof.o geo.o lazyfree.o module.o evict.o expire.o geohash.o geohash_helper.o childinfo.o defrag.o siphash.o rax.o t_stream.o listpack.o localtime.o lolwut.o lolwut5.o
 # LATTE_CLI_NAME=LATTE-cli
@@ -184,7 +185,7 @@ LATTE_SERVER_OBJ=zmalloc.o latte.o
 # LATTE_CHECK_RDB_NAME=LATTE-check-rdb
 # LATTE_CHECK_AOF_NAME=LATTE-check-aof
 
-all: $(LATTE_SERVER_NAME) 
+all: $(LATTE_SERVER_NAME)
 	@echo ""
 	@echo "Hint: It's a good idea to run 'make test' ;)"
 	@echo ""
@@ -226,19 +227,23 @@ ifneq ($(strip $(PREV_FINAL_LDFLAGS)), $(strip $(FINAL_LDFLAGS)))
 .make-prerequisites: persist-settings
 endif
 
-$(LATTE_SERVER_NAME): $(LATTE_SERVER_OBJ)
+$(LATTE_SERVER_NAME): $(LATTE_SERVER_OBJ) $(LATTE_SERVER_LIBS_OBJ)
 	# LATTE-server
-	$(LATTE_LD) -o $@ $^ $(FINAL_LIBS) 
+	$(LATTE_LD) -o $@ $^ $(FINAL_LIBS)
 
-test: 
+test:
 	$(MAKE) clean
 	$(MAKE) TEST="tcl"
 
 # Because the jemalloc.h header is generated as a part of the jemalloc build,
 # building it should complete before building any other object. Instead of
 # depending on a single artifact, build all dependencies first.
-%.o: %.c .make-prerequisites
+libs/%.o:
+	-(cd ./libs && $(MAKE) )
+
+$(LATTE_SERVER_OBJ): latte_c.c .make-prerequisites
 	$(LATTE_CC) -c $<
+
 
 clean:
 	rm -rf $(LATTE_SERVER_NAME) $(LATTE_SENTINEL_NAME) $(LATTE_CLI_NAME) $(LATTE_BENCHMARK_NAME) $(LATTE_CHECK_RDB_NAME) $(LATTE_CHECK_AOF_NAME) *.o *.gcda *.gcno *.gcov LATTE.info lcov-html Makefile.dep dict-benchmark

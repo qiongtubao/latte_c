@@ -1,0 +1,3 @@
+MathFunctions.o: MathFunctions.c MathFunctions.h
+sds.o: sds.c sds.h zmalloc.h
+zmalloc.o: zmalloc.c zmalloc.h atomicvar.h
