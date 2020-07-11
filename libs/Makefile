@@ -249,6 +249,10 @@ distclean: clean
 	-(cd ./deps && $(MAKE) distclean)
 	-(rm -f .make-*)
 
+test-sds: sds.c sds.h
+	$(LATTE_CC) ./sds.c ./zmalloc.c -DSDS_TEST_MAIN $(FINAL_LIBS) -o /tmp/sds_test
+	/tmp/sds_test
+
 .PHONY: distclean
 
 # test: $(LATTE_SERVER_NAME) $(LATTE_CHECK_AOF_NAME)

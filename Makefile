@@ -267,9 +267,7 @@ lcov:
 	@geninfo -o LATTE.info .
 	@genhtml --legend -o lcov-html LATTE.info
 
-test-sds: sds.c sds.h
-	$(LATTE_CC) sds.c zmalloc.c -DSDS_TEST_MAIN $(FINAL_LIBS) -o /tmp/sds_test
-	/tmp/sds_test
+
 
 .PHONY: lcov
 
