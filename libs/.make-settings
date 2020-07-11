@@ -7,4 +7,4 @@ LDFLAGS=
 LATTE_CFLAGS=
 LATTE_LDFLAGS=
 PREV_FINAL_CFLAGS=-std=c99 -pedantic -DLATTE_STATIC= -Wall -W -Wno-missing-field-initializers -O2 -g -ggdb
-PREV_FINAL_LDFLAGS= -g -ggdb
+PREV_FINAL_LDFLAGS= -g -ggdb -rdynamic

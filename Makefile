@@ -247,7 +247,8 @@ $(LATTE_SERVER_OBJ): latte_c.c .make-prerequisites
 
 clean:
 	rm -rf $(LATTE_SERVER_NAME) $(LATTE_SENTINEL_NAME) $(LATTE_CLI_NAME) $(LATTE_BENCHMARK_NAME) $(LATTE_CHECK_RDB_NAME) $(LATTE_CHECK_AOF_NAME) *.o *.gcda *.gcno *.gcov LATTE.info lcov-html Makefile.dep dict-benchmark
-
+	-(cd ./libs && $(MAKE) clean)
+	
 .PHONY: clean
 
 distclean: clean

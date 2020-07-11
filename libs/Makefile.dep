@@ -1,3 +1,4 @@
 MathFunctions.o: MathFunctions.c MathFunctions.h
+adlist.o: adlist.c adlist.h zmalloc.h
 sds.o: sds.c sds.h zmalloc.h
 zmalloc.o: zmalloc.c zmalloc.h atomicvar.h
