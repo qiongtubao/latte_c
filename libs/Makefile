@@ -174,7 +174,7 @@ QUIET_INSTALL = @printf '    %b %b\n' $(LINKCOLOR)INSTALL$(ENDCOLOR) $(BINCOLOR)
 endif
 
 
-LATTE_SERVER_OBJ=zmalloc.o sds.o
+LATTE_SERVER_OBJ=zmalloc.o sds.o utils.o dict.o latteassert.o siphash.o ae.o connection.o syncio.o anet.o latteServer.o log.o rax.o crc32.o crc64.o crcspeed.o sha256.o dict_plus.o adlist.o
 # LATTE_SENTINEL_NAME=LATTE-sentinel
 # LATTE_SERVER_OBJ=adlist.o quicklist.o ae.o anet.o dict.o server.o sds.o zmalloc.o lzf_c.o lzf_d.o pqsort.o zipmap.o sha1.o ziplist.o release.o networking.o util.o object.o db.o replication.o rdb.o t_string.o t_list.o t_set.o t_zset.o t_hash.o config.o aof.o pubsub.o multi.o debug.o sort.o intset.o syncio.o cluster.o crc16.o endianconv.o slowlog.o scripting.o bio.o rio.o rand.o memtest.o crc64.o bitops.o sentinel.o notify.o setproctitle.o blocked.o hyperloglog.o latency.o sparkline.o LATTE-check-rdb.o LATTE-check-aof.o geo.o lazyfree.o module.o evict.o expire.o geohash.o geohash_helper.o childinfo.o defrag.o siphash.o rax.o t_stream.o listpack.o localtime.o lolwut.o lolwut5.o
 # LATTE_CLI_NAME=LATTE-cli
@@ -253,8 +253,30 @@ test-sds: sds.c sds.h
 	$(LATTE_CC) ./sds.c ./zmalloc.c -DSDS_TEST_MAIN $(FINAL_LIBS) -o /tmp/sds_test
 	/tmp/sds_test
 
-.PHONY: distclean
+test-rax: rax.c rax.h 
+	$(LATTE_CC) ./rax.c ./zmalloc.c -DRAX_TEST_MAIN $(FINAL_LIBS)  -o /tmp/rax_test 
+	/tmp/rax_test
 
+test-crc32: crc32.c crc32.h 
+	$(LATTE_CC) ./crc32.c ./zmalloc.c  -DCRC32_TEST_MAIN $(FINAL_LIBS) -o  /tmp/crc32_test ./dict.o ./siphash.o ./latteassert.o
+	/tmp/crc32_test
+
+test-mmap: mmap.c mmap.h 
+	$(LATTE_CC) ./mmap.c ./zmalloc.c  -DMMAP_TEST_MAIN $(FINAL_LIBS) -o  /tmp/mmap_test 
+	/tmp/mmap_test
+
+test-conn: connection.c connection.h
+	$(LATTE_CC) ./connection.c ./zmalloc.c  -DCONN_TEST_MAIN $(FINAL_LIBS) -o  /tmp/conn_test ./ae.o ./anet.o ./syncio.o ./utils.o ./sds.o
+	/tmp/conn_test
+
+test-conf: config.c config.h
+	$(LATTE_CC) ./config.c ./zmalloc.c  -DCONFIG_TEST_MAIN $(FINAL_LIBS) -o  /tmp/config_test ./dict.o ./dict_plus.o  ./utils.o ./sds.o ./adlist.o ./latteassert.o ./sha256.o ./siphash.o ./log.o
+	/tmp/config_test
+
+test-server: latteServer.c latteServer.h
+	$(LATTE_CC) ./latteServer.c ./zmalloc.c  -DSERVER_TEST_MAIN $(FINAL_LIBS) -o  /tmp/server_test ./log.o ./anet.o ./connection.o ./latteassert.o ./ae.o ./sds.o ./utils.o ./dict.o ./syncio.o ./sha256.o ./siphash.o
+	/tmp/server_test
+.PHONY: distclean
 # test: $(LATTE_SERVER_NAME) $(LATTE_CHECK_AOF_NAME)
 # 	@(cd ..; ./runtest)
 

@@ -1,3 +1,28 @@
 MathFunctions.o: MathFunctions.c MathFunctions.h
+adlist.o: adlist.c adlist.h zmalloc.h
+ae.o: ae.c ae.h zmalloc.h config.h dict.h siphash.h sds.h ae_select.c
+ae_kqueue.o: ae_kqueue.c
+ae_select.o: ae_select.c
+anet.o: anet.c anet.h
+config.o: config.c config.h zmalloc.h dict.h siphash.h sds.h log.h \
+  utils.h adlist.h dict_plus.h
+connection.o: connection.c connhelpers.h connection.h sds.h zmalloc.h \
+  ae.h anet.h syncio.h
+crc32.o: crc32.c crc32.h
+crc64.o: crc64.c crc64.h crcspeed.h
+crcspeed.o: crcspeed.c crcspeed.h
+dict.o: dict.c fmacros.h dict.h siphash.h zmalloc.h latteassert.h
+dict_plus.o: dict_plus.c dict_plus.h sds.h zmalloc.h dict.h siphash.h
+latteServer.o: latteServer.c latteServer.h ae.h connection.h sds.h \
+  zmalloc.h anet.h
+latteassert.o: latteassert.c latteassert.h
+log.o: log.c log.h utils.h sds.h zmalloc.h
+mmap.o: mmap.c mmap.h
+rax.o: rax.c rax.h rax_malloc.h zmalloc.h
 sds.o: sds.c sds.h zmalloc.h
+sha256.o: sha256.c sha256.h
+siphash.o: siphash.c siphash.h
+syncio.o: syncio.c ae.h utils.h sds.h zmalloc.h syncio.h
+thread.o: thread.c
+utils.o: utils.c utils.h sds.h zmalloc.h sha256.h
 zmalloc.o: zmalloc.c zmalloc.h atomicvar.h

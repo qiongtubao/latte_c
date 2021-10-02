@@ -52,7 +52,7 @@ struct __attribute__ ((__packed__)) sdshdr64 {
 #define SDS_TYPE_64 4
 #define SDS_TYPE_MASK 7
 #define SDS_TYPE_BITS 3
-#define SDS_HDR_VAR(T,s) struct sdshdr##T *sh = (void*)((s)-(sizeof(struct sdshdr##T)));
+#define SDS_HDR_VAR(T,s) struct sdshdr##T *sh = (struct sdshdr##T*)((s)-(sizeof(struct sdshdr##T)));
 #define SDS_HDR(T,s) ((struct sdshdr##T *)((s)-(sizeof(struct sdshdr##T))))
 #define SDS_TYPE_5_LEN(f) ((f)>>SDS_TYPE_BITS)
 
@@ -189,4 +189,20 @@ static inline void sdsinclen(sds s, size_t inc) {
 sds sdsnew(const char *init);
 sds sdsnewlen(const void *init, size_t initlen);
 void sdsfree(sds s);
+sds sdscatfmt(sds s, char const *fmt, ...);
+sds *sdssplitlen(const char *s, int len, const char *sep, int seplen, int *count);
+sds sdsempty(void);
+int sdscmp(const sds s1, const sds s2);
+sds sdscatprintf(sds s, const char *fmt, ...);
+sds sdsfromlonglong(long long value);
+sds sdscatsds(sds s, const sds t);
+sds sdstrim(sds s, const char *cset);
+sds sdscat(sds s, const char *t);
+sds sdscatrepr(sds s, const char *p, size_t len);
+sds *sdssplitargs(const char *line, int *argc);
+void sdsfreesplitres(sds *tokens, int count);
+void sdstolower(sds s);
+
+
+
 #endif //CMAKE_SDS_H

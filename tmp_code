@@ -1,0 +1,393 @@
+
+// int split_by_num(char *src,const char *separator,char **dest,int num) {
+//       char *pNext;
+//       int count = 0;
+//       if (src == NULL)
+//          return 0;
+//       if (separator == NULL)
+//          return 0;    
+//       pNext = strtok(src,separator);
+//       while(pNext != NULL) {
+//            *dest++ = pNext;
+//            ++count;
+//            if(count < num) {
+//                pNext = strtok(NULL,separator);  
+//            }else{
+//                *dest++ = pNext + strlen(*(dest-1)) + 1;
+//                break;
+//            }
+          
+//      }  
+//      return count == num;
+// }
+/* Convert a string into a long long. Returns 1 if the string could be parsed
+ * into a (non-overflowing) long long, 0 otherwise. The value will be set to
+ * the parsed value when appropriate.
+ *
+ * Note that this function demands that the string strictly represents
+ * a long long: no spaces or other characters before or after the string
+ * representing the number are accepted, nor zeroes at the start if not
+ * for the string "0" representing the zero number.
+ *
+ * Because of its strictness, it is safe to use this function to check if
+ * you can convert a string into a long long, and obtain back the string
+ * from the number without any loss in the string representation. */
+#define SDS_LLSTR_SIZE 21
+int string2ll(const char *s, size_t slen, long long *value) {
+    assert(slen <= SDS_LLSTR_SIZE);
+    const char *p = s;
+    size_t plen = 0;
+    int negative = 0;
+    unsigned long long v;
+
+    if (plen == slen)
+        return 0;
+
+    /* Special case: first and only digit is 0. */
+    if (slen == 1 && p[0] == '0') {
+        if (value != NULL) *value = 0;
+        return 1;
+    }
+
+    if (p[0] == '-') {
+        negative = 1;
+        p++; plen++;
+
+        /* Abort on only a negative sign. */
+        if (plen == slen)
+            return 0;
+    }
+
+    /* First digit should be 1-9, otherwise the string should just be 0. */
+    if (p[0] >= '1' && p[0] <= '9') {
+        v = p[0]-'0';
+        p++; plen++;
+    } else if (p[0] == '0' && slen == 1) {
+        *value = 0;
+        return 1;
+    } else {
+        return 0;
+    }
+
+    while (plen < slen && p[0] >= '0' && p[0] <= '9') {
+        if (v > (ULLONG_MAX / 10)) /* Overflow. */
+            return 0;
+        v *= 10;
+
+        if (v > (ULLONG_MAX - (p[0]-'0'))) /* Overflow. */
+            return 0;
+        v += p[0]-'0';
+
+        p++; plen++;
+    }
+
+    /* Return if not all bytes were used. */
+    if (plen < slen)
+        return 0;
+
+    if (negative) {
+        if (v > ((unsigned long long)(-(LLONG_MIN+1))+1)) /* Overflow. */
+            return 0;
+        if (value != NULL) *value = -v;
+    } else {
+        if (v > LLONG_MAX) /* Overflow. */
+            return 0;
+        if (value != NULL) *value = v;
+    }
+    return 1;
+}
+
+/* Convert a string into a double. Returns 1 if the string could be parsed
+ * into a (non-overflowing) double, 0 otherwise. The value will be set to
+ * the parsed value when appropriate.
+ *
+ * Note that this function demands that the string strictly represents
+ * a double: no spaces or other characters before or after the string
+ * representing the number are accepted. */
+int string2ld(const char *s, size_t slen, long double *dp) {
+    char buf[256];
+    long double value;
+    char *eptr;
+
+    if (slen >= sizeof(buf)) return 0;
+    memcpy(buf,s,slen);
+    buf[slen] = '\0';
+
+    errno = 0;
+    value = strtold(buf, &eptr);
+    if (isspace(buf[0]) || eptr[0] != '\0' ||
+        (errno == ERANGE &&
+            (value == HUGE_VAL || value == -HUGE_VAL || value == 0)) ||
+        errno == EINVAL ||
+        isnan(value))
+        return 0;
+
+    if (dp) *dp = value;
+    return 1;
+}
+typedef struct {
+    int gid;
+    unsigned long long start_clock: 60;
+    unsigned long long type: 1; //integer, float
+    unsigned long long opt: 3; // optional bytes for further use
+    long long end_clock;
+    union {
+        long long i;
+        long double f;
+    }conv;
+} gcounter_mini;
+
+
+int gcounterMiniFromSds(sds str, gcounter_mini* g) {
+    int num;
+    sds *vals = sdssplitlen(str, sdslen(str), ":", 1, &num);
+    if(num != 4) {
+        return 0;
+    }
+    long long ll = 0;
+    long double ld= 0;
+    int val_type = -1;
+    
+    if(string2ll(vals[num-1], sdslen(vals[num - 1]), &ll)) {
+        val_type = VALUE_TYPE_INTEGER;
+    } else if(string2ld(vals[num -1], sdslen(vals[num - 1]), &ld)) {
+        val_type = VALUE_TYPE_FLOAT;
+    } else {
+        return 0;
+    } 
+    long long gid = 0;
+    if(!string2ll(vals[0], sdslen(vals[0]), &gid)) {
+        return 0;
+    } 
+    long long start_clock = 0;
+    if(!string2ll(vals[1], sdslen(vals[1]), &start_clock)) {
+        return 0;
+    } 
+    long long end_clock = 0;
+    if(!string2ll(vals[2], sdslen(vals[2]), &end_clock)) {
+        return 0;
+    } 
+    g->gid = gid;
+    g->type = val_type;
+    g->start_clock = start_clock;
+    g->end_clock = end_clock;
+    if(val_type == VALUE_TYPE_INTEGER) { 
+        g->conv.i = ll;
+    } else {
+        g->conv.f = ld;
+    }
+    return 1;
+}
+
+
+int ld2string(char *buf, size_t len, long double value, int humanfriendly) {
+    size_t l;
+
+    if (isinf(value)) {
+        /* Libc in odd systems (Hi Solaris!) will format infinite in a
+         * different way, so better to handle it in an explicit way. */
+        if (len < 5) return 0; /* No room. 5 is "-inf\0" */
+        if (value > 0) {
+            memcpy(buf,"inf",3);
+            l = 3;
+        } else {
+            memcpy(buf,"-inf",4);
+            l = 4;
+        }
+    } else if (humanfriendly) {
+        /* We use 17 digits precision since with 128 bit floats that precision
+         * after rounding is able to represent most small decimal numbers in a
+         * way that is "non surprising" for the user (that is, most small
+         * decimal numbers will be represented in a way that when converted
+         * back into a string are exactly the same as what the user typed.) */
+        l = snprintf(buf,len,"%.17Lf", value);
+        if (l+1 > len) return 0; /* No room. */
+        /* Now remove trailing zeroes after the '.' */
+        if (strchr(buf,'.') != NULL) {
+            char *p = buf+l-1;
+            while(*p == '0') {
+                p--;
+                l--;
+            }
+            if (*p == '.') l--;
+        }
+    } else {
+        l = snprintf(buf,len,"%.17Lg", value);
+        if (l+1 > len) return 0; /* No room. */
+    }
+    buf[l] = '\0';
+    return l;
+}
+#define MAX_LONG_DOUBLE_CHARS 5*1024
+long long current_time() {
+    struct timeval time_now = {0};
+    long long time_mic = 0;//1微秒 = 1毫秒/1000
+    gettimeofday(&time_now,NULL);
+    time_mic = time_now.tv_sec*1000*1000 + time_now.tv_usec;
+    return time_mic;
+}
+typedef struct test {
+    unsigned long long a: 3;
+    unsigned long long b: 4;
+    unsigned long long c: 57;
+} test;
+test* copytest(test* t) {
+    test* t2 = zmalloc(sizeof(test));
+    t2->a = t->a;
+    t2->b = t->b;
+    t2->c = t->c;
+    return t2;
+}
+const char* test_str = "asdhgkjasdljalskdjlkasjdlk;asjdklasjdl;kasj阿斯顿记录；阿斯顿将阿拉山口大家卢卡斯简单快乐；阿设计大赛肯德基啊睡了多久啊离开那地方拉卡解放了卡号立刻见到了卡黄金时代拉卡就是大家速度快垃圾善良的卡就是第六课；阿设计的卢卡斯简单啦今后的路卡家里卡三等奖阿莱克斯多久啊；立刻送大家卢卡斯简单啦；看阿设计的路卡；阿设计第六课；讲啊讲道理卡；是讲道理情况加拉卡上的拉屎的裂开；阿设计的拉卡设计的路卡；啊就到了；撒讲啊三等奖阿斯利康大家来看阿设计的路卡丝的裂开；阿设计的卢卡斯教大家来看； as圣诞节阿克琉斯简单；拉丝的‘；拉设计的路卡设计的卢卡斯你第六课就啊就是打开啦绝世独立卡就是第六课；啊就是离开的将阿斯利康的将阿斯科利大家阿莱克斯多久卡拉屎大家看下哦 i 啊啥的来看dlkajsjvbkjn";
+int get_test_str_len() {
+    static size_t  a = 0;
+    if(a == 0) {
+        printf("init test_str_len\n");
+        a = strlen(test_str);
+    }
+    return a;
+}
+int main() {
+    // test5();
+    char* a = "test abc";
+    char* b = strstr(a + 3, "ab");
+    if(b != NULL) {
+        printf("%d\n", b - a );
+    }
+    
+}
+
+
+int test6() {
+    int* ts = zmalloc(sizeof(int) * 10);
+    for( int i = 0; i < 10; i++) {
+        ts[i] = i;
+    }
+    test* t = zmalloc(sizeof(test));
+    t->a = 1;
+    t->b = 2;
+    t->c = ts;
+    test* t2 = copytest(t);
+    printf("t: %lld, %lld, %lld \n", t->a, t->b, t->c);
+    printf("t2: %lld, %lld, %lld \n", t2->a, t2->b, t2->c);
+    int* ts2 = t->c;
+    for( int i = 0; i < 10; i++) {
+        printf("index: %lld , %lld\n",i, ts2[i]);
+    }
+}
+int test5() {
+    sds s = sdsnew(test_str);
+    char buf[1000];
+    long long start_time = current_time();;
+    for(int i = 0; i < 10000; i++) {
+        strcpy(buf, s);
+    }
+    long long end_time = current_time();
+    printf("run strcpy time: %lld\n", end_time - start_time);
+    
+    start_time = current_time();;
+    for(int i = 0; i < 10000; i++) {
+        long long len = get_test_str_len(s);
+        memcpy(buf, s, len);
+    }
+    end_time = current_time();
+    printf("run memcpy time: %lld\n", end_time - start_time);
+    return 1;
+}
+int test4() {
+    long double a = 1123041411140122121343588169059488588449736424029682701573808535672259784282769851358801958424519545898600327959401814430810347108553007837520568192586819936479710092027593325027684449596878561324664142291989778399232000.000000000000000000000000000000000;
+    printf("%.33Lf\n", a);
+    sds s = sdsnewlen((char*)&a, sizeof(long double));
+    long double b = *(long double*)(s);
+    printf("%.33Lf\n", b);
+    return 1;
+}
+// int test3() {
+//     // long double a = 108.17082785838199400496595359300045;
+//     // long double b = 22.585579123050104000808291360158364;
+//     long double a = 110.99999999999999999999999999999;
+//     long double b = 22.88888888888888888888888888888;
+//     long long l = 7;
+//     printf("%.33Lf \n", a - b + (long double)l);
+//     printf("%.33Lf \n", (long double)l + a - b);
+//     char buf[MAX_LONG_DOUBLE_CHARS];
+//     int len = ld2string(buf,sizeof(buf),a - b + (long double)l,1);
+//     long double nld = 0;
+//     string2ld(buf, len, &nld);
+//     printf("%s\n", buf);
+//     printf("%.17Lf\n", nld);
+//     return 0;
+// }
+// int test2() {
+//     // sds v = sdsnew("1:2:3:1");
+//     gcounter_mini g = {.gid = 0};
+//     // gcounterMiniFromSds(v, &g);
+//     // printf("mini %d %lld %lld %lld \n", g.gid, g.start_clock, g.end_clock, g.conv.i);
+//     long double std_test=1.2345;
+//     long long std = 1;
+//     g.type = 1;
+//     int t = g.type;
+//     printf("%d\n", t);
+//     long long x = -1;
+//     unsigned char* p = (unsigned char*) &x;
+//     unsigned i;
+//     for (i = 0; i < sizeof(long long); ++i) {
+//         printf("%d ", *(p + i));
+//     }
+//     printf("\n");
+
+//     int y = -1;
+//     unsigned char* p1 = (unsigned char*) &y;
+//     for (i = 0; i < sizeof(int); ++i) {
+//         printf("%d ", *(p1 + i));
+//     }
+//     printf("\n");
+//     // int a = 0;
+//     // a = a | 1 << 2 ;
+//     // a = a | 1 << 3 ;
+//     // for(int i = 0; i < 16; i++) {
+//     //     printf("%d: %d\n", i, a & 1 << i);
+//     // }
+//     return 0;
+// }
+
+// void test1() {
+//     sds a = sdsnew("abc");
+//     pid_t pid = fork();
+//     if (pid == -1 ) {
+    
+//     perror("fork");
+    
+//     exit(1);
+    
+//     } else if (pid > 0) {
+    
+//     pid_t wp  = wait(NULL);
+
+    
+    
+//     printf("I'm parent pid = %d, parentID = %d, var = %s\n", getpid(), getppid(), a);
+    
+//     } else if (pid == 0) {
+    
+//     a = sdscatfmt(a, "abc");
+    
+//     printf("child pid = %d, parentID=%d, var = %s\n", getpid(), getppid(), a);
+    
+//     }
+// }
+// void test2() {
+//    double result = power(2.0,2);
+//    printf("result: %f!\n", result);
+//    char* v = zmalloc(5);
+//    zfree(v);
+//     sds s = sdsnew("hello");
+//     printf("result: %s!\n", s);
+//     sdsfree(s);
+//     printf("lib: %s\n", ZMALLOC_LIB);
+//     return 0;
+//     sds s = sdsnew("a|b|c|d|e|f");
+//     char* splits[3];
+//     split_by_num(s, "|", splits, 2);
+//     printf("all %s \r\n", splits[2]);
+// }

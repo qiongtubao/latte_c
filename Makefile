@@ -75,7 +75,7 @@ endif
 FINAL_CFLAGS=$(STD) $(WARN) $(OPT) $(DEBUG) $(CFLAGS) $(LATTE_CFLAGS)
 FINAL_LDFLAGS=$(LDFLAGS) $(LATTE_LDFLAGS) $(DEBUG)
 FINAL_LIBS=-lm
-DEBUG=-g -ggdb
+DEBUG=-g -ggdb -pg
 
 ifeq ($(TEST),tcl)
 	FINAL_CFLAGS+= -DTCL_TEST
@@ -141,10 +141,10 @@ ifeq ($(MALLOC),tcmalloc)
 endif
 
 ifeq ($(MALLOC),tcmalloc_minimal)
-	# FINAL_CFLAGS+= -DUSE_TCMALLOC -I./deps/gperftools/src
-	FINAL_CFLAGS+= -DUSE_TCMALLOC
-	FINAL_LIBS+= -ltcmalloc_minimal
-	# FINAL_LIBS := ./deps/gperftools/.libs/libtcmalloc_minimal.a $(FINAL_LIBS)
+	FINAL_CFLAGS+= -DUSE_TCMALLOC -I./deps/gperftools/src
+	# FINAL_CFLAGS+= -DUSE_TCMALLOC
+	# FINAL_LIBS+= -ltcmalloc_minimal
+	FINAL_LIBS += ./deps/gperftools/build/libs/libtcmalloc_minimal.a $(FINAL_LIBS)
 endif
 
 ifeq ($(MALLOC),jemalloc)
@@ -175,7 +175,7 @@ endif
 
 LATTE_SERVER_NAME=latte-main
 LATTE_SERVER_OBJ=latte_c.o
-LATTE_SERVER_LIBS_OBJ=libs/zmalloc.o libs/sds.o
+LATTE_SERVER_LIBS_OBJ=libs/log.o libs/zmalloc.o libs/sds.o libs/utils.o libs/dict.o libs/latteassert.o libs/siphash.o libs/connection.o libs/ae.o libs/anet.o libs/syncio.o libs/latteServer.o libs/rax.o libs/crcspeed.o libs/crc64.o  ./config.o ./setproctitle.o ./libs/sha256.o ./module.o ./libs/dict_plus.o ./libs/adlist.o
 # LATTE_SENTINEL_NAME=LATTE-sentinel
 # LATTE_SERVER_OBJ=adlist.o quicklist.o ae.o anet.o dict.o server.o sds.o zmalloc.o lzf_c.o lzf_d.o pqsort.o zipmap.o sha1.o ziplist.o release.o networking.o util.o object.o db.o replication.o rdb.o t_string.o t_list.o t_set.o t_zset.o t_hash.o config.o aof.o pubsub.o multi.o debug.o sort.o intset.o syncio.o cluster.o crc16.o endianconv.o slowlog.o scripting.o bio.o rio.o rand.o memtest.o crc64.o bitops.o sentinel.o notify.o setproctitle.o blocked.o hyperloglog.o latency.o sparkline.o LATTE-check-rdb.o LATTE-check-aof.o geo.o lazyfree.o module.o evict.o expire.o geohash.o geohash_helper.o childinfo.o defrag.o siphash.o rax.o t_stream.o listpack.o localtime.o lolwut.o lolwut5.o
 # LATTE_CLI_NAME=LATTE-cli
@@ -240,6 +240,9 @@ test:
 # depending on a single artifact, build all dependencies first.
 libs/%.o:
 	-(cd ./libs && $(MAKE) )
+
+./%.o: %.c .make-prerequisites
+	$(LATTE_CC) -c $<
 
 $(LATTE_SERVER_OBJ): latte_c.c .make-prerequisites
 	$(LATTE_CC) -c $<
@@ -306,3 +309,8 @@ install: all
 
 uninstall:
 	rm -f $(INSTALL_BIN)/{$(LATTE_SERVER_NAME),$(LATTE_BENCHMARK_NAME),$(LATTE_CLI_NAME),$(LATTE_CHECK_RDB_NAME),$(LATTE_CHECK_AOF_NAME),$(LATTE_SENTINEL_NAME)}
+
+
+test-parse: ./tests/latte_parse.c ./tests/latte_parse.h ./libs/zmalloc.o  ./libs/sds.o 
+	$(LATTE_CC) ./tests/latte_parse.c ./libs/zmalloc.c ./libs/sds.c ./libs/utils.c -DPARSE_TEST_MAIN $(FINAL_LIBS) -o /tmp/parse_test
+	/tmp/parse_test

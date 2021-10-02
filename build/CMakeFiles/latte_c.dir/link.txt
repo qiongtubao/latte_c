@@ -1,0 +1,1 @@
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc  -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/latte_c.dir/latte_c.c.o  -o latte_c ../deps/jemalloc/lib/libjemalloc.a libs/libzmalloc.a 

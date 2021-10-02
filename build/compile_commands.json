@@ -1,0 +1,48 @@
+[
+ {
+  "directory": "/Users/zhouguodong/Documents/workspace/libs/latte_c/build", 
+  "arguments": [
+   "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", 
+   "-o", 
+   "CMakeFiles/MathFunctions.dir/sds.c.o", 
+   "-c", 
+   "/Users/zhouguodong/Documents/workspace/libs/latte_c/libs/sds.c"
+  ], 
+  "file": "/Users/zhouguodong/Documents/workspace/libs/latte_c/libs/sds.c"
+ }, 
+ {
+  "directory": "/Users/zhouguodong/Documents/workspace/libs/latte_c/build", 
+  "arguments": [
+   "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", 
+   "-DUSE_JEMALLOC", 
+   "-I/Users/zhouguodong/Documents/workspace/libs/latte_c/deps/include", 
+   "-o", 
+   "CMakeFiles/latte_c.dir/latte_c.c.o", 
+   "-c", 
+   "/Users/zhouguodong/Documents/workspace/libs/latte_c/latte_c.c"
+  ], 
+  "file": "/Users/zhouguodong/Documents/workspace/libs/latte_c/latte_c.c"
+ }, 
+ {
+  "directory": "/Users/zhouguodong/Documents/workspace/libs/latte_c/build", 
+  "arguments": [
+   "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", 
+   "-o", 
+   "CMakeFiles/MathFunctions.dir/MathFunctions.c.o", 
+   "-c", 
+   "/Users/zhouguodong/Documents/workspace/libs/latte_c/libs/MathFunctions.c"
+  ], 
+  "file": "/Users/zhouguodong/Documents/workspace/libs/latte_c/libs/MathFunctions.c"
+ }, 
+ {
+  "directory": "/Users/zhouguodong/Documents/workspace/libs/latte_c/build", 
+  "arguments": [
+   "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", 
+   "-o", 
+   "CMakeFiles/MathFunctions.dir/zmalloc.c.o", 
+   "-c", 
+   "/Users/zhouguodong/Documents/workspace/libs/latte_c/libs/zmalloc.c"
+  ], 
+  "file": "/Users/zhouguodong/Documents/workspace/libs/latte_c/libs/zmalloc.c"
+ }
+]
