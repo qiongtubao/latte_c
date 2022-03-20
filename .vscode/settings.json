@@ -114,6 +114,9 @@
         "connhelpers.h": "c",
         "syncio.h": "c",
         "dict_plus.h": "c",
-        "options.h": "c"
+        "options.h": "c",
+        "test.h": "c",
+        "solarisfixes.h": "c",
+        "util.h": "c"
     }
 }
