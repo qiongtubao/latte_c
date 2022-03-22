@@ -21,16 +21,7 @@ DEBUG=-g -ggdb
 PREFIX?=.
 INSTALL_DIR?=$(PREFIX)/bin
 INSTALL=cp -rf
-ifndef V
-    define MAKE_INSTALL
-        @printf '    %b %b\n' $(LINKCOLOR)INSTALL$(ENDCOLOR) $(BINCOLOR)$(1)$(ENDCOLOR) 1>&2
-        @$(INSTALL) $(1) $(2)
-    endef
-else
-    define MAKE_INSTALL
-        $(INSTALL) $(1) $(2)
-    endef
-endif
+
 .make-prerequisites:
 	@touch $@
 

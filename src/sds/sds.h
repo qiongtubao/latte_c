@@ -186,19 +186,138 @@ static inline void sdsinclen(sds s, size_t inc) {
             break;
     }
 }
+/**
+ *
+ * @param init
+ * @return
+ * @example
+ *      sds s = sdsnew("foo");
+ *      assert(strcmp(s, "foo") == 0);
+ */
 sds sdsnew(const char *init);
 void sdsfree(sds s);
-// sds sdsnewlen(const void *init, size_t initlen);
+/**
+ *
+ * @param init
+ * @param initlen
+ * @return
+ * @example
+ *     sds x = sdsnew("foo");
+ *     assert(sdslen(x) == 3);
+ *     assert(memcmp(x, "foo\0", 4) == 0);
+ */
+sds sdsnewlen(const void *init, size_t initlen);
+/**
+ *
+ * @return
+ * @example
+ *    sds empty = sdsempty();
+ *    assert(sdslen(empty) == 0);
+ */
+sds sdsempty(void);
+/**
+ *
+ * @param s
+ * @param t
+ * @return
+ * @example
+ *      sds x = sdsnewlen("foo", 2);
+ *      x = sdscat(x, "bar");
+ *      assert(sdslen(x) == 5);
+ *      assert(memcmp(x, "fobar\0", 6) == 0);
+ */
+sds sdscat(sds s, const char *t);
 
-// sds sdscatfmt(sds s, char const *fmt, ...);
-// sds *sdssplitlen(const char *s, int len, const char *sep, int seplen, int *count);
-// sds sdsempty(void);
-// int sdscmp(const sds s1, const sds s2);
+/**
+ *
+ * @param s
+ * @param fmt
+ * @param ...
+ * @return
+ * @example
+ *      sds x = sdsempty();
+ *      x = sdscatfmt(x, "string:%s", "hello");
+ *      assert(memcmp(x, "string:hello\0", strlen("string:hello\0")) == 0);
+ *      sdsfree(x);
+ *      x = sdsempty();
+ *      x = sdscatfmt(x, "int:%i", 100);
+ *      assert(memcmp(x, "int:100\0", strlen("int:100\0")) == 0);
+ *      sdsfree(x);
+ *      x = sdsempty();
+ *      x = sdscatfmt(x, "long:%u", 2147483648);
+ *      assert(memcmp(x, "long:2147483648\0", strlen("long:2147483648\0")) == 0);
+ */
+sds sdscatfmt(sds s, char const *fmt, ...);
+
+/**
+ *
+ * @param s
+ * @param len
+ * @param sep
+ * @param seplen
+ * @param count
+ * @return
+ * @example
+ *      int len = 0;
+ *      sds* splits = sdssplitlen("test_a_b_c", 10, "_", 1, &len);
+ *      assert(len == 4);
+ *      assert(memcmp(splits[0], "test\0",5) == 0);
+ *      assert(memcmp(splits[1], "a\0",2) == 0);
+ *      assert(memcmp(splits[2], "b\0",2) == 0);
+ *      assert(memcmp(splits[3], "c\0",2) == 0);
+ *      sdsfreesplitres(splits, len);
+ */
+sds *sdssplitlen(const char *s, int len, const char *sep, int seplen, int *count);
+void sdsfreesplitres(sds *tokens, int count);
+
+/**
+ *
+ * @param s1
+ * @param s2
+ * @return
+ * @example
+ *      sds x = sdsnew("hello");
+ *      sds y = sdsnew("hello");
+ *      assert(sdscmp(sdscmp(x, y) == 0);
+ */
+int sdscmp(const sds s1, const sds s2);
+
 // sds sdscatprintf(sds s, const char *fmt, ...);
-// sds sdsfromlonglong(long long value);
-// sds sdscatsds(sds s, const sds t);
-// sds sdstrim(sds s, const char *cset);
-// sds sdscat(sds s, const char *t);
+
+/**
+ *
+ * @param value
+ * @return
+ * @example
+ *      sds ll = sdsfromlonglong(100);
+ *      assert(memcmp(ll, "100\0", 4) == 0);
+ */
+sds sdsfromlonglong(long long value);
+
+/**
+ *
+ * @param s
+ * @param t
+ * @return
+ * @example
+ *      sds x = sdsnew("x");
+ *      sds y = sdsnew("y");
+ *      x = sdscatsds(x, y);
+ *      assert(memcmp(x, "xy\0", 3) == 0);
+ */
+sds sdscatsds(sds s, const sds t);
+/**
+ *
+ * @param s
+ * @param cset
+ * @return
+ * @example
+ *      s = sdsnew("AA...AA.a.aa.aHelloWorld     :::");
+ *      s = sdstrim(s,"Aa. :");
+ *      assert(memcmp(s, "HelloWorld\0", 11) == 0);
+ */
+sds sdstrim(sds s, const char *cset);
+
 // sds sdscatrepr(sds s, const char *p, size_t len);
 // sds *sdssplitargs(const char *line, int *argc);
 // void sdsfreesplitres(sds *tokens, int count);

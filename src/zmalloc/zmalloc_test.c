@@ -4,13 +4,13 @@
 
 int test_zmalloc() {
     //test char
+    size_t before = zmalloc_used_memory();
     char* str = zmalloc(100);
     char* c = "hello";
     strcpy(str, c);
     str[strlen(c)] = '\0';
     assert(strcmp(str, c) == 0);
     zfree(str);
-
     return 1;
 }
 

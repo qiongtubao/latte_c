@@ -36,6 +36,18 @@ static inline char sdsReqType(size_t string_size) {
 #endif
     return SDS_TYPE_64;
 }
+/**
+ * @brief 
+ * 
+ * @param init 
+ * @param initlen 
+ * @return sds
+ * @example 
+ *       sds x = sdsnewlen("foo", 2);
+ *       assert(sdslen(x) == 2);
+ *       assert(memcmp(x, "fo\0", 3) == 0);
+ * 
+ */
 sds sdsnewlen(const void *init, size_t initlen) {
     void *sh;
     sds s;
@@ -92,13 +104,43 @@ sds sdsnewlen(const void *init, size_t initlen) {
     return s;
 }
 
+/**
+ * @brief 
+ * 
+ * @return sds 
+ * @example 
+ *      sds empty = sdsempty();
+ *      assert(sdslen(empty) == 0);
+ *      
+ */
 sds sdsempty(void) {
     return sdsnewlen("",0);
 }
+
+/**
+ * @brief 
+ * 
+ * @param init 
+ * @return sds
+ * @example
+ *      sds x = sdsnew("foo");
+ *      assert(sdslen(x) == 3); 
+ *      assert(memcmp(x, "foo\0", 4) == 0);
+ */ 
 sds sdsnew(const char *init) {
     size_t initlen = (init == NULL) ? 0 : strlen(init);
     return sdsnewlen(init, initlen);
 }
+
+/**
+ * @brief 
+ * @param s 
+ * @example
+ *      sds x = sdsnew("foo");
+ *      sdsfree(x);
+ * 
+ * 
+ */
 void sdsfree(sds s) {
     if (s == NULL) return;
     s_free((char*)s-sdsHdrSize(s[-1]));
@@ -148,6 +190,18 @@ sds sdscatlen(sds s, const void *t, size_t len) {
     return s;
 }
 
+/**
+ * @brief 
+ * 
+ * @param s 
+ * @param t 
+ * @return sds 
+ * @example
+ *      sds x = sdsnewlen("foo", 2);
+ *      x = sdscat(x, "bar");
+ *      assert(sdslen(x) == 5);
+ *      assert(memcmp(x, "fobar\0", 6));
+ */
 sds sdscat(sds s, const char *t) {
     return sdscatlen(s, t, strlen(t));
 }
