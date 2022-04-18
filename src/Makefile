@@ -10,6 +10,22 @@ endif
 STD=-std=c99
 FINAL_CFLAGS+= $(STD) -I./include -I./
 
+ifeq ($(MALLOC),tcmalloc)
+	FINAL_CFLAGS+= -DUSE_TCMALLOC
+	FINAL_LIBS+= -ltcmalloc
+endif
+
+ifeq ($(MALLOC),tcmalloc_minimal)
+	FINAL_CFLAGS+= -DUSE_TCMALLOC
+	FINAL_LIBS+= -ltcmalloc_minimal
+endif
+
+ifeq ($(MALLOC),jemalloc)
+	DEPENDENCY_TARGETS+= jemalloc
+	FINAL_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
+	FINAL_LIBS := ../../deps/jemalloc/lib/libjemalloc.a $(FINAL_LIBS)
+endif
+
 LATTE_CC=$(CC) $(FINAL_CFLAGS)
 LATTE_LIB=lib/liblatte.a
 LATTE_OBJ=ctrip_gtid.o zmalloc.o util.o
@@ -30,7 +46,7 @@ INSTALL=cp -rf
 
 zmalloc.o:
 	mkdir -p ./$(BUILD_DIR) 
-	cd zmalloc && $(MAKE) INSTALL_DIR=../$(BUILD_DIR) install
+	cd zmalloc && $(MAKE) INSTALL_DIR=../$(BUILD_DIR) MALLOC=$(MALLOC) install
 
 util.o:
 	mkdir -p ./$(BUILD_DIR) 
@@ -45,10 +61,15 @@ all: $(ALL_OBJ)
 	echo "all"
 	echo $(ALL_OBJ)
 	mkdir -p $(BUILD_DIR)/lib
-	cd $(BUILD_DIR)/out && $(AR) $(ARFLAGS) ../lib/liblatte.a $(ALL_OBJ)
+	cd $(BUILD_DIR)/out && $(AR) $(ARFLAGS) ../lib/liblatte.a $(FINAL_LIBS) $(ALL_OBJ)
 
 zmalloc_test:
-	cd zmalloc && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib latte_lib_test
+	cd zmalloc && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib MALLOC=$(MALLOC) latte_lib_test
+
+zmalloc_jemalloc_test:
+	echo "latte zmalloc_jemalloc_test"
+	$(MAKE) MALLOC=jemalloc all
+	$(MAKE) MALLOC=jemalloc zmalloc_test
 
 util_test:
 	cd util && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib latte_lib_test

@@ -40,5 +40,9 @@ cmake-build-debug
 .DS_Store
 Makefile.dep
 make_config.mk
-.vscode
+.vscode/*
 tmp
+out
+*.make-cflags
+*.make-ldflags
+*.make-prerequisites

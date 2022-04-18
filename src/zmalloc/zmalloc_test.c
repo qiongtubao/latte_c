@@ -2,6 +2,10 @@
 #include "test/testassert.h"
 #include "zmalloc.h"
 
+#if defined(USE_JEMALLOC) && defined(JEMALLOC_FRAG_HINT)
+#define HAVE_DEFRAG
+#endif
+
 int test_zmalloc() {
     //test char
     size_t before = zmalloc_used_memory();
@@ -27,6 +31,51 @@ int test_zmalloc_class() {
     return 1;
 }
 
+/* this method was added to jemalloc in order to help us understand which
+ * pointers are worthwhile moving and which aren't */
+#ifdef HAVE_DEFRAG
+int je_get_defrag_hint(void* ptr);
+int test_je_get_defrag_hint() {
+    int len = 100000;
+    struct zmalloc_test* array[len];
+    for(int i = 0; i < len; i++) {
+        array[i] = zmalloc(sizeof(struct zmalloc_test));
+        array[i]->l = i;
+        array[i]->dl = i;
+    }
+    // struct zmalloc_test* will_frees[len/2];
+    for(int i = 0; i < len/2; i++) {
+        struct zmalloc_test* will_free = array[i*2];
+        // will_frees[i] = will_free;
+        zfree(will_free);
+        array[i*2] = NULL;
+    }
+    // printf("je_get_defrag_hint %d\n",je_get_defrag_hint(array[len - 1]));
+    struct zmalloc_test* current_test = array[len - 1];
+    assert(je_get_defrag_hint(current_test) == 1);
+    printf("\naddress: %lld, value: %lld, size:%lld\n", current_test, current_test->l, zmalloc_size(current_test));
+    void* ptr = current_test;
+    size_t size = zmalloc_size(ptr);
+    struct zmalloc_test* newptr = zmalloc_no_tcache(size);
+    memcpy(newptr, ptr, size);
+    zfree_no_tcache(ptr);
+    // zfree_no_tcache(ptr);
+    printf("\naddress: %lld, value: %lld, size:%lld\n", current_test, current_test->l, zmalloc_size(current_test));
+    printf("\nnew_address: %lld, value: %lld, size:%lld\n", newptr, newptr->l, zmalloc_size(newptr));
+    struct zmalloc_test* new_array[len];
+    for(int i = 0; i < len;i++) {
+        new_array[i] = zmalloc(sizeof(struct zmalloc_test));
+        new_array[i]->l = i;
+        new_array[i]->dl = i;
+        // assert(new_array[i] != ptr);
+    }
+    struct zmalloc_test* new_array_ptr = new_array[len-1];
+    printf("\nnew1_address: %lld, value: %lld, size:%lld\n", new_array_ptr, new_array_ptr->l, zmalloc_size(new_array_ptr));
+    return 1;
+}
+#else /* HAVE_DEFRAG */
+#endif
+
 int test_api() {
     {
         #ifdef LATTE_TEST
@@ -36,6 +85,10 @@ int test_api() {
             test_zmalloc() == 1);
         test_cond("zmalloc class function", 
             test_zmalloc_class() == 1);
+        #ifdef HAVE_DEFRAG
+            test_cond("je_get_defrag_hint function",
+                test_je_get_defrag_hint() == 1);
+        #endif
     } test_report()
     return 1;
 }
