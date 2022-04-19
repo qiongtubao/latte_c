@@ -58,8 +58,6 @@ test:$(ZMALLOC_OBJ) zmalloc_test.o
 jemalloc_test:
 	$(MAKE) MALLOC=jemalloc test
 
-jemalloc_lib_test:
-	$(MAKE) MALLOC=jemalloc latte_lib_test 
 
 install: all
 	@mkdir -p $(INSTALL_DIR)
@@ -76,7 +74,10 @@ build_lib: all zmalloc
 	$(AR) $(ARFLAGS) ./out/lib/liblatte.a zmalloc.o 
 
 latte_lib_test: zmalloc_test.o	
-	$(LATTE_CC) -g -ggdb  -o  zmalloc_test zmalloc_test.o  $(LATTE_LIB_DIR)/liblatte.a  -lm -ldl -DLATTE_TEST $(FINAL_LIBS)
+	$(LATTE_CC) -g -ggdb  -o  zmalloc_test zmalloc_test.o  $(LATTE_LIB_DIR)/liblatte.a  $(FINAL_LIBS) -lm -ldl -lpthread -DLATTE_TEST 
 	@echo "================= test zmalloc start ================="
 	./zmalloc_test
 	@echo "=================  test zmalloc end  ================="
+
+jemalloc_lib_test:
+	$(MAKE) MALLOC=jemalloc latte_lib_test 

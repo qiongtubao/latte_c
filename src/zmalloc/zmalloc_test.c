@@ -2,9 +2,7 @@
 #include "test/testassert.h"
 #include "zmalloc.h"
 
-#if defined(USE_JEMALLOC) && defined(JEMALLOC_FRAG_HINT)
-#define HAVE_DEFRAG
-#endif
+
 
 int test_zmalloc() {
     //test char
@@ -53,15 +51,15 @@ int test_je_get_defrag_hint() {
     // printf("je_get_defrag_hint %d\n",je_get_defrag_hint(array[len - 1]));
     struct zmalloc_test* current_test = array[len - 1];
     assert(je_get_defrag_hint(current_test) == 1);
-    printf("\naddress: %lld, value: %lld, size:%lld\n", current_test, current_test->l, zmalloc_size(current_test));
+    printf("\naddress: %lld, value: %ld, size:%ld\n", (long long)current_test, current_test->l, zmalloc_size(current_test));
     void* ptr = current_test;
     size_t size = zmalloc_size(ptr);
     struct zmalloc_test* newptr = zmalloc_no_tcache(size);
     memcpy(newptr, ptr, size);
     zfree_no_tcache(ptr);
     // zfree_no_tcache(ptr);
-    printf("\naddress: %lld, value: %lld, size:%lld\n", current_test, current_test->l, zmalloc_size(current_test));
-    printf("\nnew_address: %lld, value: %lld, size:%lld\n", newptr, newptr->l, zmalloc_size(newptr));
+    printf("\naddress: %lld, value: %ld, size:%ld\n", (long long)current_test, current_test->l, zmalloc_size(current_test));
+    printf("\nnew_address: %lld, value: %ld, size:%ld\n", (long long)newptr, newptr->l, zmalloc_size(newptr));
     struct zmalloc_test* new_array[len];
     for(int i = 0; i < len;i++) {
         new_array[i] = zmalloc(sizeof(struct zmalloc_test));
@@ -70,7 +68,7 @@ int test_je_get_defrag_hint() {
         // assert(new_array[i] != ptr);
     }
     struct zmalloc_test* new_array_ptr = new_array[len-1];
-    printf("\nnew1_address: %lld, value: %lld, size:%lld\n", new_array_ptr, new_array_ptr->l, zmalloc_size(new_array_ptr));
+    printf("\nnew1_address: %lld, value: %ld, size:%ld\n", (long long)new_array_ptr, new_array_ptr->l, zmalloc_size(new_array_ptr));
     return 1;
 }
 #else /* HAVE_DEFRAG */

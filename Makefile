@@ -8,13 +8,13 @@ latte_sds_test:latte_sds
 	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) USE_SDS=yes sds_test
 
 latte_zmalloc_test:all
-	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) zmalloc_test
+	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) MALLOC=$(MALLOC) zmalloc_test
 
-latte_zmalloc_jemalloc_test:all
-	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) zmalloc_jemalloc_test
+latte_zmalloc_jemalloc_test:
+	$(MAKE) MALLOC=jemalloc latte_zmalloc_test
 
 all:
-	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) USE_SDS=yes  $@
+	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) MALLOC=$(MALLOC) USE_SDS=yes  $@
 
 test: all
 	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) USE_SDS=yes test
