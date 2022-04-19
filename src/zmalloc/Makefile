@@ -2,11 +2,11 @@
 
 STD=-std=c99
 FINAL_CFLAGS+= $(STD) -I./include -I./ -I../
-
+FINAL_LIBS:= -lc -ldl $(FINAL_LIBS) 
 ifeq ($(MALLOC),jemalloc)
 	DEPENDENCY_TARGETS+= jemalloc
 	FINAL_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
-	FINAL_LIBS := ../../deps/jemalloc/lib/libjemalloc.a $(FINAL_LIBS)
+	FINAL_LIBS :=  ../../deps/jemalloc/lib/libjemalloc.a -lpthread $(FINAL_LIBS)
 endif
 
 LATTE_CC=$(CC) $(FINAL_CFLAGS)
@@ -50,7 +50,7 @@ clean:
 	rm -rf out
 
 test:$(ZMALLOC_OBJ) zmalloc_test.o
-	$(LATTE_CC)  -g -ggdb  -o  zmalloc_test  zmalloc_test.o zmalloc.o -lm -ldl -DZMALLOC_TEST $(FINAL_LIBS)
+	$(LATTE_CC)  -g -ggdb  -o  zmalloc_test  zmalloc_test.o zmalloc.o $(FINAL_LIBS)  -DZMALLOC_TEST 
 	@echo "================= test zmalloc start ================="
 	./zmalloc_test
 	@echo "================= test zmalloc end ================="

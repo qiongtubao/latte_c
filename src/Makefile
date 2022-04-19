@@ -50,11 +50,11 @@ zmalloc.o:
 
 util.o:
 	mkdir -p ./$(BUILD_DIR) 
-	cd util && $(MAKE) INSTALL_DIR=../$(BUILD_DIR) install
+	cd util && $(MAKE) INSTALL_DIR=../$(BUILD_DIR) MALLOC=$(MALLOC) install
 
 sds.o:
 	mkdir -p ./$(BUILD_DIR) 
-	cd sds && $(MAKE) INSTALL_DIR=../$(BUILD_DIR) install
+	cd sds && $(MAKE) INSTALL_DIR=../$(BUILD_DIR) MALLOC=$(MALLOC) install
 
 
 all: $(ALL_OBJ)
@@ -72,9 +72,9 @@ zmalloc_jemalloc_test:
 	$(MAKE) MALLOC=jemalloc zmalloc_test
 
 util_test:
-	cd util && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib latte_lib_test
+	cd util && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib MALLOC=$(MALLOC) latte_lib_test
 
 sds_test:
-	cd sds && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib latte_lib_test
+	cd sds && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib MALLOC=$(MALLOC) latte_lib_test
 
 test: $(ALL_TEST)

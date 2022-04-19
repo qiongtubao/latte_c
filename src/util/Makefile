@@ -3,7 +3,12 @@ LATTE_LIB_DIR?=./out/lib
 
 STD=-std=c99
 FINAL_CFLAGS+= $(STD) -I./include -I../ -I./ -I../zmalloc
-
+FINAL_LIBS := -ldl -lc -lm $(FINAL_LIBS)
+ifeq ($(MALLOC),jemalloc)
+	DEPENDENCY_TARGETS+= jemalloc
+	FINAL_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
+	FINAL_LIBS := ../../deps/jemalloc/lib/libjemalloc.a  -lpthread $(FINAL_LIBS)
+endif
 LATTE_CC=$(CC) $(FINAL_CFLAGS)
 UTIL_OBJ=util.o 
 AR=ar
@@ -45,7 +50,7 @@ clean:
 	rm -rf out
 
 test:  $(UTIL_OBJ) util_test.o	
-	$(LATTE_CC)  -g -ggdb  -o  util_test  util_test.o util.o -lm -ldl -DUTIL_TEST
+	$(LATTE_CC)  -g -ggdb  -o  util_test  util_test.o util.o -lc -lm -ldl $(FINAL_LIBS) -DUTIL_TEST
 	./util_test
 
 install: all

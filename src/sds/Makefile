@@ -3,6 +3,12 @@ LATTE_LIB_DIR?=./out/lib
 
 STD=-std=c99
 FINAL_CFLAGS+= $(STD) -I./include -I../ -I./ -I../zmalloc
+FINAL_LIBS := -ldl -lc -lm $(FINAL_LIBS)
+ifeq ($(MALLOC),jemalloc)
+	DEPENDENCY_TARGETS+= jemalloc
+	FINAL_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
+	FINAL_LIBS := ../../deps/jemalloc/lib/libjemalloc.a  -lpthread $(FINAL_LIBS)
+endif
 
 LATTE_CC=$(CC) $(FINAL_CFLAGS)
 SDS_OBJ=sds.o 
@@ -45,7 +51,7 @@ clean:
 	rm -rf out
 
 test:  $(SDS_OBJ) ./sds_test.o zmalloc
-	$(LATTE_CC)  -g -ggdb  -o  sds_test  sds_test.o sds.o ../zmalloc/zmalloc.o -lm -ldl -DSDS_TEST
+	$(LATTE_CC)  -g -ggdb  -o  sds_test  sds_test.o sds.o ../zmalloc/zmalloc.o -lm -ldl -lpthread -DSDS_TEST $(FINAL_LIBS)
 	@echo "================= test sds start ================="
 	./sds_test
 	@echo "=================  test sds end  ================="
@@ -58,14 +64,14 @@ install: all
 	cp sds.o $(INSTALL_DIR)/out
 
 zmalloc:
-	cd ../zmalloc && $(MAKE) 
+	cd ../zmalloc && $(MAKE) MALLOC=$(MALLOC)
 
 build_lib: all zmalloc
 	mkdir -p out/lib
 	$(AR) $(ARFLAGS) ./out/lib/liblatte.a sds.o ../zmalloc/zmalloc.o
 
 latte_lib_test: ./sds_test.o	
-	$(LATTE_CC) -g -ggdb  -o  sds_test sds_test.o $(LATTE_LIB_DIR)/liblatte.a -lm -ldl -DSDS_TEST
+	$(LATTE_CC) -g -ggdb  -o  sds_test sds_test.o $(LATTE_LIB_DIR)/liblatte.a -lm -ldl  $(FINAL_LIBS) -DSDS_TEST 
 	@echo "================= test sds start ================="
 	./sds_test
 	@echo "=================  test sds end  ================="
