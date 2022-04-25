@@ -77,4 +77,7 @@ util_test:
 sds_test:
 	cd sds && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib MALLOC=$(MALLOC) latte_lib_test
 
+dict_test:
+	cd dict && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) test
+
 test: $(ALL_TEST)

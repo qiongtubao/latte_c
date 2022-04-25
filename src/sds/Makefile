@@ -4,6 +4,10 @@ LATTE_LIB_DIR?=./out/lib
 STD=-std=c99
 FINAL_CFLAGS+= $(STD) -I./include -I../ -I./ -I../zmalloc
 FINAL_LIBS := -ldl -lc -lm $(FINAL_LIBS)
+
+ifeq ($(USE_VALGRIND), yes) 
+	VALGRIND = valgrind --track-origins=yes --show-reachable=no --show-possibly-lost=no --leak-check=full 
+endif 
 ifeq ($(MALLOC),jemalloc)
 	DEPENDENCY_TARGETS+= jemalloc
 	FINAL_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
@@ -53,7 +57,7 @@ clean:
 test:  $(SDS_OBJ) ./sds_test.o zmalloc
 	$(LATTE_CC)  -g -ggdb  -o  sds_test  sds_test.o sds.o ../zmalloc/zmalloc.o -lm -ldl -lpthread -DSDS_TEST $(FINAL_LIBS)
 	@echo "================= test sds start ================="
-	./sds_test
+	$(VALGRIND) ./sds_test
 	@echo "=================  test sds end  ================="
 
 install: all
@@ -73,5 +77,5 @@ build_lib: all zmalloc
 latte_lib_test: ./sds_test.o	
 	$(LATTE_CC) -g -ggdb  -o  sds_test sds_test.o $(LATTE_LIB_DIR)/liblatte.a -lm -ldl  $(FINAL_LIBS) -DSDS_TEST 
 	@echo "================= test sds start ================="
-	./sds_test
+	$(VALGRIND) ./sds_test
 	@echo "=================  test sds end  ================="

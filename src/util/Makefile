@@ -4,6 +4,10 @@ LATTE_LIB_DIR?=./out/lib
 STD=-std=c99
 FINAL_CFLAGS+= $(STD) -I./include -I../ -I./ -I../zmalloc
 FINAL_LIBS := -ldl -lc -lm $(FINAL_LIBS)
+
+ifeq ($(USE_VALGRIND), yes) 
+	VALGRIND = valgrind --track-origins=yes --show-reachable=no --show-possibly-lost=no --leak-check=full 
+endif 
 ifeq ($(MALLOC),jemalloc)
 	DEPENDENCY_TARGETS+= jemalloc
 	FINAL_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
@@ -51,7 +55,7 @@ clean:
 
 test:  $(UTIL_OBJ) util_test.o	
 	$(LATTE_CC)  -g -ggdb  -o  util_test  util_test.o util.o -lc -lm -ldl $(FINAL_LIBS) -DUTIL_TEST
-	./util_test
+	$(VALGRIND) ./util_test
 
 install: all
 	@mkdir -p $(INSTALL_DIR)
@@ -70,5 +74,5 @@ build_lib: all
 latte_lib_test: util_test.o
 	$(LATTE_CC) -g -ggdb  -o  util_test util_test.o $(LATTE_LIB_DIR)/liblatte.a -lm -ldl -DUTIL_TEST
 	@echo "================= test util start ================="
-	./util_test
+	$(VALGRIND) ./util_test
 	@echo "=================  test util end  ================="

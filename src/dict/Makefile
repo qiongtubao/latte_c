@@ -6,6 +6,10 @@ STD=-std=c99
 
 FINAL_CFLAGS+= $(STD) -I../ -I../zmalloc
 FINAL_LIBS := -ldl -lc -lm $(FINAL_LIBS)
+
+ifeq ($(USE_VALGRIND), yes) 
+	VALGRIND = valgrind --track-origins=yes --show-reachable=no --show-possibly-lost=no --leak-check=full 
+endif 
 ifeq ($(MALLOC),jemalloc)
 	DEPENDENCY_TARGETS+= jemalloc
 	FINAL_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
@@ -47,5 +51,5 @@ clean:
 test:  $(OBJS) ./dict_test.o zmalloc
 	$(LATTE_CC)  -g -ggdb  -o  dict_test  dict_test.o $(OBJS) ../zmalloc/zmalloc.o -lm -ldl -lpthread -DDICT_TEST $(FINAL_LIBS)
 	@echo "================= test sds start ================="
-	./dict_test
+	$(VALGRIND) ./dict_test
 	@echo "=================  test sds end  ================="

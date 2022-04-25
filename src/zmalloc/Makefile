@@ -3,6 +3,10 @@
 STD=-std=c99
 FINAL_CFLAGS+= $(STD) -I./include -I./ -I../
 FINAL_LIBS:= -lc -ldl $(FINAL_LIBS) 
+
+ifeq ($(USE_VALGRIND), yes) 
+	VALGRIND = valgrind --track-origins=yes --show-reachable=no --show-possibly-lost=no --leak-check=full 
+endif 
 ifeq ($(MALLOC),jemalloc)
 	DEPENDENCY_TARGETS+= jemalloc
 	FINAL_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
@@ -46,13 +50,14 @@ all: $(ZMALLOC_OBJ)
 
 clean:
 	rm -rf $(ZMALLOC_LIB) $(ZMALLOC_OBJ) ./zmalloc_test.o
+	rm -rf *.d
 	rm -rf zmalloc_test 
 	rm -rf out
 
 test:$(ZMALLOC_OBJ) zmalloc_test.o
 	$(LATTE_CC)  -g -ggdb  -o  zmalloc_test  zmalloc_test.o zmalloc.o $(FINAL_LIBS)  -DZMALLOC_TEST 
 	@echo "================= test zmalloc start ================="
-	./zmalloc_test
+	$(VALGRIND) ./zmalloc_test
 	@echo "================= test zmalloc end ================="
 
 jemalloc_test:
@@ -76,7 +81,7 @@ build_lib: all zmalloc
 latte_lib_test: zmalloc_test.o	
 	$(LATTE_CC) -g -ggdb  -o  zmalloc_test zmalloc_test.o  $(LATTE_LIB_DIR)/liblatte.a  $(FINAL_LIBS) -lm -ldl -lpthread -DLATTE_TEST 
 	@echo "================= test zmalloc start ================="
-	./zmalloc_test
+	$(VALGRIND) ./zmalloc_test
 	@echo "=================  test zmalloc end  ================="
 
 jemalloc_lib_test:

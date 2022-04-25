@@ -203,6 +203,9 @@ extern dictType dictTypeHeapStringCopyKey;
 extern dictType dictTypeHeapStrings;
 extern dictType dictTypeHeapStringCopyKeyValue;
 
+/* public dict_test use */
+long long timeInMilliseconds(void);
+
 #ifdef REDIS_TEST
 int dictTest(int argc, char *argv[], int accurate);
 #endif
