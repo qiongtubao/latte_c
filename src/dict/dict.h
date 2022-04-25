@@ -162,10 +162,71 @@ typedef void (dictScanBucketFunction)(void *privdata, dictEntry **bucketref);
 #endif
 
 /* API */
+/**
+ * @brief 
+ * 
+ * @param type 
+ * @param privDataPtr 
+ * @return dict*
+ * @example
+ *      dict *dict = dictCreate(&testDict, NULL);
+ *      assert((long)dictSize(dict) == 0);
+ *      dictRelease(dict);
+ */
 dict *dictCreate(dictType *type, void *privDataPtr);
+/**
+ * @brief 
+ * 
+ * @param d 
+ * @param size 
+ * @return int
+ * @example 
+ *      dict *dict = dictCreate(&testDict, NULL); 
+ *      assert(dict->ht[0].size == 0);
+ *      assert(dict->ht[1].size == 0);
+ *      dictExpand(dict, 100);
+ *      //2 ^ x
+ *      assert(dict->ht[0].size == 128);
+ *      assert(dict->ht[1].size == 0);
+ *      dictRelease(dict);
+ */
 int dictExpand(dict *d, unsigned long size);
+
 int dictTryExpand(dict *d, unsigned long size);
+/**
+ * @brief 
+ * 
+ * @param d 
+ * @param key 
+ * @param val 
+ * @return int
+ * @example
+ *      dict *dict = dictCreate(&testDict, NULL);
+ *      long count = 5000;
+ *      //dict add long long
+ *      for (int j = 0; j < count; j++) {
+ *          dictEntry* de = dictAddOrFind(dict, stringFromLongLong(j));
+ *          dictSetSignedIntegerVal(de, (long long)j);
+ *      }
+ *      assert((long)dictSize(dict) == count);
+ *      return 1;
+ */
 int dictAdd(dict *d, void *key, void *val);
+/**
+ * @brief 
+ * 
+ * @param d 
+ * @param key 
+ * @param existing 
+ * @return dictEntry* 
+ * @example
+ *      dict* d = dictCreate(&testDict, NULL);
+ *      char* key = "key";
+ *      dictEntry *entry = dictAddRaw(d,key,NULL);
+ *      assert(entry != NULL);
+ *      dictEntry *e = dictAddRaw(d, key, NULL);
+ *      assert(e == NULL);
+ */
 dictEntry *dictAddRaw(dict *d, void *key, dictEntry **existing);
 dictEntry *dictAddOrFind(dict *d, void *key);
 int dictReplace(dict *d, void *key, void *val);

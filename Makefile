@@ -7,15 +7,23 @@ latte_sds:
 latte_sds_test:latte_sds
 	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) USE_SDS=yes sds_test
 
-latte_zmalloc_test:all
+
+latte_dict:
+	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) USE_DICT=yes MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) USE_DICT=yes all 
+
+latte_dict_test: latte_dict 
+	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) USE_DICT=yes MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) dict_test
+
+latte_zmalloc:
+	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) USE_DICT=yes MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) all 
+
+latte_zmalloc_test: latte_zmalloc 
 	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) zmalloc_test
 
-latte_dict_test:all
-	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) dict_test
 
 
 all:
-	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) MALLOC=$(MALLOC) USE_SDS=yes  $@
+	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) MALLOC=$(MALLOC) USE_SDS=yes  USE_DICT=yes $@
 
 test: all
 	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) USE_SDS=yes test

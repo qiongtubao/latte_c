@@ -7,6 +7,11 @@ ifeq ($(USE_SDS),yes)
 	ALL_TEST+=sds_test
 endif
 
+ifeq ($(USE_DICT),yes) 
+	ALL_OBJ+=dict.o siphash.o mt19937-64.o
+	ALL_TEST+=dict_test 
+endif 
+
 STD=-std=c99
 FINAL_CFLAGS+= $(STD) -I./include -I./
 
@@ -56,6 +61,15 @@ sds.o:
 	mkdir -p ./$(BUILD_DIR) 
 	cd sds && $(MAKE) INSTALL_DIR=../$(BUILD_DIR) MALLOC=$(MALLOC) install
 
+dict.o:
+	mkdir -p ./$(BUILD_DIR) 
+	cd dict && $(MAKE) INSTALL_DIR=../$(BUILD_DIR) MALLOC=$(MALLOC) install
+
+mt19937-64.o: dict.o 
+	echo "dict dependent mt19937-64"
+
+siphash.o: dict.o
+	echo "dict dependent siphash"
 
 all: $(ALL_OBJ)
 	echo "all"
@@ -78,6 +92,6 @@ sds_test:
 	cd sds && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib MALLOC=$(MALLOC) latte_lib_test
 
 dict_test:
-	cd dict && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) test
+	cd dict && $(MAKE) LATTE_LIB_DIR=../$(BUILD_DIR)/lib MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) latte_lib_test
 
 test: $(ALL_TEST)

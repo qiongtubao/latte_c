@@ -48,6 +48,21 @@ clean:
 	rm -rf dict_test 
 	rm -rf out
 
+install: all
+	@mkdir -p $(INSTALL_DIR)
+	@mkdir -p $(INSTALL_DIR)/include 
+	@mkdir -p $(INSTALL_DIR)/out
+	cp dict.h $(INSTALL_DIR)/include
+	cp dict.o $(INSTALL_DIR)/out
+	cp mt19937-64.o $(INSTALL_DIR)/out 
+	cp siphash.o $(INSTALL_DIR)/out 
+
+latte_lib_test: dict_test.o
+	$(LATTE_CC) -g -ggdb  -o  dict_test dict_test.o $(LATTE_LIB_DIR)/liblatte.a -lm -ldl  $(FINAL_LIBS) -DDICT_TEST 
+	@echo "================= test sds start ================="
+	$(VALGRIND) ./dict_test
+	@echo "=================  test sds end  ================="
+
 test:  $(OBJS) ./dict_test.o zmalloc
 	$(LATTE_CC)  -g -ggdb  -o  dict_test  dict_test.o $(OBJS) ../zmalloc/zmalloc.o -lm -ldl -lpthread -DDICT_TEST $(FINAL_LIBS)
 	@echo "================= test sds start ================="

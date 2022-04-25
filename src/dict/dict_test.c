@@ -20,7 +20,10 @@ int testCompareCallback(void *privdata, const void *key1, const void *key2) {
 
 void testFreeCallback(void* privdata, void* val) {
     DICT_NOTUSED(privdata);
-    zfree(val);
+    printf("delete :%p\n", val);
+    if(val != NULL) {
+        zfree(val);
+    }
 }
 
 /**
@@ -59,24 +62,71 @@ char* stringFromLongLong(long long value) {
     printf(msg ": %ld items in %lld ms\n", count, elapsed); \
 } while(0)
 
+
 int test_dictCreate() {
-    
     dict *dict = dictCreate(&testDict, NULL);
-
-    long count = 5000;
-    long long start, elapsed;
-    start_benchmark();
-    for (int j = 0; j < count; j++) {
-        int retval = dictAdd(dict,  stringFromLongLong(j), (void*)j);
-        assert(retval == DICT_OK);
-    }
-    end_benchmark("Inserting");
-    assert((long)dictSize(dict) == count);
-
-
+    assert((long)dictSize(dict) == 0);
     dictRelease(dict);
     return 1;
 }
+
+int test_dictExpand() {
+    dict *dict = dictCreate(&testDict, NULL);
+    
+    assert(dict->ht[0].size == 0);
+    assert(dict->ht[1].size == 0);
+    dictExpand(dict, 100);
+    //2 ^ x
+    assert(dict->ht[0].size == 128);
+    assert(dict->ht[1].size == 0);
+    dictRelease(dict);
+    return 1;
+}
+
+int test_dictAdd() {
+    dict *dict = dictCreate(&testDict, NULL);
+    long count = 5000;
+    //dict add long long
+    // for (int j = 0; j < count; j++) {
+    //     dictEntry* de = dictAddOrFind(dict, stringFromLongLong(j));
+    //     dictSetSignedIntegerVal(de, (long long)j);
+    // }
+    // assert((long)dictSize(dict) == count);
+    dictRelease(dict);
+    return 1;
+}
+
+int test_dictAdd_speed() {
+    dict *dict = dictCreate(&testDict, NULL);
+    long count = 5000;
+    long long start, elapsed;
+    start_benchmark();
+    //dict add long long
+    // for (int j = 0; j < count; j++) {
+    //     dictEntry* de = dictAddOrFind(dict, stringFromLongLong(j));
+    //     dictSetSignedIntegerVal(de, (long long)j);
+    // }
+    // assert((long)dictSize(dict) == count);
+    end_benchmark("\nInserting");
+    dictRelease(dict);
+    return 1;
+}
+
+int test_dictAddRaw() {
+    dict* dict = dictCreate(&testDict, NULL);
+    char* key = stringFromLongLong(100);
+    dictEntry* entry = dictAddRaw(dict, key, NULL);
+    assert(entry != NULL);
+    assert(dictAddRaw(dict, key, NULL) == NULL);
+    dictRelease(dict);
+    return 1;
+}
+
+int test_dictAddOrFind() {
+    
+    return 1;
+}
+
 
 int test_api(void) {
     {
@@ -85,6 +135,16 @@ int test_api(void) {
         #endif
         test_cond("dictCreate function", 
             test_dictCreate() == 1);
+        test_cond("dictAdd function",
+            test_dictAdd() == 1);
+        test_cond("dictExpand function",
+            test_dictExpand() == 1);
+        test_cond("dictAddRaw function",
+            test_dictAddRaw() == 1);
+        test_cond("dictAddOrFind function",
+            test_dictAddOrFind() == 1);
+        test_cond("dictAdd speed",
+            test_dictAdd_speed() == 1);
         
     } test_report()
     return 1;
