@@ -222,7 +222,7 @@ int dictAdd(dict *d, void *key, void *val);
  * @example
  *      dict* d = dictCreate(&testDict, NULL);
  *      char* key = "key";
- *      dictEntry *entry = dictAddRaw(d,key,NULL);
+ *      dictEntry *entry = +(d,key,NULL);
  *      assert(entry != NULL);
  *      dictEntry *e = dictAddRaw(d, key, NULL);
  *      assert(e == NULL);

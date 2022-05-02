@@ -1,3 +1,6 @@
+# Test 
+*_test 
+
 # Prerequisites
 *.d
 
@@ -46,3 +49,6 @@ out
 *.make-cflags
 *.make-ldflags
 *.make-prerequisites
+
+# Perf
+perf.*

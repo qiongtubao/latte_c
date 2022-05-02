@@ -7,6 +7,8 @@ latte_sds:
 latte_sds_test:latte_sds
 	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) USE_SDS=yes sds_test
 
+latte_perf_sds_test:latte_sds
+	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) USE_SDS=yes perf_sds_test
 
 latte_dict:
 	cd src && $(MAKE) BUILD_DIR=$(BUILD_DIR) USE_DICT=yes MALLOC=$(MALLOC) USE_VALGRIND=$(USE_VALGRIND) USE_DICT=yes all 

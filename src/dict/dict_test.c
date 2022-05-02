@@ -123,7 +123,12 @@ int test_dictAddRaw() {
 }
 
 int test_dictAddOrFind() {
-    
+    dict* dict = dictCreate(&testDict, NULL);
+    char* key = stringFromLongLong(100);
+    dictEntry* create_entry = dictAddOrFind(dict, key);
+    assert(create_entry != NULL);
+    dictEntry* find_entry = dictAddOrFind(dict, key);
+    assert(find_entry != NULL);
     return 1;
 }
 

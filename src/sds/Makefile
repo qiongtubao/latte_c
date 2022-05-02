@@ -53,6 +53,7 @@ clean:
 	rm -rf $(SDS_LIB) $(SDS_OBJ) ./sds_test.o
 	rm -rf sds_test 
 	rm -rf out
+	sudo ../../scripts/clean_perf.sh 
 
 test:  $(SDS_OBJ) ./sds_test.o zmalloc
 	$(LATTE_CC)  -g -ggdb  -o  sds_test  sds_test.o sds.o ../zmalloc/zmalloc.o -lm -ldl -lpthread -DSDS_TEST $(FINAL_LIBS)
@@ -74,8 +75,14 @@ build_lib: all zmalloc
 	mkdir -p out/lib
 	$(AR) $(ARFLAGS) ./out/lib/liblatte.a sds.o ../zmalloc/zmalloc.o
 
-latte_lib_test: ./sds_test.o	
-	$(LATTE_CC) -g -ggdb  -o  sds_test sds_test.o $(LATTE_LIB_DIR)/liblatte.a -lm -ldl  $(FINAL_LIBS) -DSDS_TEST 
+latte_lib_test: ./sds_test.o 	
+	$(LATTE_CC) -g -ggdb  -o  sds_test sds_test.o $(LATTE_LIB_DIR)/liblatte.a -lm -ldl -fno-omit-frame-pointer $(FINAL_LIBS) -DSDS_TEST 
 	@echo "================= test sds start ================="
 	$(VALGRIND) ./sds_test
+	@echo "=================  test sds end  ================="
+
+latte_perf_test: latte_lib_test
+	sudo ../../scripts/clean_perf.sh  
+	@echo "================= test sds start ================="
+	../../scripts/perf.sh ./sds_test
 	@echo "=================  test sds end  ================="
