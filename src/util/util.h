@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "config.h"
+
 
 #ifdef LATTE_TEST
     uint32_t digits10(uint64_t v);

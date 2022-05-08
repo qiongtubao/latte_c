@@ -250,6 +250,20 @@ sds sdscat(sds s, const char *t);
 sds sdscatfmt(sds s, char const *fmt, ...);
 
 /**
+ * @brief 
+ * 
+ * @param s 
+ * @param t 
+ * @param len 
+ * @return sds
+ * @example
+ *      sds x = sdsempty();
+ *      x = sdscatlen(x, "helloabcded", 5);
+ *      assert(memcpy(x, "hello\0",6));
+ */
+sds sdscatlen(sds s, const void *t, size_t len);
+
+/**
  *
  * @param s
  * @param len
@@ -323,6 +337,17 @@ sds sdstrim(sds s, const char *cset);
 // void sdsfreesplitres(sds *tokens, int count);
 // void sdstolower(sds s);
 
-
+/**
+ * @brief 
+ * 
+ * @param s
+ * @example 
+ *   sds x = sdsnew("hello");
+ *   assert(sdslen(x) == 5);
+ *   sdsclear(x);
+ *   assert(sdslen(x) == 0);
+ *  
+ */
+void sdsclear(sds s);
 
 #endif //CMAKE_SDS_H

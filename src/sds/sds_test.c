@@ -86,10 +86,25 @@ int test_sdscatsds(void) {
     return 1;
 }
 
+int test_sdscatlen(void) {
+    sds x = sdsempty();
+    x = sdscatlen(x, "helloabcded", 5);
+    assert(memcpy(x, "hello\0",6));
+    return 1;
+}
+
 int test_sdstrim(void) {
     sds s = sdsnew("AA...AA.a.aa.aHelloWorld     :::");
     s = sdstrim(s,"Aa. :");
     assert(memcmp(s, "HelloWorld\0", 11) == 0);
+    return 1;
+}
+
+int test_sdsclear(void) {
+    sds x = sdsnew("hello");
+    assert(sdslen(x) == 5);
+    sdsclear(x);
+    assert(sdslen(x) == 0);
     return 1;
 }
 
@@ -110,6 +125,8 @@ int test_api(void) {
             test_sdsempty() == 1);
         test_cond("sdscatfmt function",
             test_sdscatfmt() == 1);
+        test_cond("sdscatlen function", 
+            test_sdscatlen() == 1);
         test_cond("sdssplitlen function",
             test_sdssplitlen() == 1);
         test_cond("sdscmp function",
@@ -120,6 +137,8 @@ int test_api(void) {
             test_sdscatsds() == 1);
         test_cond("sdstrim function",
             test_sdstrim() == 1);
+        test_cond("sdsclear function",
+            test_sdsclear() == 1);
     } test_report()
     return 1;
 }

@@ -221,6 +221,15 @@ sds sdscpy(sds s, const char *t) {
     return sdscpylen(s, t, strlen(t));
 }
 
+/* Modify an sds string in-place to make it empty (zero length).
+ * However all the existing buffer is not discarded but set as free space
+ * so that next append operations will not require allocations up to the
+ * number of bytes previously available. */
+void sdsclear(sds s) {
+    sdssetlen(s, 0);
+    s[0] = '\0';
+}
+
 sds sdscatvprintf(sds s, const char *fmt, va_list ap) {
     va_list cpy;
     char staticbuf[1024], *buf = staticbuf, *t;
