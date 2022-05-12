@@ -1,5 +1,0 @@
-mkdir build & cd build & cmake -DUSE_JEMALLOC=ON ../
-
-
-
-gcc -o  gcc options.c -o options
