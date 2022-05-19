@@ -1,5 +1,6 @@
 #include "dlinkedList.h"
 #include <stdlib.h>
+#include <zmalloc.h>
 
 int dlinkedListSize(list* list) {
     struct dlinkedList* dl = (struct dlinkedList *)list;
@@ -8,7 +9,7 @@ int dlinkedListSize(list* list) {
 
 
 
-list* dlinkedInsertNode(struct dlinkedList* list, struct dlinkedListNode *old_node, void* value, int after) {
+list* dlinkedInsertNode(struct dlinkedList* dl, struct dlinkedListNode *old_node, void* value, int after) {
     struct dlinkedListNode *node;
     if ((node = zmalloc(sizeof(*node))) == NULL) {
         return NULL;
@@ -17,14 +18,14 @@ list* dlinkedInsertNode(struct dlinkedList* list, struct dlinkedListNode *old_no
     if (after) {
         node->prev = old_node;
         node->next = old_node->next;
-        if (list->tail == old_node) {
-            list->tail = node;
+        if (dl->tail == old_node) {
+            dl->tail = node;
         }
     } else {
         node->next = old_node;
         node->prev = old_node->prev;
-        if (list->head == old_node) {
-            list->head = node;
+        if (dl->head == old_node) {
+            dl->head = node;
         }
     }
     if (node->prev != NULL) {
@@ -33,13 +34,11 @@ list* dlinkedInsertNode(struct dlinkedList* list, struct dlinkedListNode *old_no
     if (node->next != NULL) {
         node->next->prev = node;
     }
-    list->len++;
-    return list;
+    dl->len++;
+    return (list*)dl;
 }
 
-list* dlinkedListAddNodeTail(struct dlinkedList* dl, void* value) {
 
-}
 
 list* dlinkedListAddNodeHead(struct dlinkedList* dl, void* value) {
     struct dlinkedListNode *node;
@@ -56,7 +55,7 @@ list* dlinkedListAddNodeHead(struct dlinkedList* dl, void* value) {
         dl->head = node;
     }
     dl->len++;
-    return dl;
+    return (list*)dl;
 }
 
 list* dlinkedListAddNodeTail(struct dlinkedList* dl, void* value) {
@@ -74,21 +73,26 @@ list* dlinkedListAddNodeTail(struct dlinkedList* dl, void* value) {
         dl->tail = node;
     }
     dl->len++;
-    return dl;
+    return (list*)dl;
 }
 
 // dlinkedListIter (*listIter)(list* list);
-list* dlinkedListInsert(list* list, void* node, void* value, int after) {
+list* dlinkedListInsert(list* list, int index, void* value) {
     struct dlinkedList* dl = (struct dlinkedList *)list;
-    if (node == NULL) {
-        if (after) {
-            return dlinkedListAddNodeTail(dl, value);
-        } else {
-            return dlinkedListAddNodeHead(dl, value);
-        }
+    if (index == 0) {
+        return dlinkedListAddNodeHead(dl, value);
+    } else if (index == -1) {
+        return dlinkedListAddNodeTail(dl, value);
     } else {
-        return dlinkedInsertNode(dl, node, value, after);
-    }
+        struct dlinkedListNode* node;
+        if(index > 0)  {
+            node = (struct dlinkedListNode*)listIndex(list, index - 1);    
+        } else {
+            node = (struct dlinkedListNode*)listIndex(list,  listSize(list) + index);
+        }
+        if (node == NULL) return NULL;
+        return dlinkedInsertNode(dl, node, value, 1);
+    } 
 }
 
 
@@ -111,26 +115,54 @@ void* dlinkedRemove(list* list, void* node) {
     return dlnode->value;
 }
 
-
-listIter* dlinkedListIter(list* list, int direction) {
-    
+void* dlinkedListNext(listIter *iter) {
+    struct dlinkedListIter* dliter = (struct dlinkedListIter*) iter;
+    struct dlinkedListNode* current = dliter->next;
+    if (current != NULL) {
+        if (dliter->direction == AL_START_HEAD) {
+            dliter->next = current->next;
+        } else {
+            dliter->next = current->prev;
+        }
+    }
+    return current;
 }
 
-void dlinkedReleaseIter(list* list, listIter* iter) {
-    struct dlinkedList* dl = zmalloc(sizeof(struct dlinkedList));
+listIter* dlinkedListGetIter(list* list, int direction) {
+    struct dlinkedListIter* iter;
+    struct dlinkedList* dl = (struct dlinkedList*)list;
+    if ((iter = zmalloc(sizeof(*iter))) == NULL) return NULL;
+    if (direction == AL_START_HEAD) {
+        iter->next = dl->head;
+    } else {
+        iter->next = dl->tail;
+    }
+    iter->direction = direction;
+    iter->iter.next = dlinkedListNext;
+    return (listIter*)iter;
+}
+
+void dlinkedReleaseIter(void* it) {
+    zfree(it);
+}
+
+void* dlinkedListGetNodeValue(void* n) {
+    struct dlinkedListNode* node = (struct dlinkedListNode*)n;
+    return node->value;
 }
 
 // public 
 
 list* createDlinkedList() {
     struct dlinkedList* dl = zmalloc(sizeof(struct dlinkedList));
-    dl->list.insert = dlinkedInsertNode;
+    dl->list.insert = dlinkedListInsert;
     dl->list.remove = dlinkedRemove;
     dl->list.size = dlinkedListSize;
-    dl->list.listIter = dlinkedListIter;
+    dl->list.listIter = dlinkedListGetIter;
     dl->list.releaseIter = dlinkedReleaseIter;
+    dl->list.getNodeValue = dlinkedListGetNodeValue;
     dl->head = NULL;
     dl->tail = NULL;
     dl->len = 0;
-    return dl;
+    return (list*)dl;
 }

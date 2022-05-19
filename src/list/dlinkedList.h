@@ -6,6 +6,12 @@ struct dlinkedListNode {
     void *value;
 } dlinkedListNode;
 
+struct dlinkedListIter {
+    listIter iter;
+    struct dlinkedListNode *next;
+    int direction;
+} dlinkedListIter;
+
 struct dlinkedList {
     list list;
     struct dlinkedListNode *head;
