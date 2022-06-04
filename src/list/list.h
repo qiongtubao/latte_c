@@ -49,6 +49,8 @@ list *listInsertNode(list* list, int index, void* value);
 long listSize(list* list);
 void* listIndex(list* list, long index);
 void* listGetNodeValue(list* list, void* node);
+void* listSearchKey(list *list, void *key, match_func match);
+void listDelNode(list *list, void* node);
 
 //double linked list
 list* createDlinkedList();
