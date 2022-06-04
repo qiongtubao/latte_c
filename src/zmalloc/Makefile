@@ -1,7 +1,7 @@
 
 
 STD=-std=c99
-FINAL_CFLAGS+= $(STD) -I./include -I./ -I../
+FINAL_CFLAGS+= $(STD) -I./include -I./ -I../ -I../include
 FINAL_LIBS:= -lc -ldl $(FINAL_LIBS) 
 
 ifeq ($(USE_VALGRIND), yes) 
