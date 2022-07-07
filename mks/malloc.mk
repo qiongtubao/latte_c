@@ -33,6 +33,24 @@ endif
 
 
 
+# use MALLOC
+ifeq ($(MALLOC),tcmalloc)
+	FINAL_CC_CFLAGS+= -DUSE_TCMALLOC
+	FINAL_CC_LIBS+= -ltcmalloc
+endif
+
+ifeq ($(MALLOC),tcmalloc_minimal)
+	FINAL_CC_CFLAGS+= -DUSE_TCMALLOC
+	FINAL_CC_LIBS+= -ltcmalloc_minimal
+endif
+
+ifeq ($(MALLOC),jemalloc)
+	DEPENDENCY_TARGETS+= jemalloc
+	FINAL_CC_CFLAGS+= -DUSE_JEMALLOC -I../deps/jemalloc/include
+	FINAL_CC_LIBS := ../deps/jemalloc/lib/libjemalloc.a $(FINAL_LIBS)
+endif
+
+
 # 1. make info USE_JEMALLOC=yes
 # 2. make info USE_TCMALLOC_MINIMAL=yes
 # 3. make info USE_TCMALLOC=yes

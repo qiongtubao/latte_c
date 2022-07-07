@@ -1,5 +1,5 @@
-#include "test/testhelp.h"
-#include "test/testassert.h"
+#include "../test/testhelp.h"
+#include "../test/testassert.h"
 #include "zmalloc.h"
 
 
@@ -12,7 +12,10 @@ int test_zmalloc() {
     strcpy(str, c);
     str[strlen(c)] = '\0';
     assert(strcmp(str, c) == 0);
+    size_t after = zmalloc_used_memory();
+    assert(100 <= after-before);
     zfree(str);
+    assert(before == zmalloc_used_memory());
     return 1;
 }
 
