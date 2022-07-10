@@ -46,8 +46,8 @@ endif
 
 ifeq ($(MALLOC),jemalloc)
 	DEPENDENCY_TARGETS+= jemalloc
-	FINAL_CC_CFLAGS+= -DUSE_JEMALLOC -I../deps/jemalloc/include
-	FINAL_CC_LIBS := ../deps/jemalloc/lib/libjemalloc.a $(FINAL_LIBS)
+	FINAL_CC_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
+	FINAL_CC_LIBS := ../../deps/jemalloc/lib/libjemalloc.a $(FINAL_CC_LIBS)
 endif
 
 

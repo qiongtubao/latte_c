@@ -22,7 +22,7 @@ LATTE_INSTALL=$(QUIET_INSTALL)$(INSTALL)
 test: $(BUILD_OBJ) 
 	$(MAKE) $(BUILD_OBJ)  LATTE_CFLAGS="-fprofile-arcs -ftest-coverage"
 	$(MAKE) $(TEST_MAIN).o LATTE_CFLAGS="-fprofile-arcs -ftest-coverage"
-	$(LATTE_CC)  -fprofile-arcs -ftest-coverage $(DEBUG) -o $(TEST_MAIN) $(TEST_MAIN).o $(BUILD_OBJ) 
+	$(LATTE_CC)  -fprofile-arcs -ftest-coverage $(DEBUG) -o $(TEST_MAIN) $(TEST_MAIN).o $(BUILD_OBJ) $(FINAL_CC_LIBS)
 	./$(TEST_MAIN)
 	$(MAKE) latte_lcov
 	$(MAKE) latte_genhtml
