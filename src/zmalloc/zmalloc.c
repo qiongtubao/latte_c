@@ -28,7 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "fmacros.h"
+#include "utils/fmacros.h"
 #include "solarisfixes.h"
 
 #include <stdio.h>

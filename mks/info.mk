@@ -9,3 +9,5 @@ info:
 	@echo "CURDIR="$(CURDIR)
 	@echo "BUILD_OBJ="$(BUILD_OBJ)
 	@echo "TEST_MAIN="$(TEST_MAIN)
+	@echo "ALL_OBJ="$(ALL_OBJ)
+	@echo "BUILD_DIR="$(BUILD_DIR)

@@ -19,13 +19,17 @@ LATTE_INSTALL=$(QUIET_INSTALL)$(INSTALL)
 %.o: %.c .make-prerequisites
 	$(LATTE_CC) $(DEBUG) -MMD -o $@ -c $<  $(FINAL_CC_LIBS) 
 
-test: $(BUILD_OBJ) 
+test: $(BUILD_OBJ) $(LIB_OBJ)
 	$(MAKE) $(BUILD_OBJ)  LATTE_CFLAGS="-fprofile-arcs -ftest-coverage"
 	$(MAKE) $(TEST_MAIN).o LATTE_CFLAGS="-fprofile-arcs -ftest-coverage"
 	$(LATTE_CC)  -fprofile-arcs -ftest-coverage $(DEBUG) -o $(TEST_MAIN) $(TEST_MAIN).o $(BUILD_OBJ) $(FINAL_CC_LIBS)
 	./$(TEST_MAIN)
 	$(MAKE) latte_lcov
 	$(MAKE) latte_genhtml
+
+test_lib: $(TEST_MAIN).o
+	$(LATTE_CC)  -fprofile-arcs -ftest-coverage $(DEBUG) -o $(TEST_MAIN) $(TEST_MAIN).o $(BUILD_DIR)/lib/liblatte.a -lm -ldl -fno-omit-frame-pointer $(FINAL_CC_LIBS)
+	./$(TEST_MAIN)
 	
 latte_lcov:
 	lcov --capture --directory . \
@@ -46,3 +50,10 @@ clean:
 	
 distclean: clean
 	rm -f .make-*
+
+install_lib: $(BUILD_OBJ) $(LIB_OBJ)
+	cp -rf $(BUILD_OBJ) $(BUILD_DIR)
+	$(shell sh -c 'echo " $(BUILD_OBJ)" >> $(BUILD_DIR)/objs.list')
+
+
+

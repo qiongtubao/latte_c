@@ -1,13 +1,16 @@
 
-
-include ../../mks/sys.mk
-include ../../mks/final.mk
-include ../../mks/malloc.mk
-include ../../mks/latte.mk
-include ../../mks/info.mk
-
+WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=zmalloc.o 
 TEST_MAIN?=zmalloc_test
+
+
+include $(WORKSPACE)/mks/sys.mk
+include $(WORKSPACE)/mks/final.mk
+include $(WORKSPACE)/mks/malloc.mk
+include $(WORKSPACE)/mks/latte.mk
+include $(WORKSPACE)/mks/info.mk
+
+
 
 
 
