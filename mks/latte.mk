@@ -17,12 +17,14 @@ LATTE_INSTALL=$(QUIET_INSTALL)$(INSTALL)
 	@touch $@
 
 %.o: %.c .make-prerequisites
+	@echo $(LATTE_CC)
+	@echo $(LATTE_CFLAGS)
 	$(LATTE_CC) $(DEBUG) -MMD -o $@ -c $<  $(FINAL_CC_LIBS) 
 
-test: $(BUILD_OBJ) $(LIB_OBJ)
-	$(MAKE) $(BUILD_OBJ)  LATTE_CFLAGS="-fprofile-arcs -ftest-coverage"
+test: 
+	$(MAKE) $(BUILD_OBJ) $(LIB_OBJ) LATTE_CFLAGS="-fprofile-arcs -ftest-coverage"
 	$(MAKE) $(TEST_MAIN).o LATTE_CFLAGS="-fprofile-arcs -ftest-coverage"
-	$(LATTE_CC)  -fprofile-arcs -ftest-coverage $(DEBUG) -o $(TEST_MAIN) $(TEST_MAIN).o $(BUILD_OBJ) $(FINAL_CC_LIBS)
+	$(LATTE_CC)  -fprofile-arcs -ftest-coverage $(DEBUG) -o $(TEST_MAIN) $(TEST_MAIN).o $(BUILD_OBJ) $(LIB_OBJ) $(FINAL_CC_LIBS)
 	./$(TEST_MAIN)
 	$(MAKE) latte_lcov
 	$(MAKE) latte_genhtml
@@ -46,7 +48,7 @@ latte_genhtml:
 clean:
 	rm -rf *.o *.d
 	rm -rf $(TEST_MAIN)
-	rm -rf lcov_output *.gcno *.gcda lcov.info
+	rm -rf lcov_output *.gcno *.gcda lcov.info .make-prerequisites
 	
 distclean: clean
 	rm -f .make-*

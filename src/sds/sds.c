@@ -150,3 +150,107 @@ void sdsfree(sds s) {
     if (s == NULL) return;
     s_free((char*)s-sdsHdrSize(s[-1]));
 }
+
+/* Enlarge the free space at the end of the sds string so that the caller
+ * is sure that after calling this function can overwrite up to addlen
+ * bytes after the end of the string, plus one more byte for nul term.
+ *
+ * Note: this does not change the *length* of the sds string as returned
+ * by sdslen(), but only the free buffer space we have. */
+sds sdsMakeRoomFor(sds s, size_t addlen) {
+    void *sh, *newsh;
+    size_t avail = sdsavail(s);
+    size_t len, newlen, reqlen;
+    char type, oldtype = s[-1] & SDS_TYPE_MASK;
+    int hdrlen;
+    size_t usable;
+
+    /* Return ASAP if there is enough space left. */
+    if (avail >= addlen) return s;
+
+    len = sdslen(s);
+    sh = (char*)s-sdsHdrSize(oldtype);
+    reqlen = newlen = (len+addlen);
+    assert(newlen > len);   /* Catch size_t overflow */
+    if (newlen < SDS_MAX_PREALLOC)
+        newlen *= 2;
+    else
+        newlen += SDS_MAX_PREALLOC;
+
+    type = sdsReqType(newlen);
+
+    /* Don't use type 5: the user is appending to the string and type 5 is
+     * not able to remember empty space, so sdsMakeRoomFor() must be called
+     * at every appending operation. */
+    if (type == SDS_TYPE_5) type = SDS_TYPE_8;
+
+    hdrlen = sdsHdrSize(type);
+    assert(hdrlen + newlen + 1 > reqlen);  /* Catch size_t overflow */
+    if (oldtype==type) {
+        newsh = s_realloc_usable(sh, hdrlen+newlen+1, &usable);
+        if (newsh == NULL) return NULL;
+        s = (char*)newsh+hdrlen;
+    } else {
+        /* Since the header size changes, need to move the string forward,
+         * and can't use realloc */
+        newsh = s_malloc_usable(hdrlen+newlen+1, &usable);
+        if (newsh == NULL) return NULL;
+        memcpy((char*)newsh+hdrlen, s, len+1);
+        s_free(sh);
+        s = (char*)newsh+hdrlen;
+        s[-1] = type;
+        sdssetlen(s, len);
+    }
+    usable = usable-hdrlen-1;
+    if (usable > sdsTypeMaxSize(type))
+        usable = sdsTypeMaxSize(type);
+    sdssetalloc(s, usable);
+    return s;
+}
+
+/* Append the specified binary-safe string pointed by 't' of 'len' bytes to the
+ * end of the specified sds string 's'.
+ *
+ * After the call, the passed sds string is no longer valid and all the
+ * references must be substituted with the new pointer returned by the call. */
+sds sdscatlen(sds s, const void *t, size_t len) {
+    size_t curlen = sdslen(s);
+
+    s = sdsMakeRoomFor(s,len);
+    if (s == NULL) return NULL;
+    memcpy(s+curlen, t, len);
+    sdssetlen(s, curlen+len);
+    s[curlen+len] = '\0';
+    return s;
+}
+
+/* Append the specified null terminated C string to the sds string 's'.
+ *
+ * After the call, the passed sds string is no longer valid and all the
+ * references must be substituted with the new pointer returned by the call. */
+sds sdscat(sds s, const char *t) {
+    return sdscatlen(s, t, strlen(t));
+}
+
+/* Create an empty (zero length) sds string. Even in this case the string
+ * always has an implicit null term. */
+sds sdsempty(void) {
+    return sdsnewlen("",0);
+}
+
+
+/**
+ * @brief 
+ * 
+ * @param s
+ * @example 
+ *   sds x = sdsnew("hello");
+ *   assert(sdslen(x) == 5);
+ *   sdsclear(x);
+ *   assert(sdslen(x) == 0);
+ *  
+ */
+void sdsclear(sds s) {
+    sdssetlen(s, 0);
+    s[0] = '\0';
+}
