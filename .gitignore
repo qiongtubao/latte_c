@@ -4,6 +4,12 @@
 # Prerequisites
 *.d
 
+# lcov
+*.gcda
+*.gcno
+lcov_output/
+lcov.info
+
 # Compiled Object files
 *.slo
 *.lo

@@ -1,9 +1,12 @@
+
+
+
 #include "test/testhelp.h"
 #include "test/testassert.h"
 
 #include <stdio.h>
 #include "dict.h"
-#include "zmalloc.h"
+#include "zmalloc/zmalloc.h"
 
 uint64_t testHashCallback(const void *key) {
     return dictGenCaseHashFunction((unsigned char*)key, strlen((char*)key));

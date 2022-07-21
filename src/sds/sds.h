@@ -1,9 +1,5 @@
-//
-// Created by 周国栋 on 2020/6/26.
-//
 
-#ifndef CMAKE_SDS_H
-#define CMAKE_SDS_H
+
 #define SDS_MAX_PREALLOC (1024*1024)
 #include <sys/types.h>
 #include <stdarg.h>
@@ -13,8 +9,11 @@
 #define s_malloc zmalloc
 #define s_realloc zrealloc
 #define s_free zfree
+#define s_malloc_usable zmalloc_usable
+#define s_trymalloc_usable ztrymalloc_usable
 
 typedef char *sds;
+
 struct __attribute__ ((__packed__)) sdshdr5 {
     unsigned char flags; /* 3 lsb of type, and 5 msb of string length */
     char buf[];
@@ -207,6 +206,8 @@ void sdsfree(sds s);
  *     assert(memcmp(x, "foo\0", 4) == 0);
  */
 sds sdsnewlen(const void *init, size_t initlen);
+sds sdstrynewlen(const void *init, size_t initlen);
+
 /**
  *
  * @return
@@ -350,4 +351,5 @@ sds sdstrim(sds s, const char *cset);
  */
 void sdsclear(sds s);
 
-#endif //CMAKE_SDS_H
+
+

@@ -1,2 +1,0 @@
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc libsds.a  CMakeFiles/sds.dir/MathFunctions.c.o CMakeFiles/sds.dir/sds.c.o CMakeFiles/sds.dir/zmalloc.c.o
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib libsds.a
