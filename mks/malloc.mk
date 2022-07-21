@@ -36,18 +36,24 @@ endif
 # use MALLOC
 ifeq ($(MALLOC),tcmalloc)
 	FINAL_CC_CFLAGS+= -DUSE_TCMALLOC
+	FINAL_CXX_CFLAGS+= -DUSE_TCMALLOC
 	FINAL_CC_LIBS+= -ltcmalloc
+	FINAL_CXX_LIBS+= -ltcmalloc_minimal
 endif
 
 ifeq ($(MALLOC),tcmalloc_minimal)
 	FINAL_CC_CFLAGS+= -DUSE_TCMALLOC
+	FINAL_CXX_CFLAGS+= -DUSE_TCMALLOC
 	FINAL_CC_LIBS+= -ltcmalloc_minimal
+	FINAL_CXX_LIBS+= -ltcmalloc_minimal
 endif
 
 ifeq ($(MALLOC),jemalloc)
 	DEPENDENCY_TARGETS+= jemalloc
 	FINAL_CC_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
+	FINAL_CXX_CFLAGS+= -DUSE_JEMALLOC -I../../deps/jemalloc/include
 	FINAL_CC_LIBS := ../../deps/jemalloc/lib/libjemalloc.a $(FINAL_CC_LIBS)
+	FINAL_CXX_LIBS := ../../deps/jemalloc/lib/libjemalloc.a $(FINAL_CXX_LIBS)
 endif
 
 
