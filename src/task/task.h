@@ -1,16 +1,20 @@
 
 #include "../utils/atomic.h"
-#include "../list/list.h"
+#include "list/list.h"
 
 
-typedef void task_fn(void *args[]);
-typedef int callback_fn(int error, void* result);
-typedef struct tObj {
-    task_fn fn;
+typedef int task_fn(void* job);
+typedef void callback_fn(void* job);
+
+typedef struct latteThreadJob {
     int argv;
     void** args;
-    callback_fn cb;
-} tObj;
+    void* result;
+    int error;
+    int id;
+    task_fn *exec;
+    callback_fn *cb;
+} latteThreadJob;
 
 
 #define THREAD_INIT 0
@@ -23,14 +27,18 @@ typedef struct latteThread {
     pthread_cond_t step_cond;
     list* jobs;
     int pending;
+    int tid;
 } latteThread;
 typedef struct taskThread {
     int num;
     latteAtomic int status;
     latteThread* threads;
+    //config
+    int maxJobs;
 } taskThread;
 
 taskThread* createTaskThread(int tnum);
-void initTaskThread(taskThread* thread);
-void CreateTaskJob(task_fn tfn, callback_fn cb, int arg_count, ...);
+void startTaskThread(taskThread* thread);
+void stopTaskThread(taskThread* thread);
+latteThreadJob* createThreadJob(task_fn tfn, callback_fn cb, int arg_count, ...);
 
