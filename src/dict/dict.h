@@ -44,3 +44,11 @@ typedef struct dict {
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
     int16_t pauserehash; /* 0的时候是可以rehash 比如在dictGenericDelete,scan的时候需要暂停过程中rehash就++  最后恢复时就-- */
 } dict;
+
+/* Create a new hash table */
+dict *dictCreate(dictType *type,
+        void *privDataPtr);
+/* Add an element to the target hash table */
+int dictAdd(dict *d, void *key, void *val);
+/* API */
+uint64_t dictGenHashFunction(const void *key, int len);

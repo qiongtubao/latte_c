@@ -58,6 +58,8 @@ clean:
 	rm -rf *.o *.d *.xo .make-prerequisites
 	rm -rf $(TEST_MAIN)
 	rm -rf lcov_output *.gcno *.gcda lcov.info
+	rm -rf $(LIB_OBJ)
+	rm -rf $(BUILD_OBJ)
 	
 distclean: clean
 	rm -f .make-*
