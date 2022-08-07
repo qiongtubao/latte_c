@@ -1,5 +1,5 @@
 WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=dict.o skiphash.o
+BUILD_OBJ?=dict.o siphash.o
 LIB_OBJ?=../zmalloc/zmalloc.o
 TEST_MAIN?=dict_test
 

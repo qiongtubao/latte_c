@@ -34,18 +34,18 @@ int test_sdsnewlen(void) {
     //null
     assert(sdsnewlen(NULL, 100) != NULL);
     //type 5
-    assert(assert_random_sds(1 << 5 - 1, 0) == 1);
+    assert(assert_random_sds((1 << 5) - 1, 0) == 1);
     //type 8
-    assert(assert_random_sds(1 << 8 - 1, 0) == 1);
+    assert(assert_random_sds((1 << 8) - 1, 0) == 1);
 
     //type16
-    assert(assert_random_sds(1 << 16 - 1, 0) == 1);
+    assert(assert_random_sds((1 << 16) - 1, 0) == 1);
 
     //type32
-    assert(assert_random_sds(1ll << 32 - 1, 0) == 1);
+    assert(assert_random_sds((1ll << 32) - 1, 0) == 1);
 
     //type64
-    assert(assert_random_sds(1ll << 32, 0) == 1);
+    assert(assert_random_sds((1ll << 32), 0) == 1);
     return 1;
 }
 
@@ -53,18 +53,18 @@ int test_sdstrynewlen() {
     //null
     assert(sdstrynewlen(NULL, 100) != NULL);
     //type 5
-    assert(assert_random_sds(1 << 5 - 1, 1) == 1);
+    assert(assert_random_sds((1 << 5) - 1, 1) == 1);
     //type 8
-    assert(assert_random_sds(1 << 8 - 1, 1) == 1);
+    assert(assert_random_sds((1 << 8) - 1, 1) == 1);
 
     //type16
-    assert(assert_random_sds(1 << 16 - 1, 1) == 1);
+    assert(assert_random_sds((1 << 16) - 1, 1) == 1);
 
     //type32
-    assert(assert_random_sds(1ll << 32 - 1, 1) == 1);
+    assert(assert_random_sds((1ll << 32) - 1, 1) == 1);
 
     //type64
-    assert(assert_random_sds(1ll << 32, 1) == 1);
+    assert(assert_random_sds((1ll << 32), 1) == 1);
 
     return 1;
 }

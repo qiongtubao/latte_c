@@ -1,6 +1,6 @@
 WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=task.o setcpuaffinity.o
-LIB_OBJ?=../zmalloc/zmalloc.o ../list/list.o 
+LIB_OBJ?=
 TEST_MAIN?=task_test
 
 include $(WORKSPACE)/mks/sys.mk
