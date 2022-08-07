@@ -67,27 +67,26 @@ char* stringFromLongLong(long long value) {
 
 
 int test_dictCreate() {
-    dict *dict = dictCreate(&testDict, NULL);
+    dict *dict = dictCreate(&testDict);
     assert((long)dictSize(dict) == 0);
     dictRelease(dict);
     return 1;
 }
 
 int test_dictExpand() {
-    dict *dict = dictCreate(&testDict, NULL);
-    
-    assert(dict->ht[0].size == 0);
-    assert(dict->ht[1].size == 0);
+    dict *dict = dictCreate(&testDict);
+    assert(DICTHT_SIZE((dict)->ht_size_exp[0]) == 0);
+    assert(DICTHT_SIZE((dict)->ht_size_exp[1]) == 0);
     dictExpand(dict, 100);
     //2 ^ x
-    assert(dict->ht[0].size == 128);
-    assert(dict->ht[1].size == 0);
+    assert(DICTHT_SIZE((dict)->ht_size_exp[0]) == 128);
+    assert(DICTHT_SIZE((dict)->ht_size_exp[1])== 0);
     dictRelease(dict);
     return 1;
 }
 
 int test_dictAdd() {
-    dict *dict = dictCreate(&testDict, NULL);
+    dict *dict = dictCreate(&testDict);
     long count = 5000;
     //dict add long long
     // for (int j = 0; j < count; j++) {
@@ -100,7 +99,7 @@ int test_dictAdd() {
 }
 
 int test_dictAdd_speed() {
-    dict *dict = dictCreate(&testDict, NULL);
+    dict *dict = dictCreate(&testDict);
     long count = 5000;
     long long start, elapsed;
     start_benchmark();
@@ -116,7 +115,7 @@ int test_dictAdd_speed() {
 }
 
 int test_dictAddRaw() {
-    dict* dict = dictCreate(&testDict, NULL);
+    dict* dict = dictCreate(&testDict);
     char* key = stringFromLongLong(100);
     dictEntry* entry = dictAddRaw(dict, key, NULL);
     assert(entry != NULL);
@@ -126,7 +125,7 @@ int test_dictAddRaw() {
 }
 
 int test_dictAddOrFind() {
-    dict* dict = dictCreate(&testDict, NULL);
+    dict* dict = dictCreate(&testDict);
     char* key = stringFromLongLong(100);
     dictEntry* create_entry = dictAddOrFind(dict, key);
     assert(create_entry != NULL);

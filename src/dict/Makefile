@@ -1,6 +1,6 @@
 WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=dict.o siphash.o
-LIB_OBJ?=../zmalloc/zmalloc.o
+LIB_OBJ?=
 TEST_MAIN?=dict_test
 
 include $(WORKSPACE)/mks/sys.mk

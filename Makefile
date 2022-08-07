@@ -50,3 +50,4 @@ test_all:
 	make zmalloc_test
 	make sds_test
 	make task_test
+	make dict_test
