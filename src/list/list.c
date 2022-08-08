@@ -276,7 +276,6 @@ list *listDup(list *orig)
         if (listAddNodeTail(copy, value) == NULL) {
             /* Free value if dup succeed but listAddNodeTail failed. */
             if (copy->free) copy->free(value);
-
             listRelease(copy);
             return NULL;
         }

@@ -1,6 +1,5 @@
 
 
-
 typedef struct listNode {
     struct listNode *prev;
     struct listNode *next;
@@ -11,7 +10,6 @@ typedef struct listIter {
     listNode *next;
     int direction;
 } listIter;
-
 
 typedef struct list {
     listNode *head;
@@ -59,5 +57,7 @@ void listRotateTailToHead(list *list);
 void listRotateHeadToTail(list *list);
 void listJoin(list *l, list *o);
 
+
 #define AL_START_HEAD 0
 #define AL_START_TAIL 1
+

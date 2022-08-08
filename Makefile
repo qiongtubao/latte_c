@@ -44,3 +44,10 @@ latte_lib:
 
 clean_all:
 	$(foreach var,$(MODULES),cd src/$(var) && $(MAKE) clean && cd ../../;)
+
+
+test_all:
+	make zmalloc_test
+	make sds_test
+	make task_test
+	make dict_test
