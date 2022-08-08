@@ -9,14 +9,23 @@
 
 void hello(latteThreadJob* job) {
     printf("\n[thread]%s say hello\n", job->args[0]);
+    job->result = "latte_callback";
+}
+void world(latteThreadJob* job) {
+    printf("\n[thread]%s say callback \n", (char*)(job->result));
 }
 
 int test_task() {
-    taskThread* thread = createTaskThread(1);
+    aeEventLoop* el = aeCreateEventLoop(1024);
+    taskThread* thread = createTaskThread(1, el);
     startTaskThread(thread);
-    latteThreadJob* job = createThreadJob(hello, NULL, 1, "latte");
+    latteThreadJob* job = createThreadJob(hello, world, 1, "latte");
     submitTask(thread, job);
-    sleep(10);
+    sleep(1);
+    aeProcessEvents(el, AE_ALL_EVENTS|
+                                   AE_CALL_BEFORE_SLEEP|
+                                   AE_CALL_AFTER_SLEEP);
+    aeDeleteEventLoop(el);
     return 1;
 }
 int test_api(void) {

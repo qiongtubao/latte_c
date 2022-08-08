@@ -1,7 +1,7 @@
 
 #include "../utils/atomic.h"
 #include "list/list.h"
-
+#include "ae/ae.h"
 
 typedef int task_fn(void* job);
 typedef void callback_fn(void* job);
@@ -25,9 +25,12 @@ typedef struct latteThread {
     pthread_mutex_t mutex;
     pthread_cond_t job_cond;
     pthread_cond_t step_cond;
-    list* jobs;
+    list* send_queue;
+    list* recv_queue;
     int pending;
     int tid;
+    int notify_recv_fd;
+    int notify_send_fd;
 } latteThread;
 typedef struct taskThread {
     int num;
@@ -37,7 +40,7 @@ typedef struct taskThread {
     int maxJobs;
 } taskThread;
 
-taskThread* createTaskThread(int tnum);
+taskThread* createTaskThread(int tnum, aeEventLoop* loop);
 void startTaskThread(taskThread* thread);
 void stopTaskThread(taskThread* thread);
 latteThreadJob* createThreadJob(task_fn tfn, callback_fn cb, int arg_count, ...);
