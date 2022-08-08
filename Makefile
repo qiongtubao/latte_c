@@ -46,8 +46,11 @@ clean_all:
 	$(foreach var,$(MODULES),cd src/$(var) && $(MAKE) clean && cd ../../;)
 
 
-test_all:
+./deps/jemalloc:
+	-(cd ./deps && $(MAKE) jemalloc) 
+	
+test_all: ./deps/jemalloc
 	make zmalloc_test
 	make sds_test
-	make task_test
 	make dict_test
+	make task_test
