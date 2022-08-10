@@ -44,4 +44,4 @@ taskThread* createTaskThread(int tnum, aeEventLoop* loop);
 void startTaskThread(taskThread* thread);
 void stopTaskThread(taskThread* thread);
 latteThreadJob* createThreadJob(task_fn tfn, callback_fn cb, int arg_count, ...);
-
+void submitTask(taskThread* thread, latteThreadJob* t);

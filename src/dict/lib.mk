@@ -1,3 +1,5 @@
+
+ifneq ($(USED_DICT), yes) 
 FINAL_CC_CFLAGS+= -I../dict 
 
 
@@ -9,3 +11,5 @@ FINAL_CC_CFLAGS+= -I../dict
 
 
 LIB_OBJ+= ../dict/dict.o ../dict/siphash.o
+USED_DICT=yes
+endif

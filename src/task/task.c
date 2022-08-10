@@ -235,12 +235,12 @@ int trySubmitTask(taskThread* thread, int i, latteThreadJob* t) {
 
 
 void submitTask(taskThread* thread, latteThreadJob* t) {
-    int i = 0;
+    static int i = -1;
     while (1) {  
+        i++;
         if (trySubmitTask(thread,  i%(thread->num),  t)) {
             break;
         }
-        i++;
     }
 }
 

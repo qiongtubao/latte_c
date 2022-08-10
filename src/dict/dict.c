@@ -412,3 +412,130 @@ static long _dictKeyIndex(dict *d, const void *key, uint64_t hash, dictEntry **e
     }
     return idx;
 }
+
+
+dictEntry *dictFind(dict *d, const void *key)
+{
+    dictEntry *he;
+    uint64_t h, idx, table;
+
+    if (dictSize(d) == 0) return NULL; /* dict is empty */
+    if (dictIsRehashing(d)) _dictRehashStep(d);
+    h = dictHashKey(d, key);
+    for (table = 0; table <= 1; table++) {
+        idx = h & DICTHT_SIZE_MASK(d->ht_size_exp[table]);
+        he = d->ht_table[table][idx];
+        while(he) {
+            if (key==he->key || dictCompareKeys(d, key, he->key))
+                return he;
+            he = he->next;
+        }
+        if (!dictIsRehashing(d)) return NULL;
+    }
+    return NULL;
+}
+
+int dictAdd(dict *d, void *key, void *val) {
+    dictEntry *entry = dictAddRaw(d,key,NULL);
+
+    if (!entry) return DICT_ERR;
+    dictSetVal(d, entry, val);
+    return DICT_OK;
+}
+
+
+/* A fingerprint is a 64 bit number that represents the state of the dictionary
+ * at a given time, it's just a few dict properties xored together.
+ * When an unsafe iterator is initialized, we get the dict fingerprint, and check
+ * the fingerprint again when the iterator is released.
+ * If the two fingerprints are different it means that the user of the iterator
+ * performed forbidden operations against the dictionary while iterating. */
+unsigned long long dictFingerprint(dict *d) {
+    unsigned long long integers[6], hash = 0;
+    int j;
+
+    integers[0] = (long) d->ht_table[0];
+    integers[1] = d->ht_size_exp[0];
+    integers[2] = d->ht_used[0];
+    integers[3] = (long) d->ht_table[1];
+    integers[4] = d->ht_size_exp[1];
+    integers[5] = d->ht_used[1];
+
+    /* We hash N integers by summing every successive integer with the integer
+     * hashing of the previous sum. Basically:
+     *
+     * Result = hash(hash(hash(int1)+int2)+int3) ...
+     *
+     * This way the same set of integers in a different order will (likely) hash
+     * to a different number. */
+    for (j = 0; j < 6; j++) {
+        hash += integers[j];
+        /* For the hashing step we use Tomas Wang's 64 bit integer hash. */
+        hash = (~hash) + (hash << 21); // hash = (hash << 21) - hash - 1;
+        hash = hash ^ (hash >> 24);
+        hash = (hash + (hash << 3)) + (hash << 8); // hash * 265
+        hash = hash ^ (hash >> 14);
+        hash = (hash + (hash << 2)) + (hash << 4); // hash * 21
+        hash = hash ^ (hash >> 28);
+        hash = hash + (hash << 31);
+    }
+    return hash;
+}
+
+dictIterator *dictGetIterator(dict *d)
+{
+    dictIterator *iter = zmalloc(sizeof(*iter));
+
+    iter->d = d;
+    iter->table = 0;
+    iter->index = -1;
+    iter->safe = 0;
+    iter->entry = NULL;
+    iter->nextEntry = NULL;
+    return iter;
+}
+
+dictEntry *dictNext(dictIterator *iter)
+{
+    while (1) {
+        if (iter->entry == NULL) {
+            if (iter->index == -1 && iter->table == 0) {
+                if (iter->safe)
+                    dictPauseRehashing(iter->d);
+                else
+                    iter->fingerprint = dictFingerprint(iter->d);
+            }
+            iter->index++;
+            if (iter->index >= (long) DICTHT_SIZE(iter->d->ht_size_exp[iter->table])) {
+                if (dictIsRehashing(iter->d) && iter->table == 0) {
+                    iter->table++;
+                    iter->index = 0;
+                } else {
+                    break;
+                }
+            }
+            iter->entry = iter->d->ht_table[iter->table][iter->index];
+        } else {
+            iter->entry = iter->nextEntry;
+        }
+        if (iter->entry) {
+            /* We need to save the 'next' here, the iterator user
+             * may delete the entry we are returning. */
+            iter->nextEntry = iter->entry->next;
+            return iter->entry;
+        }
+    }
+    return NULL;
+}
+
+
+void dictReleaseIterator(dictIterator *iter)
+{
+    if (!(iter->index == -1 && iter->table == 0)) {
+        if (iter->safe)
+            dictResumeRehashing(iter->d);
+        else
+            assert(iter->fingerprint == dictFingerprint(iter->d));
+    }
+    zfree(iter);
+}
