@@ -116,14 +116,6 @@ taskThread* createTaskThread(int tnum, aeEventLoop* el) {
 }
 
 
-/* Make the thread killable at any time, so that kill threads functions
- * can work reliably (default cancelability type is PTHREAD_CANCEL_DEFERRED).
- * Needed for pthread_cancel used by the fast memory test used by the crash report. */
-void makeThreadKillable(void) {
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-}
-
 int notifyCallback(latteThread* thread) {
     if (write(thread->notify_send_fd, "x", 1) < 1 && errno != EAGAIN) {
         printf("notifyCallback fail\n");

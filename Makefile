@@ -1,7 +1,7 @@
 
 # must set 
 WORKSPACE?=$(CURDIR)
-MODULES?=zmalloc sds
+MODULES?=sds
 BUILD_DIR?=out
 ALL_OBJ=$(shell sh -c 'cat $(BUILD_DIR)/objs.list')
 
@@ -31,6 +31,7 @@ include $(WORKSPACE)/mks/info.mk
 build: 
 	mkdir -p $(BUILD_DIR)/lib
 	mkdir -p $(BUILD_DIR)/out
+	mkdir -p $(BUILD_DIR)/include
 	rm -rf $(BUILD_DIR)/objs.list && touch $(BUILD_DIR)/objs.list
 	$(foreach var,$(MODULES),$(MAKE) $(var)_module;)
 	$(MAKE) latte_lib	
@@ -44,6 +45,7 @@ latte_lib:
 
 clean_all:
 	$(foreach var,$(MODULES),cd src/$(var) && $(MAKE) clean && cd ../../;)
+	rm -rf $(BUILD_DIR)
 
 
 ./deps/jemalloc:

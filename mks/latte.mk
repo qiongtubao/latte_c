@@ -9,7 +9,7 @@ LATTE_LD=$(QUIET_LINK)$(CC) $(FINAL_CC_LDFLAGS)
 LATTE_CXX_LD=$(CXX) $(FINAL_CXX_CFLAGS)
 
 LATTE_INSTALL=$(QUIET_INSTALL)$(INSTALL)
-
+INSTALL_ED=$(findstring $(shell sh -c 'cat $(BUILD_DIR)/objs.list '), $(BUILD_OBJ))
 
 
 
@@ -65,8 +65,15 @@ distclean: clean
 	rm -f .make-*
 
 install_lib: $(BUILD_OBJ) $(LIB_OBJ)
+	$(foreach var,$(LIB_MODULES),cd $(WORKSPACE)/src/$(var) && $(MAKE) install_lib && cd ../$(MODULE);)
+	@echo "install_lib $(BUILD_OBJ)"
+ifeq ($(findstring $(shell sh -c 'cat $(BUILD_DIR)/objs.list '), $(BUILD_OBJ)), )
+	@echo a
 	cp -rf $(BUILD_OBJ) $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)/include/$(MODULE)
+	cp -rf $(BUILD_INCLUDE) $(BUILD_DIR)/include/$(MODULE)
 	$(shell sh -c 'echo " $(BUILD_OBJ)" >> $(BUILD_DIR)/objs.list')
+endif
 
 
 
