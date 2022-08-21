@@ -37,7 +37,7 @@ build:
 	$(MAKE) latte_lib	
 
 latte_lib: 	
-	cd $(BUILD_DIR) && $(AR) $(ARFLAGS) ./lib/liblatte.a $(FINAL_LIBS) $(ALL_OBJ)
+	cd $(BUILD_DIR) && $(AR) $(ARFLAGS) ./lib/liblatte.a  $(ALL_OBJ) $(WORKSPACE)/deps/jemalloc/lib/libjemalloc.a
 
 %_test_lib: build
 	cd src/$* && $(MAKE) test_lib BUILD_DIR=../../$(BUILD_DIR)

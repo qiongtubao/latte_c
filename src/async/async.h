@@ -14,15 +14,12 @@
 #define DOING_TASK_STATUS 1
 #define DONE_TASK_STATUS 2
 
-#define AUTONEXT 1
-#define UNAUTONEXT 0
 
 typedef void asyncCallback(void* task);
 typedef int checkAsyncTask(void* task);
 typedef struct asyncTask {
     int type;
     int status;
-    int autoNext;
     struct asyncTask* parent;
     checkAsyncTask* check;
     asyncCallback* cb;
@@ -46,17 +43,17 @@ typedef struct parallelTask {
   int num;
 } parallelTask;
 
-asyncTask* createAsyncBasicTask(int autoNext, latteThreadJob* job);
+asyncTask* createAsyncBasicTask(latteThreadJob* job);
 void asyncRun(taskThread* thread,asyncTask* task);
 void asyncWait(asyncTask* task);
 void* getBasicTaskResult(asyncBasicTask* task);
 
 
-asyncTask* createSeriesTask(int autoNext);
+asyncTask* createSeriesTask();
 int addSeriesTask(seriesTask* task, asyncTask* child);
 void nextSeriesTask(asyncTask* current);
 void continueNextTask(asyncTask* task);
 
-asyncTask* createParallelTask(int autoNext);
+asyncTask* createParallelTask();
 int addParallelTask(parallelTask* task, sds name, asyncTask* child);
  

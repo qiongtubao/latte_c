@@ -1,14 +1,23 @@
 #include "async.h"
 #include <assert.h>
+#include <string.h>
 
-
-asyncTask* createAsyncBasicTask(int autoNext, latteThreadJob* job) {
+asyncTask* createAsyncBasicTask(latteThreadJob* job) {
     asyncBasicTask* task = zmalloc(sizeof(asyncBasicTask));
     initTask(task);
     task->task.type = BASIC_TASK_TYPE;
-    task->task.autoNext = autoNext;
     task->job = job;
     return task;
+}
+
+void taskDone(asyncTask* task) {
+    task->status = DONE_TASK_STATUS;
+    // printf("done: %p\n", task);
+    if (task->cb != NULL) {
+        task->cb(task);
+    } else {
+        notifyParent(task);
+    }
 }
 
 int checkTask(asyncTask* task) {
@@ -16,8 +25,6 @@ int checkTask(asyncTask* task) {
         return 1;
     }
     if (!task->check(task)) {
-        task->status = DONE_TASK_STATUS;
-        if (task->cb!= NULL) task->cb(task);
         return 0;
     }
     return 1;
@@ -35,55 +42,57 @@ void basicCallback(latteThreadJob* job) {
     if (task->job->cb != NULL) {
         task->job->cb(task->job);
     }
-    task->task.status = DONE_TASK_STATUS;
-    if (task->task.cb != NULL) {
-        task->task.cb(task);
-    }
-    // if (task->task.parent)
+    taskDone(task);
 }
 
 void basicTaskRun(taskThread* thread, asyncTask* task) {
-    if (!checkTask(task)) return;
-   
     asyncBasicTask* basic_task= (asyncBasicTask*)task;
-
+    task->status = DOING_TASK_STATUS;
     // basic_task->job->cb = cb;
     latteThreadJob* job = createThreadJob(basicExec, basicCallback, 1, task);
     submitTask(thread, job);
-    task->status = DOING_TASK_STATUS;
-}
-
-int checkAutoNext(asyncTask* task) {
-    return task->autoNext;
-}
-
-void seriesCallback(asyncTask* task) {
-    task->status = DONE_TASK_STATUS;
-    assert(task->parent != NULL);
-    if (checkSeriesTaskFinished(task)) {
-        task->parent->status = DONE_TASK_STATUS;
-        if(task->parent->cb != NULL) {
-            task->parent->cb(task->parent);
-        }
-        notifyParent(task);
-    } else {
-        if (checkAutoNext(task)) {
-            nextSeriesTask(task);
-        } 
-    }
-}
-
-void notifyParent(asyncTask* task) {
-    if (task->parent == NULL) return;
 }
 
 void nextSeriesTask(asyncTask* task) {
     seriesTask* parent =  task->parent;
     listNode* node = listSearchKey(parent->tasks, task);
-    asyncTask* nextChild = listNodeValue(node->next);
-    nextChild->cb = seriesCallback;
-    asyncRun(parent->task.ctx, nextChild);
+    if (node->next != NULL) {
+        asyncTask* nextChild = listNodeValue(node->next);
+        asyncRun(parent->task.ctx, nextChild);
+    } else {
+        taskDone(parent);
+    }
+
 }
+
+
+void nextParallelTask(asyncTask* task) {
+    parallelTask* parallel = task->parent;
+    parallel->num--;
+    if (parallel->num == 0) {
+        taskDone(parallel);
+    }
+}
+
+void nextTask(asyncTask* currentTask) {
+    switch (currentTask->parent->type) {
+        case SERIES_TASK_TYPE:
+            nextSeriesTask(currentTask);
+            break;
+        case PARALLEL_TASK_TYPE:
+            nextParallelTask(currentTask);
+            break;
+        default:
+            printf("next parent type is not series fail\n");
+            break;
+    }
+}
+
+void notifyParent(asyncTask* task) {
+    if (task->parent == NULL) return;
+    nextTask(task);
+}
+
 
 int checkSeriesTaskFinished(asyncTask* task) {
     seriesTask* parent = task->parent;
@@ -95,43 +104,39 @@ int checkSeriesTaskFinished(asyncTask* task) {
 
 
 void seriesTaskRun(taskThread* thread, asyncTask* task) {
-    if (!checkTask(task)) return;
+    // if (!checkTask(task)) return;
     seriesTask* series = (seriesTask*)task;
     if (listLength(series->tasks) == 0) {
-        task->status = DONE_TASK_STATUS;
-        notifyParent(task);
+        taskDone(series);
         return;
     }
+    series->task.status = DOING_TASK_STATUS;
     asyncTask* childTask = listNodeValue(listFirst(series->tasks));
-    assert(childTask->cb == NULL);
-    childTask->cb = seriesCallback;
+    // assert(childTask->cb == NULL);
+    // childTask->cb = seriesCallback;
     task->ctx = thread;
     asyncRun(thread, childTask);
-    task->status = DOING_TASK_STATUS;
 }
 
-void parallelCallback(asyncTask* task) {
-    assert(task->parent != NULL);
-    assert(task->status == DONE_TASK_STATUS);
-    parallelTask* parallel = task->parent;
-    parallel->num--;
-    if (parallel->num == 0) {
-        parallel->task.status = DONE_TASK_STATUS;
-    }
-}
+
+
 
 void parallelTaskRun(taskThread* thread,asyncTask* task) {
     parallelTask* ptask = (parallelTask*)task;
+    if (dictSize(ptask->tasks) == 0) {
+        taskDone(ptask);
+        return;
+    }
+    ptask->task.status = DOING_TASK_STATUS;
     dictIterator *di = dictGetIterator(ptask->tasks);
     dictEntry *de;
     while ((de = dictNext(di)) != NULL) {
         seriesTask* stask = dictGetVal(de);
-        stask->task.cb = parallelCallback;
         seriesTaskRun(thread, stask);
     }
     dictReleaseIterator(di);
     ptask->task.ctx = thread;
-    ptask->task.status = DOING_TASK_STATUS;
+    
 }
 
 void asyncRun(taskThread* thread,asyncTask* task) {
@@ -178,11 +183,10 @@ void initTask(asyncTask* task) {
     task->cb = NULL;
 }
 
-asyncTask* createSeriesTask(int autoNext) {
+asyncTask* createSeriesTask() {
     seriesTask* task = zmalloc(sizeof(seriesTask));
     initTask(task);
     task->task.type = SERIES_TASK_TYPE;
-    task->task.autoNext = autoNext;
     task->tasks = listCreate();
     return task;
 }
@@ -190,32 +194,34 @@ asyncTask* createSeriesTask(int autoNext) {
 int addSeriesTask(seriesTask* task, asyncTask* child) {
     listAddNodeTail(task->tasks, child);
     child->parent = task;
+    return 1;
 }
 
 
 void continueNextTask(asyncTask* task) {
-    switch (task->type)
-    {
-    case BASIC_TASK_TYPE:
-        /* code */
-        if (task->parent == NULL) {
-            return;
-        } 
-        switch (task->parent->type)
-        {
-        case SERIES_TASK_TYPE:
-            /* code */
-            nextSeriesTask(task);
-            break;
+    // switch (task->type)
+    // {
+    // case BASIC_TASK_TYPE:
+    //     /* code */
+    //     if (task->parent == NULL) {
+    //         return;
+    //     } 
+    //     switch (task->parent->type)
+    //     {
+    //     case SERIES_TASK_TYPE:
+    //         /* code */
+    //         nextSeriesTask(task);
+    //         break;
         
-        default:
-            break;
-        }
-        break;
+    //     default:
+    //         break;
+    //     }
+    //     break;
     
-    default:
-        break;
-    }
+    // default:
+    //     break;
+    // }
+    notifyParent(task);
 }
 
 
@@ -251,11 +257,10 @@ static dictType parallelTaskDictType = {
     NULL,                           /* val destructor */
     NULL                            /* allow to expand */
 };
-asyncTask* createParallelTask(int autoNext) {
+asyncTask* createParallelTask() {
     parallelTask* ptask = zmalloc(sizeof(parallelTask));
     initTask(ptask);
     ptask->task.type = PARALLEL_TASK_TYPE;
-    ptask->task.autoNext = autoNext;
     ptask->tasks = dictCreate(&parallelTaskDictType);
     ptask->num = 0;
     return ptask;
@@ -268,7 +273,7 @@ int addParallelTask(parallelTask* ptask, sds name, asyncTask* child) {
     dictEntry* entry = dictFind(ptask->tasks, name);
     asyncTask* task;
     if (entry == NULL) {
-        task = createSeriesTask(AUTONEXT);
+        task = createSeriesTask();
         task->parent = ptask;
         assert(DICT_OK == dictAdd(ptask->tasks, name, task));
         ptask->num++;

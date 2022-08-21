@@ -24,7 +24,7 @@ void world(latteThreadJob* job) {
 int test_normal_task(aeEventLoop* el, taskThread* task_thread) {
     
     latteThreadJob* job = createThreadJob(hello, NULL, 1, "latte");
-    asyncTask* task = createAsyncBasicTask(AUTONEXT, job);
+    asyncTask* task = createAsyncBasicTask(job);
     asyncRun(task_thread, task);
     sleep(1);
     aeProcessEvents(el, AE_ALL_EVENTS|
@@ -37,7 +37,7 @@ int test_normal_task(aeEventLoop* el, taskThread* task_thread) {
 }
 
 int test_null_series_task(aeEventLoop* el, taskThread* task_thread) {
-    seriesTask* task = createSeriesTask(AUTONEXT);
+    seriesTask* task = createSeriesTask();
     // latteThreadJob* job1 = createThreadJob(hello, NULL, 1, "job1");
     // latteThreadJob* job2 = createThreadJob(hello2, NULL, 1, "job2");
     // task = addSeriesTask(task, job1);
@@ -49,9 +49,9 @@ int test_null_series_task(aeEventLoop* el, taskThread* task_thread) {
 }
 
 int test_series_one_task(aeEventLoop* el, taskThread* task_thread) {
-    seriesTask* task = createSeriesTask(AUTONEXT);
+    seriesTask* task = createSeriesTask();
     latteThreadJob* job = createThreadJob(hello, NULL, 1, "latte");
-    asyncTask* task1 = createAsyncBasicTask(AUTONEXT, job);
+    asyncTask* task1 = createAsyncBasicTask( job);
     addSeriesTask(task, task1);
     asyncRun(task_thread, task);
     sleep(1);
@@ -68,8 +68,8 @@ int test_series_two_task(aeEventLoop* el, taskThread* task_thread) {
     seriesTask* task = createSeriesTask(1);
     latteThreadJob* job = createThreadJob(hello, NULL, 1, "latte");
     latteThreadJob* job2 = createThreadJob(hello2, NULL, 2, "t2");
-    asyncTask* task1 = createAsyncBasicTask(1, job);
-    asyncTask* task2 = createAsyncBasicTask(1, job2);
+    asyncTask* task1 = createAsyncBasicTask(job);
+    asyncTask* task2 = createAsyncBasicTask(job2);
     addSeriesTask(task, task1);
     addSeriesTask(task, task2);
     asyncRun(task_thread, task);
@@ -98,12 +98,18 @@ void stop(latteThreadJob* job) {
     
 }
 
+void stopTask(asyncTask* task) {
+    
+}
+
 int test_series_two_task_stop(aeEventLoop* el, taskThread* task_thread) {
-    seriesTask* task = createSeriesTask(AUTONEXT);
+    seriesTask* task = createSeriesTask();
     latteThreadJob* job = createThreadJob(hello, stop, 1, "latte");
     latteThreadJob* job2 = createThreadJob(hello2, stop, 2, "t2");
-    asyncTask* task1 = createAsyncBasicTask(UNAUTONEXT,job);
-    asyncTask* task2 = createAsyncBasicTask(UNAUTONEXT,job2);
+    asyncTask* task1 = createAsyncBasicTask(job);
+    task1->cb = stopTask;
+    asyncTask* task2 = createAsyncBasicTask(job2);
+    task2->cb = stopTask;
     addSeriesTask(task, task1);
     addSeriesTask(task, task2);
     asyncRun(task_thread, task);
@@ -119,20 +125,22 @@ int test_series_two_task_stop(aeEventLoop* el, taskThread* task_thread) {
     aeProcessEvents(el, AE_ALL_EVENTS|
                                    AE_CALL_BEFORE_SLEEP|
                                    AE_CALL_AFTER_SLEEP);
-    asyncWait(task);
+    
     assert(task2->status == DONE_TASK_STATUS);
     void* result = getBasicTaskResult(task2);
     printf("\n[thread]%s say2 callback \n", (char*)(result));
-    
+    assert(task->task.status == DOING_TASK_STATUS);
+    continueNextTask(task2);
+    assert(task->task.status == DONE_TASK_STATUS);
     return 1;
 }
 
 int test_series_one_task_add_task(aeEventLoop* el, taskThread* task_thread) {
-    seriesTask* task = createSeriesTask(AUTONEXT);
+    seriesTask* task = createSeriesTask();
     latteThreadJob* job = createThreadJob(hello, stop, 1, "latte");
     latteThreadJob* job2 = createThreadJob(hello2, stop, 2, "t2");
-    asyncTask* task1 = createAsyncBasicTask(AUTONEXT,job);
-    asyncTask* task2 = createAsyncBasicTask(AUTONEXT,job2);
+    asyncTask* task1 = createAsyncBasicTask(job);
+    asyncTask* task2 = createAsyncBasicTask(job2);
     addSeriesTask(task, task1);
     asyncRun(task_thread, task);
     addSeriesTask(task, task2);
@@ -168,11 +176,11 @@ void sleep2(latteThreadJob* job) {
 
 
 int test_parallel(aeEventLoop* el, taskThread* task_thread) {
-    parallelTask* task = createParallelTask(AUTONEXT);
+    parallelTask* task = createParallelTask();
     latteThreadJob* job = createThreadJob(sleep10, stop, 1, "latte");
     latteThreadJob* job2 = createThreadJob(sleep2, stop, 2, "t2");
-    asyncTask* task1 = createAsyncBasicTask(AUTONEXT,job);
-    asyncTask* task2 = createAsyncBasicTask(AUTONEXT,job2);
+    asyncTask* task1 = createAsyncBasicTask(job);
+    asyncTask* task2 = createAsyncBasicTask(job2);
     addParallelTask(task,sdsnew("task1"), task1);
     addParallelTask(task, sdsnew("task2"), task2);
     asyncRun(task_thread, task);
@@ -195,13 +203,13 @@ int test_parallel(aeEventLoop* el, taskThread* task_thread) {
 
 
 int test_parallel_add_some_task(aeEventLoop* el, taskThread* task_thread) {
-    parallelTask* task = createParallelTask(AUTONEXT);
+    parallelTask* task = createParallelTask();
     latteThreadJob* job = createThreadJob(sleep10, stop, 1, "latte");
     latteThreadJob* job2 = createThreadJob(sleep2, stop, 2, "t2");
     latteThreadJob* job3 = createThreadJob(hello, stop, 1, "?");
-    asyncTask* task1 = createAsyncBasicTask(AUTONEXT,job);
-    asyncTask* task2 = createAsyncBasicTask(AUTONEXT,job2);
-    asyncTask* task3 = createAsyncBasicTask(AUTONEXT,job3);
+    asyncTask* task1 = createAsyncBasicTask(job);
+    asyncTask* task2 = createAsyncBasicTask(job2);
+    asyncTask* task3 = createAsyncBasicTask(job3);
     addParallelTask(task,sdsnew("task1"), task1);
     addParallelTask(task, sdsnew("task2"), task2);
     asyncRun(task_thread, task);
@@ -231,13 +239,13 @@ int test_parallel_add_some_task(aeEventLoop* el, taskThread* task_thread) {
 }
 
 int test_parallel_add_differ_task(aeEventLoop* el, taskThread* task_thread) {
-    parallelTask* task = createParallelTask(AUTONEXT);
+    parallelTask* task = createParallelTask();
     latteThreadJob* job = createThreadJob(sleep10, stop, 1, "latte");
     latteThreadJob* job2 = createThreadJob(sleep2, stop, 2, "t2");
     latteThreadJob* job3 = createThreadJob(hello, stop, 1, "?");
-    asyncTask* task1 = createAsyncBasicTask(AUTONEXT,job);
-    asyncTask* task2 = createAsyncBasicTask(AUTONEXT,job2);
-    asyncTask* task3 = createAsyncBasicTask(AUTONEXT,job3);
+    asyncTask* task1 = createAsyncBasicTask(job);
+    asyncTask* task2 = createAsyncBasicTask(job2);
+    asyncTask* task3 = createAsyncBasicTask(job3);
     addParallelTask(task,sdsnew("task1"), task1);
     addParallelTask(task, sdsnew("task2"), task2);
     asyncRun(task_thread, task);
@@ -261,6 +269,20 @@ int test_parallel_add_differ_task(aeEventLoop* el, taskThread* task_thread) {
                                    AE_CALL_BEFORE_SLEEP|
                                    AE_CALL_AFTER_SLEEP);
     assert(task1->status == DONE_TASK_STATUS);
+    assert(task->task.status == DONE_TASK_STATUS);
+    return 1;
+}
+
+int test_series_add_parallel_task(aeEventLoop* el, taskThread* task_thread) {
+    seriesTask* task = createSeriesTask();
+    parallelTask* task1 = createParallelTask();
+    parallelTask* task2 = createParallelTask();
+    addSeriesTask(task, task1);
+    addSeriesTask(task, task2);
+    asyncRun(task_thread, task);
+    printf("task1 status %d \n", task1->task.status);
+    printf("task2 status %d \n", task2->task.status);
+    printf("task2 parent status %p %d \n",task2->task.parent, task2->task.parent->status);
     assert(task->task.status == DONE_TASK_STATUS);
     return 1;
 }
@@ -293,6 +315,9 @@ int test_api(void) {
             test_parallel_add_some_task(el, task_thread));
         test_cond("test series two task parallel add differ task",
             test_parallel_add_differ_task(el, task_thread));
+
+        test_cond("test series two task parallel add differ task",
+            test_series_add_parallel_task(el, task_thread));
     } test_report()
     return 1;
 }
