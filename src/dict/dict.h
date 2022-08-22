@@ -104,6 +104,20 @@ typedef struct dictIterator {
 #define dictIsRehashing(d) ((d)->rehashidx != -1)
 #define dictHashKey(d, key) (d)->type->hashFunction(key)
 
+
+#define dictGetVal(he) ((he)->v.val)
+
+
+#define dictSetVal(d, entry, _val_) do { \
+    if ((d)->type->valDup) \
+        (entry)->v.val = (d)->type->valDup((d), _val_); \
+    else \
+        (entry)->v.val = (_val_); \
+} while(0)
+
+#define dictPauseRehashing(d) (d)->pauserehash++
+#define dictResumeRehashing(d) (d)->pauserehash--
+
 /* API */
 dict *dictCreate(dictType *type);
 void dictRelease(dict *d);
@@ -111,4 +125,10 @@ dictEntry *dictAddRaw(dict *d, void *key, dictEntry **existing);
 dictEntry *dictAddOrFind(dict *d, void *key);
 uint64_t dictGenCaseHashFunction(const unsigned char *buf, size_t len);
 
+dictEntry * dictFind(dict *d, const void *key);
+int dictAdd(dict *d, void *key, void *val);
 
+
+dictIterator *dictGetIterator(dict *d);
+dictEntry *dictNext(dictIterator *iter);
+void dictReleaseIterator(dictIterator *iter);

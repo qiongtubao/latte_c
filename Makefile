@@ -1,7 +1,7 @@
 
 # must set 
 WORKSPACE?=$(CURDIR)
-MODULES?=zmalloc sds
+MODULES?=sds
 BUILD_DIR?=out
 ALL_OBJ=$(shell sh -c 'cat $(BUILD_DIR)/objs.list')
 
@@ -31,12 +31,13 @@ include $(WORKSPACE)/mks/info.mk
 build: 
 	mkdir -p $(BUILD_DIR)/lib
 	mkdir -p $(BUILD_DIR)/out
+	mkdir -p $(BUILD_DIR)/include
 	rm -rf $(BUILD_DIR)/objs.list && touch $(BUILD_DIR)/objs.list
 	$(foreach var,$(MODULES),$(MAKE) $(var)_module;)
 	$(MAKE) latte_lib	
 
 latte_lib: 	
-	cd $(BUILD_DIR) && $(AR) $(ARFLAGS) ./lib/liblatte.a $(FINAL_LIBS) $(ALL_OBJ)
+	cd $(BUILD_DIR) && $(AR) $(ARFLAGS) ./lib/liblatte.a  $(ALL_OBJ) $(WORKSPACE)/deps/jemalloc/lib/libjemalloc.a
 
 %_test_lib: build
 	cd src/$* && $(MAKE) test_lib BUILD_DIR=../../$(BUILD_DIR)
@@ -44,10 +45,14 @@ latte_lib:
 
 clean_all:
 	$(foreach var,$(MODULES),cd src/$(var) && $(MAKE) clean && cd ../../;)
+	rm -rf $(BUILD_DIR)
 
 
-test_all:
+./deps/jemalloc:
+	-(cd ./deps && $(MAKE) jemalloc) 
+	
+test_all: ./deps/jemalloc
 	make zmalloc_test
 	make sds_test
-	make task_test
 	make dict_test
+	make task_test

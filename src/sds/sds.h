@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include "zmalloc.h"
+#include "zmalloc/zmalloc.h"
 
 #define s_malloc zmalloc
 #define s_realloc zrealloc
