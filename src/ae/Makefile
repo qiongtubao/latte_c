@@ -2,6 +2,9 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=ae.o monotonic.o
 LIB_OBJ?=
 TEST_MAIN?=ae_test
+MODULE?=ae
+BUILD_INCLUDE?=ae.h monotonic.h
+LIB_MODULES?=anet zmalloc
 
 include $(WORKSPACE)/mks/sys.mk
 include $(WORKSPACE)/mks/final.mk

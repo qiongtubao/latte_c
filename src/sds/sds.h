@@ -8,6 +8,7 @@
 
 #define s_malloc zmalloc
 #define s_realloc zrealloc
+#define s_realloc_usable zrealloc_usable
 #define s_free zfree
 #define s_malloc_usable zmalloc_usable
 #define s_trymalloc_usable ztrymalloc_usable
@@ -352,4 +353,4 @@ sds sdstrim(sds s, const char *cset);
 void sdsclear(sds s);
 
 
-
+void sdsrange(sds s, ssize_t start, ssize_t end);
