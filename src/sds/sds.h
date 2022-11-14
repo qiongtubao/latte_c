@@ -298,7 +298,7 @@ void sdsfreesplitres(sds *tokens, int count);
  */
 int sdscmp(const sds s1, const sds s2);
 
-// sds sdscatprintf(sds s, const char *fmt, ...);
+sds sdscatprintf(sds s, const char *fmt, ...);
 
 /**
  *
@@ -334,7 +334,7 @@ sds sdscatsds(sds s, const sds t);
  */
 sds sdstrim(sds s, const char *cset);
 
-// sds sdscatrepr(sds s, const char *p, size_t len);
+sds sdscatrepr(sds s, const char *p, size_t len);
 // sds *sdssplitargs(const char *line, int *argc);
 // void sdsfreesplitres(sds *tokens, int count);
 // void sdstolower(sds s);

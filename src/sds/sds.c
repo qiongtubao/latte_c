@@ -315,3 +315,108 @@ sds sdstrim(sds s, const char *cset) {
     sdssetlen(s,len);
     return s;
 }
+
+/* Create an empty (zero length) sds string. Even in this case the string
+ * always has an implicit null term. */
+sds sdsempty(void) {
+    return sdsnewlen("",0);
+}
+
+
+/* Like sdscatprintf() but gets va_list instead of being variadic. */
+sds sdscatvprintf(sds s, const char *fmt, va_list ap) {
+    va_list cpy;
+    char staticbuf[1024], *buf = staticbuf, *t;
+    size_t buflen = strlen(fmt)*2;
+    int bufstrlen;
+
+    /* We try to start using a static buffer for speed.
+     * If not possible we revert to heap allocation. */
+    if (buflen > sizeof(staticbuf)) {
+        buf = s_malloc(buflen);
+        if (buf == NULL) return NULL;
+    } else {
+        buflen = sizeof(staticbuf);
+    }
+
+    /* Alloc enough space for buffer and \0 after failing to
+     * fit the string in the current buffer size. */
+    while(1) {
+        va_copy(cpy,ap);
+        bufstrlen = vsnprintf(buf, buflen, fmt, cpy);
+        va_end(cpy);
+        if (bufstrlen < 0) {
+            if (buf != staticbuf) s_free(buf);
+            return NULL;
+        }
+        if (((size_t)bufstrlen) >= buflen) {
+            if (buf != staticbuf) s_free(buf);
+            buflen = ((size_t)bufstrlen) + 1;
+            buf = s_malloc(buflen);
+            if (buf == NULL) return NULL;
+            continue;
+        }
+        break;
+    }
+
+    /* Finally concat the obtained string to the SDS string and return it. */
+    t = sdscatlen(s, buf, bufstrlen);
+    if (buf != staticbuf) s_free(buf);
+    return t;
+}
+
+/* Append to the sds string 's' a string obtained using printf-alike format
+ * specifier.
+ *
+ * After the call, the modified sds string is no longer valid and all the
+ * references must be substituted with the new pointer returned by the call.
+ *
+ * Example:
+ *
+ * s = sdsnew("Sum is: ");
+ * s = sdscatprintf(s,"%d+%d = %d",a,b,a+b).
+ *
+ * Often you need to create a string from scratch with the printf-alike
+ * format. When this is the need, just use sdsempty() as the target string:
+ *
+ * s = sdscatprintf(sdsempty(), "... your format ...", args);
+ */
+sds sdscatprintf(sds s, const char *fmt, ...) {
+    va_list ap;
+    char *t;
+    va_start(ap, fmt);
+    t = sdscatvprintf(s,fmt,ap);
+    va_end(ap);
+    return t;
+}
+
+/* Append to the sds string "s" an escaped string representation where
+ * all the non-printable characters (tested with isprint()) are turned into
+ * escapes in the form "\n\r\a...." or "\x<hex-number>".
+ *
+ * After the call, the modified sds string is no longer valid and all the
+ * references must be substituted with the new pointer returned by the call. */
+sds sdscatrepr(sds s, const char *p, size_t len) {
+    s = sdscatlen(s,"\"",1);
+    while(len--) {
+        switch(*p) {
+        case '\\':
+        case '"':
+            s = sdscatprintf(s,"\\%c",*p);
+            break;
+        case '\n': s = sdscatlen(s,"\\n",2); break;
+        case '\r': s = sdscatlen(s,"\\r",2); break;
+        case '\t': s = sdscatlen(s,"\\t",2); break;
+        case '\a': s = sdscatlen(s,"\\a",2); break;
+        case '\b': s = sdscatlen(s,"\\b",2); break;
+        default:
+            if (isprint(*p))
+                s = sdscatprintf(s,"%c",*p);
+            else
+                s = sdscatprintf(s,"\\x%02x",(unsigned char)*p);
+            break;
+        }
+        p++;
+    }
+    return sdscatlen(s,"\"",1);
+}
