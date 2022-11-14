@@ -7,6 +7,14 @@
 #include <stdio.h>
 #include "dict.h"
 #include "zmalloc/zmalloc.h"
+#include <sys/time.h>
+
+long long timeInMilliseconds(void) {
+    struct timeval tv;
+
+    gettimeofday(&tv,NULL);
+    return (((long long)tv.tv_sec)*1000)+(tv.tv_usec/1000);
+}
 
 uint64_t testHashCallback(const void *key) {
     return dictGenCaseHashFunction((unsigned char*)key, strlen((char*)key));

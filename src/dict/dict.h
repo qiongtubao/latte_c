@@ -132,3 +132,4 @@ int dictAdd(dict *d, void *key, void *val);
 dictIterator *dictGetIterator(dict *d);
 dictEntry *dictNext(dictIterator *iter);
 void dictReleaseIterator(dictIterator *iter);
+int dictExpand(dict *d, unsigned long size);

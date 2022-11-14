@@ -2,7 +2,8 @@
 #include "dict.h"
 #include "zmalloc/zmalloc.h"
 #include <assert.h>
-
+#include <sys/time.h>
+#include <string.h>
 
 /* Using dictEnableResize() / dictDisableResize() we make possible to
  * enable/disable resizing of the hash table as needed. This is very important
@@ -16,12 +17,7 @@ static int dict_can_resize = 1;
 static unsigned int dict_force_resize_ratio = 5;
 
 
-long long timeInMilliseconds(void) {
-    struct timeval tv;
 
-    gettimeofday(&tv,NULL);
-    return (((long long)tv.tv_sec)*1000)+(tv.tv_usec/1000);
-}
 
 
 /* -------------------------- hash functions -------------------------------- */
