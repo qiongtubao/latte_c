@@ -4,7 +4,7 @@ WORKSPACE?=$(CURDIR)
 MODULES?=sds
 BUILD_DIR?=out
 ALL_OBJ=$(shell sh -c 'cat $(BUILD_DIR)/objs.list')
-
+DEPENDENCY_TARGETS=
 
 
 include $(WORKSPACE)/mks/sys.mk
@@ -13,8 +13,8 @@ include $(WORKSPACE)/mks/malloc.mk
 include $(WORKSPACE)/mks/latte.mk
 include $(WORKSPACE)/mks/info.mk
 
-
-
+persist-settings: 
+	-(cd ./deps && $(MAKE) $(DEPENDENCY_TARGETS))
 
 # $@：当前目标
 # $^：当前规则中的所有依赖
@@ -28,7 +28,7 @@ include $(WORKSPACE)/mks/info.mk
 %_module:
 	cd src/$* && $(MAKE) install_lib BUILD_DIR=../../$(BUILD_DIR)
 
-build: 
+build: persist-settings
 	mkdir -p $(BUILD_DIR)/lib
 	mkdir -p $(BUILD_DIR)/out
 	mkdir -p $(BUILD_DIR)/include
