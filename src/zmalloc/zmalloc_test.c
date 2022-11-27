@@ -144,6 +144,7 @@ int test_zrealloc_usable() {
     size_t usable = 0;
     void* value = zrealloc_usable(NULL, 100, &usable);
     assert(value != NULL);
+    zfree(value);
     return 1;
 }
 
@@ -163,12 +164,15 @@ int test_zstrdup() {
     char* zstr = zstrdup(str);
     assert(zstr != str);
     assert(strncmp(str, zstr, 5) == 0);
+    zfree(zstr);
+    zfree(str);
     return 1;
 }
 
 int test_zmadvise_dontneed() {
     void* value = zmalloc(1000000);
     zmadvise_dontneed(value);
+    zfree(value);
     return 1;
 }
 

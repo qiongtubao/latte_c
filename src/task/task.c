@@ -26,6 +26,11 @@ latteThreadJob* createThreadJob(task_fn tfn, callback_fn cb, int arg_count, ...)
 
 }
 
+void releaseThreadJob(latteThreadJob* job) {
+    zfree(job->args);
+    zfree(job);
+}
+
 
 void notifyCallbackHandler(latteThread* thread) {
      /* Pop the job from the queue. */
@@ -38,7 +43,7 @@ void notifyCallbackHandler(latteThread* thread) {
         pthread_mutex_lock(&thread->mutex);
         listDelNode(thread->recv_queue,ln);
         pthread_mutex_unlock(&thread->mutex);
-        //TODO free job
+        releaseThreadJob(job);
         ln = listFirst(thread->recv_queue);
     }
 }
@@ -59,6 +64,21 @@ void taskCallbackHandler(aeEventLoop *el, int fd, void* privdata, int  mask) {
         }
     }
 
+}
+
+void releaseOneTaskThread(latteThread* thread) {
+    pthread_mutex_destroy(&thread->mutex);
+    pthread_cond_destroy(&thread->job_cond);
+    pthread_cond_destroy(&thread->step_cond);
+    if (thread->send_queue != NULL) {
+        listRelease(thread->send_queue);
+    }
+    if (thread->recv_queue != NULL) {
+        listRelease(thread->recv_queue);
+    }
+
+    close(thread->notify_recv_fd);
+    close(thread->notify_send_fd);
 }
 
 int taskThreadInit(int id, latteThread* thread, aeEventLoop* el) {
@@ -99,6 +119,8 @@ int taskThreadInit(int id, latteThread* thread, aeEventLoop* el) {
     }
     return 1;
 }
+
+
 taskThread* createTaskThread(int tnum, aeEventLoop* el) {
     taskThread* t = zmalloc(sizeof(taskThread));
     t->num = tnum;
@@ -109,10 +131,17 @@ taskThread* createTaskThread(int tnum, aeEventLoop* el) {
         if (taskThreadInit(j, &t->threads[j], el) == 0) {
             //TODO free
             return NULL;
-        }
-        
+        }   
     }
     return t;
+}
+
+void releaseTaskThread(taskThread* thread) {
+    for (int j = 0; j < thread->num; j++) {
+        releaseOneTaskThread(&thread->threads[j]);
+    }
+    zfree(thread->threads);
+    zfree(thread);
 }
 
 
@@ -132,7 +161,7 @@ void *taskProcess(void *arg) {
 
     latteSetCpuAffinity("");
 
-    makeThreadKillable();
+    latteMakeThreadKillable();
 
     pthread_mutex_lock(&thread->mutex);
     /* Block SIGALRM so we are sure that only the main thread will
@@ -210,6 +239,14 @@ void latteSetCpuAffinity(const char *cpulist) {
 #else
     UNUSED(cpulist);
 #endif
+}
+
+/* Make the thread killable at any time, so that kill threads functions
+ * can work reliably (default cancelability type is PTHREAD_CANCEL_DEFERRED).
+ * Needed for pthread_cancel used by the fast memory test used by the crash report. */
+void latteMakeThreadKillable(void) {
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 }
 
 int trySubmitTask(taskThread* thread, int i, latteThreadJob* t) {

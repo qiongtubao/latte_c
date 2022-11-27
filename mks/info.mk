@@ -11,3 +11,4 @@ info:
 	@echo "TEST_MAIN="$(TEST_MAIN)
 	@echo "ALL_OBJ="$(ALL_OBJ)
 	@echo "BUILD_DIR="$(BUILD_DIR)
+	@echo "SANITIZER="$(SANITIZER)

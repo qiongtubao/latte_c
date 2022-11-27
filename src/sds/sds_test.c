@@ -32,7 +32,8 @@ int assert_random_sds(size_t len, int try) {
 
 int test_sdsnewlen(void) {
     //null
-    assert(sdsnewlen(NULL, 100) != NULL);
+    sds value = sdsnewlen(NULL, 100);
+    assert(value != NULL);
     //type 5
     assert(assert_random_sds((1 << 5) - 1, 0) == 1);
     //type 8
@@ -46,12 +47,15 @@ int test_sdsnewlen(void) {
 
     //type64
     assert(assert_random_sds((1ll << 32), 0) == 1);
+    
+    sdsfree(value);
     return 1;
 }
 
 int test_sdstrynewlen() {
     //null
-    assert(sdstrynewlen(NULL, 100) != NULL);
+    sds value = sdstrynewlen(NULL, 100);
+    assert(value != NULL);
     //type 5
     assert(assert_random_sds((1 << 5) - 1, 1) == 1);
     //type 8
@@ -66,6 +70,7 @@ int test_sdstrynewlen() {
     //type64
     assert(assert_random_sds((1ll << 32), 1) == 1);
 
+    sdsfree(value);
     return 1;
 }
 
