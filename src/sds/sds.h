@@ -283,7 +283,6 @@ sds sdscatlen(sds s, const void *t, size_t len);
  *      assert(memcmp(splits[3], "c\0",2) == 0);
  *      sdsfreesplitres(splits, len);
  */
-sds *sdssplitlen(const char *s, int len, const char *sep, int seplen, int *count);
 void sdsfreesplitres(sds *tokens, int count);
 
 /**
@@ -335,8 +334,9 @@ sds sdscatsds(sds s, const sds t);
 sds sdstrim(sds s, const char *cset);
 
 sds sdscatrepr(sds s, const char *p, size_t len);
-// sds *sdssplitargs(const char *line, int *argc);
-// void sdsfreesplitres(sds *tokens, int count);
+sds *sdssplitargs(const char *line, int *argc);
+void sdsfreesplitres(sds *tokens, int count);
+sds *sdssplitlen(const char *s, ssize_t len, const char *sep, int seplen, int *count);
 // void sdstolower(sds s);
 
 /**

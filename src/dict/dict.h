@@ -133,3 +133,7 @@ dictIterator *dictGetIterator(dict *d);
 dictEntry *dictNext(dictIterator *iter);
 void dictReleaseIterator(dictIterator *iter);
 int dictExpand(dict *d, unsigned long size);
+
+
+/* dict basic function */
+uint64_t dictGenHashFunction(const void *key, size_t len);
