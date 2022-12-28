@@ -16,14 +16,31 @@ configRule name_rule = {
     .load = sdsLoadConfig
 };
 
+configRule age_rule = {
+    .update = longLongUpdate,
+    .writeConfigSds = longLongWriteConfigSds,
+    .releaseValue = longLongReleaseValue,
+    .load = longLongLoadConfig
+};
+
 int test_configCreate() {
     config* c = createConfig();
-    sds key = sdsnewlen("name", 4);
-    registerConfig(c, key, &name_rule);
+    //sds
+    sds name = sdsnewlen("name", 4);
+    registerConfig(c, name, &name_rule);
+    //long long
+    sds age = sdsnewlen("age", 3);
+    registerConfig(c, age, &age_rule);
+
     sds value = sdsnew("latte");
     assert(configSetSds(c, "name", value) == 1);
     sds r = configGetSds(c, "name");
     assert(r == value);
+
+    assert(configSetLongLong(c, "age", 100) == 1);
+    assert(configGetLongLong(c, "age") == 100);
+
+
     releaseConfig(c);
     return 1;
 }
@@ -38,18 +55,28 @@ int mockConfigFile(char* file_name, char* file_context) {
 
 int test_loadConfigFromString() {
     config* c = createConfig();
-    sds key = sdsnewlen("name", 4);
-    registerConfig(c, key, &name_rule);
-    char* configstr = "name a";
+    //sds
+    sds name = sdsnewlen("name", 4);
+    registerConfig(c, name, &name_rule);
+    //long long
+    sds age = sdsnewlen("age", 3);
+    registerConfig(c, age, &age_rule);
+
+    char* configstr = "name a\r\nage 101";
     assert(loadConfigFromString(c, configstr, strlen(configstr)) == 1);
     assert(strcmp(configGetSds(c, "name"), "a") == 0);
-    char* argv[2] = {"--name", "b"};
-    assert(loadConfigFromArgv(c, argv, 2) == 1);
-    assert(strcmp(configGetSds(c, "name"), "b") == 0);
+    assert(configGetLongLong(c, "age") == 101);
 
-    assert(mockConfigFile("name_test.config","name c") == 1);
+    char* argv[4] = {"--name", "b", "--age", "111"};
+    assert(loadConfigFromArgv(c, argv, 4) == 1);
+    assert(strcmp(configGetSds(c, "name"), "b") == 0);
+    assert(configGetLongLong(c, "age") == 111);
+
+    assert(mockConfigFile("name_test.config","name c\r\n age 123") == 1);
     assert(loadConfigFromFile(c, "name_test.config") == 1);
     assert(strcmp(configGetSds(c, "name"), "c") == 0);
+
+    assert(configGetLongLong(c, "age") == 123);
     releaseConfig(c);
     return 1;
 }

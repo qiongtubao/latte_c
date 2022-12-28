@@ -1,3 +1,5 @@
+#ifndef __LATTE_TASK_H
+#define __LATTE_TASK_H
 
 #include "../utils/atomic.h"
 #include "list/list.h"
@@ -46,3 +48,5 @@ void startTaskThread(taskThread* thread);
 void stopTaskThread(taskThread* thread);
 latteThreadJob* createThreadJob(task_fn tfn, callback_fn cb, int arg_count, ...);
 void submitTask(taskThread* thread, latteThreadJob* t);
+
+#endif

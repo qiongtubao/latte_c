@@ -1,3 +1,7 @@
+
+#ifndef __LATTE_DICT_H
+#define __LATTE_DICT_H
+
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -137,3 +141,5 @@ int dictExpand(dict *d, unsigned long size);
 
 /* dict basic function */
 uint64_t dictGenHashFunction(const void *key, size_t len);
+
+#endif

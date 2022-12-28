@@ -1,4 +1,6 @@
 
+#ifndef __LATTE_CONFIG_H
+#define __LATTE_CONFIG_H
 
 #include "sds/sds.h"
 #include "dict/dict.h"
@@ -22,6 +24,8 @@ sds configGetSds(config* c, char* key);
 int configSetSds(config* c, char* key, sds value);
 int configGetInt(config* c, char* key);
 int configSetInt(config* c, char* key, int value);
+int configSetLongLong(config* c, char* key, long long value);
+long long configGetLongLong(config* c, char* key);
 int configSetArgv(configRule* c, char** argv, int argc);
 /** load config **/
 int loadConfigFromString(config* config, char* configstr, size_t configstrlen);
@@ -29,7 +33,10 @@ int loadConfigFromArgv(config* config, char** argv, int argc);
 int loadConfigFromFile(config* c, char *filename);
 
 /* num attribute */
-int numUpdate(configRule* rule, void* old_value, void* new_value);
+int longLongUpdate(configRule* rule, void* old_value, void* new_value);
+sds longLongWriteConfigSds(sds config, char* key, configRule* rule);
+void longLongReleaseValue(void* value);
+int longLongLoadConfig(configRule* rule, char** argv, int argc);
 
 
 /* sds attribute */
@@ -44,3 +51,6 @@ int arrayUpdate(configRule* rule, void* old_value, void* new_value);
 
 /* object attribute */
 int objectUpdate(configRule* rule, void* old_value, void* new_value);
+
+
+#endif

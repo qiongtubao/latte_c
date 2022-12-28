@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include "utils/utils.h"
 
 uint64_t dictSdsHash(const void *key) {
     return dictGenHashFunction((unsigned char*)key, strlen((char*)key));
@@ -70,6 +71,10 @@ int configGetInt(config* c, char* key) {
     return (*(int*)(configGet(c, key)));
 }
 
+long long configGetLongLong(config* c, char* key) {
+    return ((long long)(configGet(c, key)));
+}
+
 int configSetSds(config* c, char* key, sds value) {
     dictEntry* entry = dictFind(c->rules, key);
     if (entry == NULL) return 0;
@@ -90,6 +95,15 @@ int configSetInt(config* c, sds key, int value) {
     return 1;
 }
 
+int configSetLongLong(config* c, char* key, long long value) {
+    dictEntry* entry = dictFind(c->rules, key);
+    if (entry == NULL) return 0;
+    configRule* rule = dictGetVal(entry);
+    if (rule->update(rule, rule->value, value)) {
+        rule->value = value;
+    }
+    return 1;
+}
 
 int registerConfig(config* c, sds key, configRule* rule) {
     return dictAdd(c->rules, key, rule);
@@ -207,5 +221,31 @@ void sdsReleaseValue(void* value) {
 int sdsLoadConfig(configRule* rule, char** argv, int argc) {
     if (argc != 2) return 0;
     rule->value = sdsnewlen(argv[1], strlen(argv[1]));
+    return 1;
+}
+
+/* num config gen*/
+int longLongUpdate(configRule* rule, void* old_value, void* new_value) {
+    rule->value = new_value;
+    return 1;
+}
+
+sds longLongWriteConfigSds(sds config, char* key, configRule* rule) {
+    long long ll = (long long)rule->value;
+    return sdscatprintf(config, "%s %lld", key, ll);
+}
+
+#define UNUSED(x) ((void)(x))
+void longLongReleaseValue(void* value) {
+    UNUSED(value);
+}
+
+int longLongLoadConfig(configRule* rule, char** argv, int argc) {
+    if (argc != 2) return 0;
+    long long ll = 0;
+    if (!string2ll(argv[1], strlen(argv[1]), &ll)) {
+        return 0;
+    }
+    rule->value = (void*)ll;
     return 1;
 }

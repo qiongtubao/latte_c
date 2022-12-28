@@ -1,5 +1,6 @@
 
-
+#ifndef __LATTE_SDS_H
+#define __LATTE_SDS_H
 #define SDS_MAX_PREALLOC (1024*1024)
 #include <sys/types.h>
 #include <stdarg.h>
@@ -354,3 +355,4 @@ void sdsclear(sds s);
 
 
 void sdsrange(sds s, ssize_t start, ssize_t end);
+#endif
