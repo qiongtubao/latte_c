@@ -655,3 +655,26 @@ cleanup:
         return NULL;
     }
 }
+
+/* Compare two sds strings s1 and s2 with memcmp().
+ *
+ * Return value:
+ *
+ *     positive if s1 > s2.
+ *     negative if s1 < s2.
+ *     0 if s1 and s2 are exactly the same binary string.
+ *
+ * If two strings share exactly the same prefix, but one of the two has
+ * additional characters, the longer string is considered to be greater than
+ * the smaller one. */
+int sdscmp(const sds s1, const sds s2) {
+    size_t l1, l2, minlen;
+    int cmp;
+
+    l1 = sdslen(s1);
+    l2 = sdslen(s2);
+    minlen = (l1 < l2) ? l1 : l2;
+    cmp = memcmp(s1,s2,minlen);
+    if (cmp == 0) return l1>l2? 1: (l1<l2? -1: 0);
+    return cmp;
+}
