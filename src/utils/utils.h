@@ -4,6 +4,22 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdint.h>
+
+
+#ifdef __GNUC__
+#  define likely(x)   __builtin_expect(!!(x), 1)
+#  define unlikely(x) __builtin_expect(!!(x), 0)
+#else
+#  define likely(x)   !!(x)
+#  define unlikely(x) !!(x)
+#endif
+
+#if __GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)
+#define latte_unreachable __builtin_unreachable
+#else
+#define latte_unreachable abort
+#endif
+
 int ll2string(char *s, size_t len, long long value);
 int string2ll(const char *s, size_t slen, long long *value);
 // int string2ll(const char *s, size_t slen, long long *value);
