@@ -23,6 +23,14 @@ configRule age_rule = {
     .load = longLongLoadConfig
 };
 
+configRule array_sds_rule = {
+    .update = arraySdsUpdate,
+    .writeConfigSds = arraySdsWriteConfigSds,
+    .releaseValue = arraySdsReleaseValue,
+    .load = arraySdsLoadConfig
+};
+
+
 int test_configCreate() {
     config* c = createConfig();
     //sds
@@ -62,15 +70,23 @@ int test_loadConfigFromString() {
     sds age = sdsnewlen("age", 3);
     registerConfig(c, age, &age_rule);
 
+    sds bind = sdsnewlen("bind", 4);
+    registerConfig(c, bind, &array_sds_rule);
+
     char* configstr = "name a\r\nage 101";
     assert(loadConfigFromString(c, configstr, strlen(configstr)) == 1);
     assert(strcmp(configGetSds(c, "name"), "a") == 0);
     assert(configGetLongLong(c, "age") == 101);
 
-    char* argv[4] = {"--name", "b", "--age", "111"};
-    assert(loadConfigFromArgv(c, argv, 4) == 1);
+    char* argv[7] = {"--name", "b", "--age", "111","--bind", "1", "2"};
+    assert(loadConfigFromArgv(c, argv, 7) == 1);
     assert(strcmp(configGetSds(c, "name"), "b") == 0);
     assert(configGetLongLong(c, "age") == 111);
+    struct arraySds* array = configGetArray(c, "bind");
+    assert(array->len == 2);
+    assert(strcmp((array->value[0]), "1") == 0);
+    assert(strcmp((array->value[1]), "2") == 0);
+    
 
     assert(mockConfigFile("name_test.config","name c\r\n age 123") == 1);
     assert(loadConfigFromFile(c, "name_test.config") == 1);

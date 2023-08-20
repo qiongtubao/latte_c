@@ -249,3 +249,47 @@ int longLongLoadConfig(configRule* rule, char** argv, int argc) {
     rule->value = (void*)ll;
     return 1;
 }
+
+
+
+struct arraySds* configGetArray(config* c, char* key) {
+    return ((struct arraySds*)(configGet(c, key)));
+}
+
+/* sds config gen*/
+int arraySdsUpdate(configRule* rule, void* old_value, void* new_value) {
+    rule->value = new_value;
+    return 1;
+}
+
+sds arraySdsWriteConfigSds(sds config, char* key, configRule* rule) {
+    struct arraySds* value = (struct arraySds*)rule->value;
+    sds result = sdscatprintf(config, "%s", key);
+    for(int i = 0; i < value->len; i++) {
+        result = sdscatprintf(config, " %s", value->value[i]);
+    }
+    return result;
+}
+
+void arraySdsReleaseValue(void* _value) {
+    if (_value == NULL) return;
+    struct arraySds* value = (struct arraySds*)_value;
+    for(int i = 0; i < value->len; i++) {
+        sdsfree(value->value[i]);
+    }
+    zfree(value->value);
+    zfree(value);
+}
+
+int arraySdsLoadConfig(configRule* rule, char** argv, int argc) {
+    if (argc < 2) return 0;
+    sds* array = zmalloc(sizeof(sds*) * (argc - 1));
+    struct arraySds* value = zmalloc(sizeof(struct arraySds));
+    for(int i = 1; i < argc; i++) {
+        array[i - 1] = sdsnew(argv[i]);
+    }
+    value->len = (argc - 1);
+    value->value = array;
+    rule->value = value;
+    return 1;
+}

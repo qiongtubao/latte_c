@@ -45,9 +45,16 @@ sds sdsWriteConfigSds(sds config, char* key, configRule* rule);
 void sdsReleaseValue(void* value);
 int sdsLoadConfig(configRule* rule, char** argv, int argc);
 
+typedef struct arraySds {
+    int len;
+    void** value;
+} arraySds;
 /* array attribute */
-int arrayUpdate(configRule* rule, void* old_value, void* new_value);
-
+int arraySdsUpdate(configRule* rule, void* old_value, void* new_value);
+sds arraySdsWriteConfigSds(sds config, char* key, configRule* rule);
+int arraySdsLoadConfig(configRule* rule, char** argv, int argc);
+void arraySdsReleaseValue(void* value);
+struct arraySds* configGetArray(config* c, char* key);
 
 /* object attribute */
 int objectUpdate(configRule* rule, void* old_value, void* new_value);
