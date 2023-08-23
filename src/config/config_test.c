@@ -15,12 +15,13 @@ configRule name_rule = {
     .releaseValue =sdsReleaseValue,
     .load = sdsLoadConfig
 };
-
+#define DEFAULT_AGE 10
 configRule age_rule = {
     .update = longLongUpdate,
     .writeConfigSds = longLongWriteConfigSds,
     .releaseValue = longLongReleaseValue,
-    .load = longLongLoadConfig
+    .load = longLongLoadConfig,
+    .value = DEFAULT_AGE
 };
 
 configRule array_sds_rule = {
@@ -45,6 +46,7 @@ int test_configCreate() {
     sds r = configGetSds(c, "name");
     assert(r == value);
 
+    assert(configGetLongLong(c, "age") == DEFAULT_AGE);
     assert(configSetLongLong(c, "age", 100) == 1);
     assert(configGetLongLong(c, "age") == 100);
 
