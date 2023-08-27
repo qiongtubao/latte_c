@@ -3,6 +3,7 @@
 
 /* Toggle the 16 bit unsigned integer pointed by *p from little endian to
  * big endian */
+/*  将指针 *p 指向的16位无符号整数从小端序转换为大端序 */
 void memrev16(void *p) {
     unsigned char *x = p, t;
 
@@ -13,6 +14,7 @@ void memrev16(void *p) {
 
 /* Toggle the 32 bit unsigned integer pointed by *p from little endian to
  * big endian */
+/* 将指针 *p 指向的32位无符号整数从小端序转换为大端序 */
 void memrev32(void *p) {
     unsigned char *x = p, t;
 
@@ -25,6 +27,7 @@ void memrev32(void *p) {
 }
 /* Toggle the 64 bit unsigned integer pointed by *p from little endian to
  * big endian */
+/*将指针 *p 指向的64位无符号整数从小端序转换为大端序*/
 void memrev64(void *p) {
     unsigned char *x = p, t;
 
