@@ -456,3 +456,28 @@ const char *connGetInfo(connection *conn, char *buf, size_t buf_len) {
 void *connGetPrivateData(connection *conn) {
     return conn->private_data;
 }
+
+int connBlock(connection *conn) {
+    if (conn->fd == -1) return CONNECTION_ERR;
+    return anetBlock(NULL, conn->fd);
+}
+
+int connNonBlock(connection *conn) {
+    if (conn->fd == -1) return CONNECTION_ERR;
+    return anetNonBlock(NULL, conn->fd);
+}
+
+int connEnableTcpNoDelay(connection *conn) {
+    if (conn->fd == -1) return CONNECTION_ERR;
+    return anetEnableTcpNoDelay(NULL, conn->fd);
+}
+
+/* Associate a private data pointer with the connection */
+void connSetPrivateData(connection *conn, void *data) {
+    conn->private_data = data;
+}
+
+int connKeepAlive(connection *conn, int interval) {
+    if (conn->fd == -1) return CONNECTION_ERR;
+    return anetKeepAlive(NULL, conn->fd, interval);
+}

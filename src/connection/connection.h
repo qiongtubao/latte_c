@@ -66,7 +66,12 @@ connection *connCreateAcceptedSocket(int fd);
 int connGetState(connection *conn);
 void *connGetPrivateData(connection *conn);
 const char *connGetInfo(connection *conn, char *buf, size_t buf_len);
-
+/* anet-style wrappers to conns */
+int connBlock(connection *conn);
+int connNonBlock(connection *conn);
+int connEnableTcpNoDelay(connection *conn);
+void connSetPrivateData(connection *conn, void *data);
+int connKeepAlive(connection *conn, int interval);
 
 static inline void connClose(struct aeEventLoop *el, connection *conn) {
     conn->type->close(el, conn);
@@ -111,6 +116,13 @@ static inline const char *connGetLastError(connection *conn) {
 
 static inline int connAccept(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc accept_handler) {
     return conn->type->accept(el, conn, accept_handler);
+}
+
+/* Register a read handler, to be called when the connection is readable.
+ * If NULL, the existing handler is removed.
+ */
+static inline int connSetReadHandler(connection *conn, ConnectionCallbackFunc func) {
+    return conn->type->set_read_handler(conn, func);
 }
 
 #endif  /* __REDIS_CONNECTION_H */
