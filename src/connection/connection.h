@@ -125,4 +125,13 @@ static inline int connSetReadHandler(connection *conn, ConnectionCallbackFunc fu
     return conn->type->set_read_handler(conn, func);
 }
 
+/* 
+从连接中读取，与read(2)的行为相同。
+与read(2)类似，可能会出现短读。返回值为0表示连接已关闭，返回-1表示出现错误。
+调用者不应依赖errno。要测试类似于EAGAIN的条件，请使用connGetState()来查看连接状态是否仍为CONN_STATE_CONNECTED。
+ */
+static inline int connRead(connection *conn, void *buf, size_t buf_len) {
+    return conn->type->read(conn, buf, buf_len);
+}
+
 #endif  /* __REDIS_CONNECTION_H */
