@@ -38,8 +38,8 @@ typedef struct ConnectionType {
     int (*read)(struct connection *conn, void *buf, size_t buf_len);
     void (*close)(struct aeEventLoop *el, struct connection *conn);
     int (*accept)(struct aeEventLoop *el, struct connection *conn, ConnectionCallbackFunc accept_handler);
-    int (*set_write_handler)(struct connection *conn, ConnectionCallbackFunc handler, int barrier);
-    int (*set_read_handler)(struct connection *conn, ConnectionCallbackFunc handler);
+    int (*set_write_handler)(struct aeEventLoop *el, struct connection *conn, ConnectionCallbackFunc handler, int barrier);
+    int (*set_read_handler)(struct aeEventLoop *el, struct connection *conn, ConnectionCallbackFunc handler);
     const char *(*get_last_error)(struct connection *conn);
     int (*blocking_connect)(struct connection *conn, const char *addr, int port, long long timeout);
     ssize_t (*sync_write)(struct connection *conn, char *ptr, ssize_t size, long long timeout);
@@ -121,8 +121,8 @@ static inline int connAccept(struct aeEventLoop *el, connection *conn, Connectio
 /* Register a read handler, to be called when the connection is readable.
  * If NULL, the existing handler is removed.
  */
-static inline int connSetReadHandler(connection *conn, ConnectionCallbackFunc func) {
-    return conn->type->set_read_handler(conn, func);
+static inline int connSetReadHandler(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc func) {
+    return conn->type->set_read_handler(el, conn, func);
 }
 
 /* 
