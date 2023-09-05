@@ -678,3 +678,62 @@ int sdscmp(const sds s1, const sds s2) {
     if (cmp == 0) return l1>l2? 1: (l1<l2? -1: 0);
     return cmp;
 }
+
+/* 
+ * 
+ * 增加sds的长度，并根据'incr'减少字符串末尾的剩余空闲空间。
+ * 同时在字符串的新末尾设置空终止符。
+ * 
+ * 此函数用于在用户调用sdsMakeRoomFor()后，
+ * 在当前字符串的末尾写入内容，
+ * 并最终需要设置新的长度时修复字符串的长度。
+ * 注意：可以使用负增量来右修剪字符串。
+ * 使用示例：
+ * 使用sdsIncrLen()和sdsMakeRoomFor()可以实现以下方案，将来自内核的字节连接到sds字符串的末尾，而无需复制到中间缓冲区：
+
+ * oldlen = sdslen(s);
+ * s = sdsMakeRoomFor(s, BUFFER_SIZE);
+ * nread = read(fd, s+oldlen, BUFFER_SIZE);
+ * ... 检查nread <= 0并处理 ...
+ * sdsIncrLen(s, nread);
+ */
+void sdsIncrLen(sds s, ssize_t incr) {
+    unsigned char flags = s[-1];
+    size_t len;
+    switch(flags&SDS_TYPE_MASK) {
+        case SDS_TYPE_5: {
+            unsigned char *fp = ((unsigned char*)s)-1;
+            unsigned char oldlen = SDS_TYPE_5_LEN(flags);
+            assert((incr > 0 && oldlen+incr < 32) || (incr < 0 && oldlen >= (unsigned int)(-incr)));
+            *fp = SDS_TYPE_5 | ((oldlen+incr) << SDS_TYPE_BITS);
+            len = oldlen+incr;
+            break;
+        }
+        case SDS_TYPE_8: {
+            SDS_HDR_VAR(8,s);
+            assert((incr >= 0 && sh->alloc-sh->len >= incr) || (incr < 0 && sh->len >= (unsigned int)(-incr)));
+            len = (sh->len += incr);
+            break;
+        }
+        case SDS_TYPE_16: {
+            SDS_HDR_VAR(16,s);
+            assert((incr >= 0 && sh->alloc-sh->len >= incr) || (incr < 0 && sh->len >= (unsigned int)(-incr)));
+            len = (sh->len += incr);
+            break;
+        }
+        case SDS_TYPE_32: {
+            SDS_HDR_VAR(32,s);
+            assert((incr >= 0 && sh->alloc-sh->len >= (unsigned int)incr) || (incr < 0 && sh->len >= (unsigned int)(-incr)));
+            len = (sh->len += incr);
+            break;
+        }
+        case SDS_TYPE_64: {
+            SDS_HDR_VAR(64,s);
+            assert((incr >= 0 && sh->alloc-sh->len >= (uint64_t)incr) || (incr < 0 && sh->len >= (uint64_t)(-incr)));
+            len = (sh->len += incr);
+            break;
+        }
+        default: len = 0; /* Just to avoid compilation warnings. */
+    }
+    s[len] = '\0';
+}

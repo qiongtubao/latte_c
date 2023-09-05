@@ -355,4 +355,5 @@ void sdsclear(sds s);
 
 
 void sdsrange(sds s, ssize_t start, ssize_t end);
+void sdsIncrLen(sds s, ssize_t incr);
 #endif
