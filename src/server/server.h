@@ -37,7 +37,7 @@ typedef void *(*tcpHandlerFunc)(aeEventLoop *el, int fd, void *privdata, int mas
 typedef int *(*ExecFunc)(struct latteClient* client);
 typedef struct latteClient *(*createClientFunc)();
 typedef void *(*freeClientFunc)(struct latteClient* client);
-struct latteServer {
+typedef struct latteServer {
     /* General */
     pid_t pid;  
     pthread_t main_thread_id;

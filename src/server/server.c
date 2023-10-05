@@ -144,24 +144,20 @@ void unlinkClient(struct latteClient* c) {
     if (c->conn) {
         if (c->client_list_node) {
             uint64_t id = htonu64(c->id);
-            printf("unlinkClient1 %p\n", server->clients_index);
             raxRemove(server->clients_index,(unsigned char*)&id,sizeof(id),NULL);
-            printf("unlinkClient2\n");
             listDelNode(server->clients,c->client_list_node);
             c->client_list_node = NULL;
         }
-        printf("unlinkClient\n");
         connClose(server->el, c->conn);
         c->conn = NULL;
     }
 }
 
 void freeClient(struct latteClient *c) {
+    printf("freeClient %d\n", c->conn->fd);
     struct latteServer* server = c->server;
     unlinkClient(c);
-    printf("freeInnerLatteClient\n");
     freeInnerLatteClient(c);
-    printf("freeClient\n");
     server->freeClient(c);
 }
 
@@ -265,12 +261,10 @@ void readQueryFromClient(connection *conn) {
             return;
         }
     } else if (nread == 0) {
-        printf("Client closed connection\n");
         freeClientAsync(c);
         return;
     } 
     sdsIncrLen(c->querybuf,nread);
-    printf("query buf %s %d %d\n", c->querybuf, sdslen(c->querybuf), c->querybuf_peak);
     if (c->exec(c)) {
         //清理掉c->querybuf
         sdsrange(c->querybuf,c->qb_pos,-1);
@@ -328,9 +322,11 @@ static void acceptCommonHandler(struct latteServer* server,connection *conn, int
         return;
     }
     initInnerLatteClient(c);
+    
     c->conn = conn;
     c->id = getClientId(server);
     c->server = server;
+    printf("create client %d\n", c->conn->fd);
 
     if (conn) {
         connNonBlock(conn);
@@ -338,11 +334,9 @@ static void acceptCommonHandler(struct latteServer* server,connection *conn, int
         // if (server.tcpkeepalive)
         //     connKeepAlive(conn,server.tcpkeepalive);
         connSetReadHandler(server->el, conn, readQueryFromClient);
-        printf("conn %p \n", conn->type->set_read_handler);
         connSetPrivateData(conn, c);
     }
     initClient(server->el, c, conn, flags);
-    printf("linkClient %p\n", conn);
     if(conn) linkClient(server, c);
 }
 
