@@ -7,7 +7,6 @@
 #include "connection/connection.h"
 #include "sds/sds.h"
 #include "dict/dict.h"
-#include "ae/ae.h"
 #include "anet/anet.h"
 #include <pthread.h>
 #include "sds/sds.h"
