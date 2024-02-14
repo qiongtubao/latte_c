@@ -1,5 +1,7 @@
 #include "utils.h"
 #include <limits.h>
+#include <time.h>
+#include <sys/time.h>
 /* Convert a string into a long long. Returns 1 if the string could be parsed
  * into a (non-overflowing) long long, 0 otherwise. The value will be set to
  * the parsed value when appropriate.
@@ -163,4 +165,51 @@ int ll2string(char *dst, size_t dstlen, long long svalue) {
     /* Add sign. */
     if (negative) dst[0] = '-';
     return length;
+}
+
+
+long long ustime(void) {
+    struct timeval tv;
+    long long ust;
+
+    gettimeofday(&tv, NULL);
+    ust = ((long long)tv.tv_sec)*1000000;
+    ust += tv.tv_usec;
+    return ust;
+}
+
+
+
+/*
+ * Gets the proper timezone in a more portable fashion
+ * i.e timezone variables are linux specific.
+ */
+long getTimeZone(void) {
+#if defined(__linux__) || defined(__sun)
+    return timezone;
+#else
+    struct timeval tv;
+    struct timezone tz;
+
+    gettimeofday(&tv, &tz);
+
+    return tz.tz_minuteswest * 60L;
+#endif
+}
+long _updateGetDaylightActive(int updated) {
+    if (!updated && start_update_cache_timed) {
+        return daylight_active;
+    }
+    struct tm tm;
+    time_t ut = start_update_cache_timed? nowustime: ustime() / 1000000;
+    localtime_r(&ut,&tm);
+    if (updated) daylight_active = tm.tm_isdst;
+    return tm.tm_isdst;
+}
+long getDaylightActive() {
+    return _updateGetDaylightActive(0);
+}
+
+long updateDaylightActive() {
+    return _updateGetDaylightActive(1);
 }

@@ -2,7 +2,7 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=benchmark.o 
 LIB_OBJ?=
 TEST_MAIN?=benchmark_test
-LIB_MODULES?=zmalloc sds list endianconv connection ae server
+LIB_MODULES?=zmalloc utils sds list endianconv connection ae server
 MODULE?=benchmark
 BUILD_INCLUDE=benchmark.h
 
@@ -19,3 +19,4 @@ include $(WORKSPACE)/src/rax/lib.mk
 include $(WORKSPACE)/src/sds/lib.mk
 include $(WORKSPACE)/src/endianconv/lib.mk
 include $(WORKSPACE)/src/server/lib.mk
+include $(WORKSPACE)/src/utils/lib.mk
