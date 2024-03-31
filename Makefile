@@ -1,7 +1,7 @@
 
 # must set 
 WORKSPACE?=$(CURDIR)
-MODULES?=sds
+MODULES?=sds zmalloc utils log 
 BUILD_DIR?=out
 ALL_OBJ=$(shell sh -c 'cat $(BUILD_DIR)/objs.list')
 DEPENDENCY_TARGETS=
@@ -54,6 +54,8 @@ clean_all:
 test_all: ./deps/jemalloc
 	make zmalloc_test
 	make sds_test
+	make log_test
 	make dict_test
 	make task_test
 	make list_test
+	

@@ -2,7 +2,7 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=log.o
 LIB_OBJ?=
 TEST_MAIN?=log_test
-LIB_MODULES?=zmalloc sds utils 
+LIB_MODULES?=zmalloc sds dict utils 
 MODULE?=log
 BUILD_INCLUDE=log.h
 
@@ -14,3 +14,4 @@ include $(WORKSPACE)/mks/info.mk
 include $(WORKSPACE)/src/zmalloc/lib.mk
 include $(WORKSPACE)/src/sds/lib.mk
 include $(WORKSPACE)/src/utils/lib.mk
+include $(WORKSPACE)/src/dict/lib.mk

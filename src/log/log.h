@@ -3,11 +3,21 @@
 
 #include <stdio.h>
 #include <sds/sds.h>
+#include <dict/dict.h>
+
+#include <stdarg.h>
+#include <stdbool.h>
+#include <time.h>
+#include "zmalloc/zmalloc.h"
+
+#define LOG_VERSION "0.0.1"
+
 /* Log levels */
 #define LL_DEBUG 0
-#define LL_VERBOSE 1
-#define LL_NOTICE 2
-#define LL_WARNING 3
+#define LL_INFO 1
+#define LL_WARN 2
+#define LL_ERROR 3
+#define LL_FATAL 4
 #define LL_RAW (1<<10) /* Modifier to log without timestamp */
 
 
@@ -20,38 +30,80 @@
  *
  * priorities (these are ordered)
  */
-#define LOG_EMERG       0       /* system is unusable */
-#define LOG_ALERT       1       /* action must be taken immediately */
-#define LOG_CRIT        2       /* critical conditions */
-#define LOG_ERR         3       /* error conditions */
-#define LOG_WARNING     4       /* warning conditions */
-#define LOG_NOTICE      5       /* normal but significant condition */
-#define LOG_INFO        6       /* informational */
-#define LOG_DEBUG       7       /* debug-level messages */
+// #define LOG_EMERG       0       /* system is unusable */
+// #define LOG_ALERT       1       /* action must be taken immediately */
+// #define LOG_CRIT        2       /* critical conditions */
+// #define LOG_ERR         3       /* error conditions */
+// #define LOG_WARNING     4       /* warning conditions */
+// #define LOG_NOTICE      5       /* normal but significant condition */
+// #define LOG_INFO        6       /* informational */
+// #define LOG_DEBUG       7       /* debug-level messages */
+enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 
-/** 
- * 问题
- * 1. 时间戳引用
- * 
- * 
- */
-static int logLevel = LL_DEBUG;
-static sds logFilename = NULL;
+#define LOG_MAX_LEN    1024 /* Default maximum length of syslog messages.*/
 
-void setLogLevel(int level);
-int getLogLevel();
-void setLogFile(const char* filename);
-sds getLogFile();
 
-void _Log(int level, const char *fmt, ...);
-/* Use macro for checking log level to avoid evaluating arguments in cases log
- * should be ignored due to low level. */
-#define Log(level, ...) do {\
-        if (((level)&0xff) < logLevel) break;\
-        _Log(level, __VA_ARGS__);\
-    } while(0)
+#define MAX_LOGGER 4;
 
 
 
+
+typedef struct {
+  va_list ap;
+  const char *fmt;
+  const char *file;
+  struct tm *time;
+  void *udata;
+  int line;
+  int level;
+  const char* func;
+} log_Event;
+
+typedef void (*log_LogFn)(log_Event *ev);
+typedef void (*log_LockFn)(bool lock, void *udata);
+
+#define MAX_CALLBACKS 32
+
+typedef struct {
+  log_LogFn fn;
+  void *udata;
+  int level;
+} Callback;
+
+struct Logger {
+  void *udata;
+  log_LockFn lock;
+  int level;
+  bool quiet;
+  Callback callbacks[MAX_CALLBACKS];
+} ;
+
+static struct LoggerFactory {
+    dict* loggers;
+} loggerFactory;
+
+void initLogger();
+
+
+
+// enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
+
+#define log_trace(tag, ...) log_log(tag, LOG_TRACE, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define log_debug(tag, ...) log_log(tag, LOG_DEBUG, __FILE__, __FUNCTION__,  __LINE__, __VA_ARGS__)
+#define log_info(tag, ...)  log_log(tag, LOG_INFO,  __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define log_warn(tag, ...)  log_log(tag, LOG_WARN,  __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define log_error(tag, ...) log_log(tag, LOG_ERROR, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define log_fatal(tag, ...) log_log(tag, LOG_FATAL, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+
+
+const char* log_level_string(int level);
+void log_set_lock(char* tag, log_LockFn fn, void *udata);
+void log_set_level(char* tag, int level);
+void log_set_quiet(char* tag, bool enable);
+int log_add_callback(char* tag, log_LogFn fn, void *udata, int level);
+int log_add_file(char* tag, char *fp, int level);
+int log_add_stdout(char* tag, int level);
+
+void log_log(char* tag, int level, const char *file, char* function, int line, const char *fmt, ...);
 
 #endif

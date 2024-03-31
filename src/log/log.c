@@ -1,163 +1,227 @@
+/*
+ * Copyright (c) 2020 rxi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
 #include "log.h"
-#include "utils/utils.h"
-#include <time.h>
-#include <sys/time.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
+#include <string.h>
 
-
-void setLogLevel(int level) {
-    logLevel = level;
-}
-int getLogLevel() {
-    return logLevel;
+struct Logger* getLoggerByTag(char* tag) {
+  dictEntry* entry = dictFind(loggerFactory.loggers, tag);
+  if (entry == NULL) return NULL;
+  return dictGetVal(entry);
 }
 
-// void setLogFile(sds filename) {
-//     zfree(logFilename);
-//     logFilename = zstrdup(filename);
-// }
-
-void setLogFile(const char* filename) {
-    zfree(logFilename);
-    logFilename = sdsnew(filename);
-}
-sds getLogFile() {
-    return logFilename;
+struct Logger* loggerCreate() {
+  struct Logger* logger = zmalloc(sizeof(struct Logger));
+  return logger; 
 }
 
-
-
-
-#define LOG_MAX_LEN    1024 /* Default maximum length of syslog messages.*/
-
-
-/* This is a safe version of localtime() which contains no locks and is
- * fork() friendly. Even the _r version of localtime() cannot be used safely
- * in Redis. Another thread may be calling localtime() while the main thread
- * forks(). Later when the child process calls localtime() again, for instance
- * in order to log something to the Redis log, it may deadlock: in the copy
- * of the address space of the forked process the lock will never be released.
- *
- * This function takes the timezone 'tz' as argument, and the 'dst' flag is
- * used to check if daylight saving time is currently in effect. The caller
- * of this function should obtain such information calling tzset() ASAP in the
- * main() function to obtain the timezone offset from the 'timezone' global
- * variable. To obtain the daylight information, if it is currently active or not,
- * one trick is to call localtime() in main() ASAP as well, and get the
- * information from the tm_isdst field of the tm structure. However the daylight
- * time may switch in the future for long running processes, so this information
- * should be refreshed at safe times.
- *
- * Note that this function does not work for dates < 1/1/1970, it is solely
- * designed to work with what time(NULL) may return, and to support Redis
- * logging of the dates, it's not really a complete implementation. */
-static int is_leap_year(time_t year) {
-    if (year % 4) return 0;         /* A year not divisible by 4 is not leap. */
-    else if (year % 100) return 1;  /* If div by 4 and not 100 is surely leap. */
-    else if (year % 400) return 0;  /* If div by 100 *and* not by 400 is not leap. */
-    else return 1;                  /* If div by 100 and 400 is leap. */
-}
-
-void nolocks_localtime(struct tm *tmp, time_t t, time_t tz, int dst) {
-    const time_t secs_min = 60;
-    const time_t secs_hour = 3600;
-    const time_t secs_day = 3600*24;
-
-    t -= tz;                            /* Adjust for timezone. */
-    t += 3600*dst;                      /* Adjust for daylight time. */
-    time_t days = t / secs_day;         /* Days passed since epoch. */
-    time_t seconds = t % secs_day;      /* Remaining seconds. */
-
-    tmp->tm_isdst = dst;
-    tmp->tm_hour = seconds / secs_hour;
-    tmp->tm_min = (seconds % secs_hour) / secs_min;
-    tmp->tm_sec = (seconds % secs_hour) % secs_min;
-
-    /* 1/1/1970 was a Thursday, that is, day 4 from the POV of the tm structure
-     * where sunday = 0, so to calculate the day of the week we have to add 4
-     * and take the modulo by 7. */
-    tmp->tm_wday = (days+4)%7;
-
-    /* Calculate the current year. */
-    tmp->tm_year = 1970;
-    while(1) {
-        /* Leap years have one day more. */
-        time_t days_this_year = 365 + is_leap_year(tmp->tm_year);
-        if (days_this_year > days) break;
-        days -= days_this_year;
-        tmp->tm_year++;
+struct Logger* getOrCreateLoggerByTag(char* tag) {
+    struct Logger* logger = getLoggerByTag(tag);
+    if (logger == NULL) {
+        logger = loggerCreate();
+        dictAdd(loggerFactory.loggers, tag, logger);
     }
-    tmp->tm_yday = days;  /* Number of day of the current year. */
+    return logger;
+}
 
-    /* We need to calculate in which month and day of the month we are. To do
-     * so we need to skip days according to how many days there are in each
-     * month, and adjust for the leap year that has one more day in February. */
-    int mdays[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    mdays[1] += is_leap_year(tmp->tm_year);
+void loggerFree(struct Logger* logger) {
+    zfree(logger);
+}
 
-    tmp->tm_mon = 0;
-    while(days >= mdays[tmp->tm_mon]) {
-        days -= mdays[tmp->tm_mon];
-        tmp->tm_mon++;
+uint64_t LoggerHashCallback(const void *key) {
+    return dictGenCaseHashFunction((unsigned char*)key, strlen((char*)key));
+}
+
+int LoggerCompareCallback(dict *privdata, const void *key1, const void *key2) {
+    int l1,l2;
+    DICT_NOTUSED(privdata);
+    l1 = strlen((char*) key1);
+    l2 = strlen((char*) key2);
+    if(l1 != l2) return 0;
+    return memcmp(key1, key2,l1) == 0;
+}
+
+
+
+void LoggerFreeCallback(dict* privdata, void* val) {
+    DICT_NOTUSED(privdata);
+    // printf("delete :%p\n", val);
+    if(val != NULL) {
+        loggerFree(val);
     }
-
-    tmp->tm_mday = days+1;  /* Add 1 since our 'days' is zero-based. */
-    tmp->tm_year -= 1900;   /* Surprisingly tm_year is year-1900. */
+}
+static dictType LoggerDict = {
+    LoggerHashCallback,
+    NULL,
+    NULL,
+    LoggerCompareCallback,
+    LoggerFreeCallback,
+    NULL,
+    NULL
+};
+void initLogger() {
+  loggerFactory.loggers = dictCreate(&LoggerDict);
 }
 
-void LogRaw(int level, const char *msg) {
-    // const int syslogLevelMap[] = { LOG_DEBUG, LOG_INFO, LOG_NOTICE, LOG_WARNING };
-    const char *c = ".-*#";
-    FILE *fp;
-    char buf[64];
-    int rawmode = (level & LL_RAW);
-    int log_to_stdout = logFilename[0] == '\0';
+static const char *level_strings[] = {
+  "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"
+};
 
-    level &= 0xff; /* clear flags */
-    if (level < logLevel) return;
+#ifdef LOG_USE_COLOR
+static const char *level_colors[] = {
+  "\x1b[94m", "\x1b[36m", "\x1b[32m", "\x1b[33m", "\x1b[31m", "\x1b[35m"
+};
+#endif
 
-    fp = log_to_stdout ? stdout : fopen(logFilename,"a");
-    if (!fp) return;
 
-    if (rawmode) {
-        fprintf(fp,"%s",msg);
-    } else {
-        int off;
-        struct timeval tv;
-        pid_t pid = getpid();
+static void stdout_callback(log_Event *ev) {
+  char buf[16];
+  buf[strftime(buf, sizeof(buf), "%H:%M:%S", ev->time)] = '\0';
+#ifdef LOG_USE_COLOR
+  fprintf(
+    ev->udata, "%s %s%-5s\x1b[0m \x1b[90m%s:%s:%d:\x1b[0m ",
+    buf, level_colors[ev->level], level_strings[ev->level],
+    ev->file, ev->func, ev->line);
+#else
+  fprintf(
+    ev->udata, "%s %-5s %s:%s:%d: ",
+    buf, level_strings[ev->level], ev->file, ev->func, ev->line);
+#endif
+  vfprintf(ev->udata, ev->fmt, ev->ap);
+  fprintf(ev->udata, "\n");
+  fflush(ev->udata);
+}
 
-        gettimeofday(&tv,NULL);
-        struct tm tm;
-        nolocks_localtime(&tm,tv.tv_sec,getTimeZone(),getDaylightActive());
-        off = strftime(buf,sizeof(buf),"%d %b %Y %H:%M:%S.",&tm);
-        snprintf(buf+off,sizeof(buf)-off,"%03d",(int)tv.tv_usec/1000);
-        // if (server.sentinel_mode) {
-        //     role_char = 'X'; /* Sentinel. */
-        // } else if (pid != server.pid) {
-        //     role_char = 'C'; /* RDB / AOF writing child. */
-        // } else {
-        //     role_char = (server.masterhost ? 'S':'M'); /* Slave or Master. */
-        // }
-        fprintf(fp,"%d: %s %c %s\n",
-            (int)getpid(), buf,c[level],msg);
+
+static void file_callback(log_Event *ev) {
+  char buf[64];
+  buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
+  FILE* fp = fopen((sds)ev->udata, "w+");
+  fprintf(
+    fp, "%s %-5s %s:%s:%d: ",
+    buf, level_strings[ev->level], ev->file, ev->func, ev->line);
+  vfprintf(fp, ev->fmt, ev->ap);
+  fprintf(fp, "\n");
+  fflush(fp);
+  fclose(fp);
+}
+
+
+static void lock(struct Logger* logger)   {
+  if (logger->lock) { logger->lock(true, logger->udata); }
+}
+
+
+static void unlock(struct Logger* logger) {
+  if (logger->lock) { logger->lock(false, logger->udata); }
+}
+
+
+const char* log_level_string(int level) {
+  return level_strings[level];
+}
+
+
+void log_set_lock(char* tag, log_LockFn fn, void *udata) {
+  struct Logger* logger = getLoggerByTag(tag);
+//   assert(logger != NULL);
+  logger->lock = fn;
+  logger->udata = udata;
+}
+
+
+void log_set_level(char* tag, int level) {
+  struct Logger* logger = getLoggerByTag(tag);
+//   assert(logger != NULL);
+  logger->level = level;
+}
+
+
+void log_set_quiet(char* tag, bool enable) {
+  struct Logger* logger = getLoggerByTag(tag);
+//   assert(logger != NULL);
+  logger->quiet = enable;
+}
+
+
+
+int log_add_callback(char* tag, log_LogFn fn, void *udata, int level) {
+  struct Logger* logger = getOrCreateLoggerByTag(tag);
+  for (int i = 0; i < MAX_CALLBACKS; i++) {
+    if (!logger->callbacks[i].fn) {
+      logger->callbacks[i] = (Callback) { fn, udata, level };
+      return 1;
     }
-    fflush(fp);
-
-    if (!log_to_stdout) fclose(fp);
-    // if (syslog_enabled) syslog(syslogLevelMap[level], "%s", msg);
-}
-
-void _Log(int level, const char *fmt, ...) {
-    va_list ap;
-    char msg[LOG_MAX_LEN];
-
-    va_start(ap, fmt);
-    vsnprintf(msg, sizeof(msg), fmt, ap);
-    va_end(ap);
-
-    LogRaw(level,msg);
+  }
+  return 0;
 }
 
 
+int log_add_file(char* tag, char* file, int level) {
+  return log_add_callback(tag, file_callback, sdsnew(file), level);
+}
+
+int log_add_stdout(char* tag, int level) {
+    return log_add_callback(tag, stdout_callback, stdout, level);
+}
+
+
+static void init_event(log_Event *ev, void *udata) {
+  if (!ev->time) {
+    time_t t = time(NULL);
+    ev->time = localtime(&t);
+  }
+  ev->udata = udata;
+}
+
+
+void log_log(char* tag, int level, const char *file, char* func, int line, const char *fmt, ...) {
+  log_Event ev = {
+    .fmt   = fmt,
+    .file  = file,
+    .line  = line,
+    .level = level,
+    .func = func,
+  };
+ 
+  struct Logger* logger = getLoggerByTag(tag);
+  lock(logger);
+
+//   if (!logger->quiet && level >= logger->level) {
+//     init_event(&ev, stderr);
+//     va_start(ev.ap, fmt);
+//     stdout_callback(&ev);
+//     va_end(ev.ap);
+//   }
+
+  for (int i = 0; i < MAX_CALLBACKS && logger->callbacks[i].fn; i++) {
+    Callback *cb = &logger->callbacks[i];
+    if (level >= cb->level) {
+      init_event(&ev, cb->udata);
+      va_start(ev.ap, fmt);
+      cb->fn(&ev);
+      va_end(ev.ap);
+    }
+  }
+
+  unlock(logger);
+}
