@@ -2,7 +2,7 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=server.o 
 LIB_OBJ?=
 TEST_MAIN?=server_test
-LIB_MODULES?=zmalloc sds list endianconv connection ae
+LIB_MODULES?=zmalloc sds list endianconv connection ae rax 
 MODULE?=server
 BUILD_INCLUDE=server.h
 

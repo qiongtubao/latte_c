@@ -32,10 +32,10 @@ typedef struct socketFds {
     int count;
 } socketFds;
 
-typedef void *(*tcpHandlerFunc)(aeEventLoop *el, int fd, void *privdata, int mask);
-typedef int *(*ExecFunc)(struct latteClient* client);
+typedef void (*tcpHandlerFunc)(aeEventLoop *el, int fd, void *privdata, int mask);
+typedef int (*ExecFunc)(struct latteClient* client);
 typedef struct latteClient *(*createClientFunc)();
-typedef void *(*freeClientFunc)(struct latteClient* client);
+typedef void (*freeClientFunc)(struct latteClient* client);
 typedef struct latteServer {
     /* General */
     pid_t pid;  

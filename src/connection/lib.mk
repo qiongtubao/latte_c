@@ -1,4 +1,5 @@
 ifneq ($(USED_CONNECTION), yes) 
+include $(WORKSPACE)/src/utils/lib.mk
 FINAL_CC_CFLAGS+= -I../connection 
 
 ../connection/connection.o:
