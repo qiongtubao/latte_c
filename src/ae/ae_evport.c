@@ -73,6 +73,7 @@ typedef struct aeApiState {
 } aeApiState;
 
 static int aeApiCreate(aeEventLoop *eventLoop) {
+    log_debug("latte_c", "[aeApiCreate] ae use evport");
     int i;
     aeApiState *state = zmalloc(sizeof(aeApiState));
     if (!state) return -1;

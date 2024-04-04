@@ -1,6 +1,7 @@
 #ifndef __LATTE_AE_H
 #define __LATTE_AE_H
 #include "monotonic.h"
+#include "log/log.h"
 
 #define AE_OK 0
 #define AE_ERR -1

@@ -1,7 +1,7 @@
 
 # must set 
 WORKSPACE?=$(CURDIR)
-MODULES?=sds zmalloc utils log 
+MODULES?=sds zmalloc utils log ae server connection
 BUILD_DIR?=out
 ALL_OBJ=$(shell sh -c 'cat $(BUILD_DIR)/objs.list')
 DEPENDENCY_TARGETS=

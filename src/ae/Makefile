@@ -4,7 +4,7 @@ LIB_OBJ?=
 TEST_MAIN?=ae_test
 MODULE?=ae
 BUILD_INCLUDE?=ae.h monotonic.h
-LIB_MODULES?=anet zmalloc
+LIB_MODULES?=anet zmalloc log
 
 include $(WORKSPACE)/mks/sys.mk
 include $(WORKSPACE)/mks/final.mk

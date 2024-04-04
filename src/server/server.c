@@ -127,7 +127,7 @@ int startLatteServer(struct latteServer* server) {
 }
 int stopServer(struct latteServer* server) {
     aeStop(server->el);
-    
+    return 1;
 }
 
 /**
