@@ -25,6 +25,8 @@ int test_set_log() {
     if (access("./test.log", F_OK) != -1) {
         assert(remove("./test.log") == 0);
     }
+
+    log_debug("test", "test %s", "word"); 
     
     assert(log_add_stdout("test", LOG_DEBUG) == 1);
     assert(log_add_file("test", "./test.log", LOG_INFO) == 1);

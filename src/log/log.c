@@ -204,6 +204,7 @@ void log_log(char* tag, int level, const char *file, char* func, int line, const
   };
  
   struct Logger* logger = getLoggerByTag(tag);
+  if (logger == NULL) return;
   lock(logger);
 
 //   if (!logger->quiet && level >= logger->level) {
