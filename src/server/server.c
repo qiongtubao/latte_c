@@ -48,12 +48,9 @@ int listenToPort(struct latteServer* server,char* neterr, struct arraySds* bind,
 
         if (sfd->fd[sfd->count] == ANET_ERR) {
             int net_errno = errno;
-            printf(
+            log_error("latte_c",
                 "Warning: Could not create_server TCP listening socket %s:%d: %s\n",
                 addr, port, neterr);
-            // serverLog(LL_WARNING,
-            //     "Warning: Could not create_server TCP listening socket %s:%d: %s",
-            //     addr, port, neterr);
             if (net_errno == EADDRNOTAVAIL && optional) {
                 continue;
             } 
@@ -88,11 +85,11 @@ int createSocketAcceptHandler(struct latteServer* server, socketFds *sfd, aeFile
 
 //启动latte server
 int startLatteServer(struct latteServer* server) {
-    printf("start latte server %lld %lld !!!!!\n", server->port, server->tcp_backlog);
+    log_info("latte_c","start latte server %lld %lld !!!!!", server->port, server->tcp_backlog);
     //listen port
     if (server->port != 0 &&
         listenToPort(server, server->neterr,server->bind,server->port,server->tcp_backlog,&server->ipfd) == -1) {
-        printf("start latte server fail!!!\n");
+        log_error("latte_c","start latte server fail!!!");
         exit(1);
     }
     //TODO listening tls port
@@ -104,20 +101,18 @@ int startLatteServer(struct latteServer* server) {
         // && server.tlsfd.count == 0 
         // && server.sofd < 0
     ) {
-        // serverLog(LL_WARNING, "Configured to not listen anywhere, exiting.");
-        printf("Configured to not listen anywhere, exiting.\n");
+        log_error("latte_c","Configured to not listen anywhere, exiting.");
         exit(1);
     }
     if (server->acceptTcpHandler == NULL) {
-        printf("server unset acceptTcpHandler");
+        log_error("latte_c","server unset acceptTcpHandler");
         exit(1);
     }
 
     /* Create an event handler for accepting new connections in TCP and Unix
      * domain sockets. */
     if (createSocketAcceptHandler(server, &server->ipfd, server->acceptTcpHandler, server) != SERVER_OK) {
-        // serverPanic("Unrecoverable error creating TCP socket accept handler.");
-        printf("Unrecoverable error creating TCP socket accept handler.\n");
+        log_error("latte_c","Unrecoverable error creating TCP socket accept handler.");
         exit(1);
     }
 
@@ -154,7 +149,7 @@ void unlinkClient(struct latteClient* c) {
 }
 
 void freeClient(struct latteClient *c) {
-    printf("freeClient %d\n", c->conn->fd);
+    log_debug("latte_c","freeClient %d\n", c->conn->fd);
     struct latteServer* server = c->server;
     unlinkClient(c);
     freeInnerLatteClient(c);
@@ -171,7 +166,7 @@ void clientAcceptHandler(connection *conn) {
     struct latteClient *c = connGetPrivateData(conn);
 
     if (connGetState(conn) != CONN_STATE_CONNECTED) {
-        printf("Error accepting a client connection: %s\n", connGetLastError(conn));
+        log_error("latte_c", "Error accepting a client connection: %s\n", connGetLastError(conn));
         freeClientAsync(c);
         return;
     }
@@ -191,7 +186,7 @@ void initClient(struct aeEventLoop* el,struct latteClient* c, struct connection*
     if (connAccept(el, conn, clientAcceptHandler) == CONNECTION_ERR) {
         char conninfo[100];
         if (connGetState(conn) == CONN_STATE_ERROR) {
-            printf("Error accepting a client connection: %s (conn: %s)\n", 
+            log_error("latte_c", "Error accepting a client connection: %s (conn: %s)\n", 
                 connGetLastError(conn), 
                 connGetInfo(conn, conninfo, sizeof(conninfo))
             );
@@ -256,7 +251,7 @@ void readQueryFromClient(connection *conn) {
         if (connGetState(conn) == CONN_STATE_CONNECTED) {
             return;
         } else {
-            printf("Reading from client: %s\n",connGetLastError(c->conn));
+            log_error("latte_c", "Reading from client: %s\n",connGetLastError(c->conn));
             freeClientAsync(c);
             return;
         }
@@ -279,7 +274,7 @@ static void acceptCommonHandler(struct latteServer* server,connection *conn, int
     char conninfo[100];
     UNUSED(ip);
     if (connGetState(conn) != CONN_STATE_ACCEPTING) {
-        printf("Accepted client connection in error state: %s (conn: %s)\n",
+        log_error("latte_c", "Accepted client connection in error state: %s (conn: %s)",
             connGetLastError(conn),
             connGetInfo(conn, conninfo, sizeof(conninfo)));
         connClose(server->el,conn);
@@ -295,12 +290,6 @@ static void acceptCommonHandler(struct latteServer* server,connection *conn, int
         >= server->maxclients)
     {
         char *err = "-ERR max number of clients reached\r\n";
-        // char *err;
-        // if (server.cluster_enabled)
-        //     err = "-ERR max number of clients + cluster "
-        //           "connections reached\r\n";
-        // else
-        //     err = "-ERR max number of clients reached\r\n";
 
         /* That's a best effort error message, don't check write errors.
          * Note that for TLS connections, no handshake was done yet so nothing
@@ -315,7 +304,7 @@ static void acceptCommonHandler(struct latteServer* server,connection *conn, int
     /* Create connection and client */
     c = server->createClient();
     if (c == NULL) {
-        printf("Error registering fd event for the new client: %s (conn: %s)\n",
+        log_error("latte_c", "Error registering fd event for the new client: %s (conn: %s)\n",
             connGetLastError(conn),
             connGetInfo(conn, conninfo, sizeof(conninfo)));
         connClose(server->el, conn); /* May be already closed, just ignore errors */
@@ -326,7 +315,7 @@ static void acceptCommonHandler(struct latteServer* server,connection *conn, int
     c->conn = conn;
     c->id = getClientId(server);
     c->server = server;
-    printf("create client %d\n", c->conn->fd);
+    log_debug("latte_c","create client fd:%d", c->conn->fd);
 
     if (conn) {
         connNonBlock(conn);
@@ -351,13 +340,13 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
         cfd = anetTcpAccept(server->neterr, fd, cip, sizeof(cip), &cport);
         if (cfd == ANET_ERR) {
             if (errno != EWOULDBLOCK)
-                printf(
-                    "Accepting client connection: %s\n", server->neterr);
+                log_error("latte_c",
+                    "Accepting client connection: %s", server->neterr);
             return;
         }
         anetCloexec(cfd);
         connection * c = connCreateAcceptedSocket(cfd);
-        printf("Accepted %s:%d %d\n", cip, cport, cfd);
+        log_debug("latte_c","Accepted %s:%d %d", cip, cport, cfd);
         acceptCommonHandler(server, c, 0, cip);
     }
 }

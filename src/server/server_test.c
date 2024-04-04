@@ -18,7 +18,7 @@
 
 
 int echoHandler(struct latteClient* lc) {
-    printf("echoHandler\n");
+    log_info("latte_c_server", "echoHandler\n");
     struct client* c = (struct client*)lc; 
     if (strncmp(lc->querybuf, "quit", 4) == 0) {
         lc->qb_pos = 4;
@@ -74,7 +74,7 @@ int test_server() {
 
     // 创建socket
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("socket failed");
+        log_error("latte_c_server","socket failed");
         exit(EXIT_FAILURE);
     }
 
@@ -83,26 +83,26 @@ int test_server() {
 
     // 将IPv4地址从字符串转换为二进制形式
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
-        perror("inet_pton failed");
+        log_error("latte_c_server","inet_pton failed");
         exit(EXIT_FAILURE);
     }
 
     // 连接到Server
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("connect failed");
+        log_error("latte_c_server","connect failed");
         exit(EXIT_FAILURE);
     }
 
     // 发送消息给Server
     send(sock, hello, strlen(hello), 0);
-    printf("Hello message sent\n");
+    log_debug("latte_c_server","Hello message sent\n");
 
     // 读取Server的回复
     valread = read(sock, buffer, BUFFER_SIZE);
-    printf("Server: %s\n", buffer);
+    assert(strncmp("Hello from client", buffer, 18) == 0);
 
     send(sock, quit, strlen(quit), 0);
-    printf("Quit message sent\n");
+    log_debug("latte_c_server", "Quit message sent\n");
 
     // 关闭socket
     close(sock);
