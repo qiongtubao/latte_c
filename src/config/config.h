@@ -6,10 +6,10 @@
 #include "dict/dict.h"
 
 typedef struct configRule {
-    int *(*update)(struct configRule* rule, void* old_value, void *new_value);
-    sds *(*writeConfigSds)(struct configRule* rule);
-    void *(*releaseValue)(void* rule);
-    void *(*load)(struct configRule* rule, char** argv, int argc);
+    int (*update)(struct configRule* rule, void* old_value, void *new_value);
+    sds (*writeConfigSds)(sds config, char* key,struct configRule* rule);
+    void (*releaseValue)(void* rule);
+    int (*load)(struct configRule* rule, char** argv, int argc);
     void* value;
 } configRule;
 

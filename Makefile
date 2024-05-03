@@ -58,4 +58,6 @@ test_all: ./deps/jemalloc
 	make dict_test
 	make task_test
 	make list_test
+	make config_test
+	make ae_test
 	
