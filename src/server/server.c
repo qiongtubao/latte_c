@@ -115,6 +115,7 @@ int startLatteServer(struct latteServer* server) {
         log_error("latte_c","Unrecoverable error creating TCP socket accept handler.");
         exit(1);
     }
+    log_info("latte_c", "start latte server success PID: %lld\n" , getpid());
 
     aeMain(server->el);
     aeDeleteEventLoop(server->el);
