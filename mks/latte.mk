@@ -2,15 +2,14 @@
 
 # $(CC)=gcc
 # $(CXX)=g++
-
 LATTE_CC=$(QUIET_CC)$(CC) $(FINAL_CC_CFLAGS)
 LATTE_CXX=$(CXX) $(FINAL_CXX_CFLAGS)
 LATTE_LD=$(QUIET_LINK)$(CC) $(FINAL_CC_LDFLAGS)
 LATTE_CXX_LD=$(CXX) $(FINAL_CXX_CFLAGS)
 
 LATTE_INSTALL=$(QUIET_INSTALL)$(INSTALL)
-INSTALL_ED=$(findstring $(shell sh -c 'cat $(BUILD_DIR)/objs.list '), $(BUILD_OBJ))
-
+# BUILD_OBJS=$(subst $(space),,$(subst $(comma),$(space),$(BUILD_OBJ)))
+ 
 
 
 .make-prerequisites:
@@ -65,15 +64,16 @@ distclean: clean
 	rm -f .make-*
 
 install_lib: $(BUILD_OBJ) $(LIB_OBJ)
-	$(foreach var,$(LIB_MODULES),cd $(WORKSPACE)/src/$(var) && $(MAKE) install_lib && cd ../$(MODULE);)
+	$(foreach var,$(subst $(space),,$(subst $(comma),$(space),$(BUILD_OBJ))), $(shell if [ "$(var)" != "$(findstring $(var),$(shell sh -c 'cat $(BUILD_DIR)/objs.list'))" ]; then echo $(MAKE)  install_o INSTALL_O="$(var)" BUILD_DIR="$(BUILD_DIR)";fi))
 	@echo "install_lib $(BUILD_OBJ)"
-ifeq ($(findstring $(shell sh -c 'cat $(BUILD_DIR)/objs.list '), $(BUILD_OBJ)), )
-	@echo a
-	cp -rf $(BUILD_OBJ) $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/include/$(MODULE)
-	cp -rf $(BUILD_INCLUDE) $(BUILD_DIR)/include/$(MODULE)
-	$(shell sh -c 'echo " $(BUILD_OBJ)" >> $(BUILD_DIR)/objs.list')
-endif
+	$(foreach var,$(LIB_MODULES),cd $(WORKSPACE)/src/$(var) && $(MAKE) install_lib && cd ../$(MODULE);)
+	
+
+install_o:
+	cp -rf $(INSTALL_O) $(BUILD_DIR);
+	mkdir -p $(BUILD_DIR)/include/$(MODULE);
+	cp -rf $(BUILD_INCLUDE) $(BUILD_DIR)/include/$(MODULE);
+	echo "$(INSTALL_O)" >> $(BUILD_DIR)/objs.list;
 
 
 
