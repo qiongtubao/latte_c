@@ -1,7 +1,10 @@
 WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=list.o 
-LIB_OBJ?=../zmalloc/zmalloc.o 
+BUILD_OBJ?=list.o
+LIB_OBJ?=
 TEST_MAIN?=list_test
+LIB_MODULES?=zmalloc
+MODULE?=list
+BUILD_INCLUDE=list.h
 
 include $(WORKSPACE)/mks/sys.mk
 include $(WORKSPACE)/mks/final.mk

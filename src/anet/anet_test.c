@@ -4,7 +4,8 @@
 #include "anet.h"
 
 int test_anet(void) {
-
+    char neterr[128];
+    int fd = anetTcpServer(neterr, 6379, "127.0.0.1", 511);
     return 1;
 }
 

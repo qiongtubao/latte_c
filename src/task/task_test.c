@@ -26,6 +26,8 @@ int test_task() {
                                    AE_CALL_BEFORE_SLEEP|
                                    AE_CALL_AFTER_SLEEP);
     aeDeleteEventLoop(el);
+    stopTaskThread(thread);
+    releaseTaskThread(thread);
     return 1;
 }
 int test_api(void) {

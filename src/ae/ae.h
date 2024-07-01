@@ -1,5 +1,7 @@
-
+#ifndef __LATTE_AE_H
+#define __LATTE_AE_H
 #include "monotonic.h"
+#include "log/log.h"
 
 #define AE_OK 0
 #define AE_ERR -1
@@ -97,3 +99,5 @@ void aeSetAfterSleepProc(aeEventLoop *eventLoop, aeBeforeSleepProc *aftersleep);
 int aeGetSetSize(aeEventLoop *eventLoop);
 int aeResizeSetSize(aeEventLoop *eventLoop, int setsize);
 void aeSetDontWait(aeEventLoop *eventLoop, int noWait);
+
+#endif

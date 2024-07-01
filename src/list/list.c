@@ -32,7 +32,6 @@
 #include <stdlib.h>
 #include "list.h"
 #include "zmalloc/zmalloc.h"
-
 /* Create a new list. The created list can be freed with
  * listRelease(), but private value of every node need to be freed
  * by the user before to call listRelease(), or by setting a free method using

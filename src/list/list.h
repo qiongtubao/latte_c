@@ -1,4 +1,5 @@
-
+#ifndef __LATTE_LIST_H
+#define __LATTE_LIST_H
 
 typedef struct listNode {
     struct listNode *prev;
@@ -60,4 +61,4 @@ void listJoin(list *l, list *o);
 
 #define AL_START_HEAD 0
 #define AL_START_TAIL 1
-
+#endif

@@ -7,6 +7,14 @@
 #include <stdio.h>
 #include "dict.h"
 #include "zmalloc/zmalloc.h"
+#include <sys/time.h>
+
+long long timeInMilliseconds(void) {
+    struct timeval tv;
+
+    gettimeofday(&tv,NULL);
+    return (((long long)tv.tv_sec)*1000)+(tv.tv_usec/1000);
+}
 
 uint64_t testHashCallback(const void *key) {
     return dictGenCaseHashFunction((unsigned char*)key, strlen((char*)key));
@@ -23,7 +31,7 @@ int testCompareCallback(void *privdata, const void *key1, const void *key2) {
 
 void testFreeCallback(void* privdata, void* val) {
     DICT_NOTUSED(privdata);
-    printf("delete :%p\n", val);
+    // printf("delete :%p\n", val);
     if(val != NULL) {
         zfree(val);
     }
@@ -87,7 +95,7 @@ int test_dictExpand() {
 
 int test_dictAdd() {
     dict *dict = dictCreate(&testDict);
-    long count = 5000;
+    // long count = 5000;
     //dict add long long
     // for (int j = 0; j < count; j++) {
     //     dictEntry* de = dictAddOrFind(dict, stringFromLongLong(j));
@@ -131,6 +139,7 @@ int test_dictAddOrFind() {
     assert(create_entry != NULL);
     dictEntry* find_entry = dictAddOrFind(dict, key);
     assert(find_entry != NULL);
+    dictRelease(dict);
     return 1;
 }
 

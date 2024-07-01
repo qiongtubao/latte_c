@@ -1,5 +1,6 @@
 
-
+#ifndef __LATTE_SDS_H
+#define __LATTE_SDS_H
 #define SDS_MAX_PREALLOC (1024*1024)
 #include <sys/types.h>
 #include <stdarg.h>
@@ -8,6 +9,7 @@
 
 #define s_malloc zmalloc
 #define s_realloc zrealloc
+#define s_realloc_usable zrealloc_usable
 #define s_free zfree
 #define s_malloc_usable zmalloc_usable
 #define s_trymalloc_usable ztrymalloc_usable
@@ -282,7 +284,6 @@ sds sdscatlen(sds s, const void *t, size_t len);
  *      assert(memcmp(splits[3], "c\0",2) == 0);
  *      sdsfreesplitres(splits, len);
  */
-sds *sdssplitlen(const char *s, int len, const char *sep, int seplen, int *count);
 void sdsfreesplitres(sds *tokens, int count);
 
 /**
@@ -297,7 +298,7 @@ void sdsfreesplitres(sds *tokens, int count);
  */
 int sdscmp(const sds s1, const sds s2);
 
-// sds sdscatprintf(sds s, const char *fmt, ...);
+sds sdscatprintf(sds s, const char *fmt, ...);
 
 /**
  *
@@ -333,9 +334,10 @@ sds sdscatsds(sds s, const sds t);
  */
 sds sdstrim(sds s, const char *cset);
 
-// sds sdscatrepr(sds s, const char *p, size_t len);
-// sds *sdssplitargs(const char *line, int *argc);
-// void sdsfreesplitres(sds *tokens, int count);
+sds sdscatrepr(sds s, const char *p, size_t len);
+sds *sdssplitargs(const char *line, int *argc);
+void sdsfreesplitres(sds *tokens, int count);
+sds *sdssplitlen(const char *s, ssize_t len, const char *sep, int seplen, int *count);
 // void sdstolower(sds s);
 
 /**
@@ -352,4 +354,7 @@ sds sdstrim(sds s, const char *cset);
 void sdsclear(sds s);
 
 
-
+void sdsrange(sds s, ssize_t start, ssize_t end);
+void sdsIncrLen(sds s, ssize_t incr);
+sds sdsMakeRoomFor(sds s, size_t addlen);
+#endif
