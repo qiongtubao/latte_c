@@ -64,4 +64,5 @@ test_all: ./deps/jemalloc
 	make list_test
 	make config_test
 	make ae_test
+	make mutex_test
 	
