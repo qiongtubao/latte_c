@@ -41,7 +41,7 @@ build: persist-settings
 	$(MAKE) latte_lib	
 
 latte_lib: 	
-	cd $(BUILD_DIR) && $(AR) $(ARFLAGS) ./lib/liblatte.a  $(ALL_OBJ) $(LATTE_LIBS)
+	cd $(BUILD_DIR) && cp $(WORKSPACE)/deps/jemalloc/lib/libjemalloc.a ./lib/ && $(AR) $(ARFLAGS) ./lib/liblatte.a  $(ALL_OBJ) $(LATTE_LIBS)
 
 %_test_lib: build
 	cd src/$* && $(MAKE) test_lib BUILD_DIR=../../$(BUILD_DIR)
