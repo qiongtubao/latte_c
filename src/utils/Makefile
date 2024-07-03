@@ -1,7 +1,7 @@
 WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=utils.o 
 TEST_MAIN?=utils_test
-BUILD_INCLUDE?=utils.h atomic.h config.h fmacros.h
+BUILD_INCLUDE?=utils.h atomic.h config.h fmacros.h error.h
 MODULE?=utils 
 
 include $(WORKSPACE)/mks/sys.mk
