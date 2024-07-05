@@ -1,6 +1,6 @@
 
-ifneq ($(USED_DICT), yes) 
-FINAL_CC_CFLAGS+= -I../dict 
+ifneq ($(USED_DICT_PLUGINS), yes) 
+FINAL_CC_CFLAGS+= -I../dict_plugins 
 
 
 ../dict_plugins/dict_plugins.o:
@@ -9,5 +9,5 @@ FINAL_CC_CFLAGS+= -I../dict
 
 
 LIB_OBJ+= ../dict_plugins/dict_plugins.o 
-USED_DICT=yes
+USED_DICT_PLUGINS=yes
 endif

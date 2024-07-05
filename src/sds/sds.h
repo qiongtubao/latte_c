@@ -357,4 +357,5 @@ void sdsclear(sds s);
 void sdsrange(sds s, ssize_t start, ssize_t end);
 void sdsIncrLen(sds s, ssize_t incr);
 sds sdsMakeRoomFor(sds s, size_t addlen);
+sds sdsdup(const sds s);
 #endif
