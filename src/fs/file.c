@@ -67,3 +67,8 @@ void fileLockRelease(FileLock* lock) {
     sdsfree(lock->filename);
     zfree(lock);
 }
+
+//判断某个文件是否存在
+bool fileExists(sds filename) {
+    return access(filename, F_OK) == 0;
+}

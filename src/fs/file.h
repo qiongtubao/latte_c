@@ -2,7 +2,7 @@
 #define __LATTE_FILE_H
 
 #include <utils/error.h>
-
+#include <stdbool.h>
 
 
 
@@ -18,5 +18,6 @@ FileLock* fileLockCreate(int fd, char* filename);
 void fileLockRelease(FileLock* lock);
 
 int closeFile(int fd);
+bool fileExists(sds filename);
 
 #endif
