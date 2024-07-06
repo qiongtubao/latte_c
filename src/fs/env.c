@@ -2,11 +2,7 @@
 #include "file.h"
 #include <fcntl.h> // 包含必要的头文件
 #include "set/lockSet.h"
-#if defined(HAVE_O_CLOEXEC)
-    const int kOpenBaseFlags = O_CLOEXEC;
-#else
-    const int kOpenBaseFlags = 0;
-#endif  // defined(HAVE_O_CLOEXEC)
+
 
 Env* envCreate() {
     Env* env = zmalloc(sizeof(Env));

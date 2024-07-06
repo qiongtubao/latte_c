@@ -121,6 +121,11 @@ int test_findlastof() {
     index = sdsFindLastOf(haystack, "xyz");
     assert(index == C_NPOS);
     sdsfree(haystack);
+
+    haystack = sdsnew("/a/b/c/edf");
+    index = sdsFindLastOf(haystack, "/");
+    assert(index == 6);
+    sdsfree(haystack);
     return 1;
 }
 

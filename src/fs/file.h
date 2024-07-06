@@ -3,7 +3,7 @@
 
 #include <utils/error.h>
 #include <stdbool.h>
-
+extern int kOpenBaseFlags;
 
 
 
@@ -14,10 +14,17 @@ typedef struct FileLock {
     int fd;
     sds filename;
 } FileLock;
+
+typedef struct WritableFile {
+
+} WritableFile;
 FileLock* fileLockCreate(int fd, char* filename);
 void fileLockRelease(FileLock* lock);
 
 int closeFile(int fd);
 bool fileExists(sds filename);
+
+Error* newWritableFile(sds filename,
+                         WritableFile** result);
 
 #endif

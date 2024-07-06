@@ -1,5 +1,5 @@
 WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=file.o dir.o env.o
+BUILD_OBJ?=file.o dir.o env.o posix_file.o
 LIB_OBJ?=
 TEST_MAIN?=fs_test
 LIB_MODULES?=zmalloc utils sds

@@ -9,8 +9,12 @@ typedef struct Env {
 } Env;
 
 
+
 Error* envLockFile(Env* env, sds filename, FileLock** lock);
 Error* envUnlockFile(Env* env,FileLock* lock);
 Env* envCreate();
 void envRelease(Env* env);
+
+Error* envNewWritableFile(Env* env, sds manifest, WritableFile* file);
+
 #endif

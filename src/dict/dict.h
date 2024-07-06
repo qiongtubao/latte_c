@@ -134,7 +134,7 @@ dict *dictCreate(dictType *type);
 void dictRelease(dict *d);
 
 int _dictInit(dict* d, dictType *ty);
-#define  _dictInit  dictInit
+#define  dictInit  _dictInit
 void dictDestroy(dict *d);
 
 

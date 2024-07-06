@@ -3,6 +3,13 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include "posix_file.h"
+// Common flags defined for all posix open operations
+#if defined(HAVE_O_CLOEXEC)
+    int kOpenBaseFlags = O_CLOEXEC;
+#else
+    int kOpenBaseFlags = 0;
+#endif  // defined(HAVE_O_CLOEXEC)
 
 Error* openFile(char* filename, int* fd, int flag, mode_t mode) {
     *fd = open(filename, flag, mode);
@@ -72,3 +79,26 @@ void fileLockRelease(FileLock* lock) {
 bool fileExists(sds filename) {
     return access(filename, F_OK) == 0;
 }
+
+//创建一个写文件，如果原来有数据则清空数据， 
+Error* newWritableFile(sds filename,
+                         WritableFile** result)  {
+    //O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags: 这是一个位或运算表达式，用于设置open函数的标志参数。这些标志决定了文件的打开模式和行为：
+    //O_TRUNC: 如果文件已存在，那么在打开时会被截断至零长度，即清空文件内容。如果文件不存在，此标志将被忽略。
+    //O_WRONLY: 请求以只写模式打开文件。如果文件不存在，O_CREAT标志的存在将导致文件被创建。
+    //O_CREAT: 请求创建文件，如果文件不存在的话。与O_WRONLY结合使用时，将创建一个可写的空文件。
+    //kOpenBaseFlags: 这是一个预定义的宏或变量，它可能包含其他的open标志，具体取决于其定义。例如，它可能包含O_BINARY或O_LARGEFILE等，这取决于你的具体需求和平台支持。
+    int fd ;
+    Error* error = openFile(filename, &fd,
+                    O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);
+    if (!isOk(error)) {
+        return error;
+    }
+    if (fd < 0) {
+      *result = NULL;
+      return errnoIoCreate(filename);
+    }
+
+    *result = (WritableFile*)posixWritableFileCreate(filename, fd);
+    return &Ok;
+  }
