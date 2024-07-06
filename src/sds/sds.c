@@ -742,3 +742,69 @@ void sdsIncrLen(sds s, ssize_t incr) {
 sds sdsdup(const sds s) {
     return sdsnewlen(s, sdslen(s));
 }
+
+/* 调整分配大小，这可以使分配更大或更小，
+* 如果大小小于当前使用的长度，数据将被截断。
+*
+* 当 would_regrow 参数设置为 1 时，它会阻止使用
+* SDS_TYPE_5，当 sds 可能再次更改时，这是所需的。
+*
+* 无论实际分配大小如何，sdsAlloc 大小都将设置为请求的大小，这样做是为了避免在调用者检测到它有多余的空间时重复调用此
+* 函数。*/
+sds sdsResize(sds s, size_t size, int would_regrow) {
+    void *sh, *newsh;
+    char type, oldtype = s[-1] & SDS_TYPE_MASK;
+    int hdrlen, oldhdrlen = sdsHdrSize(oldtype);
+    size_t len = sdslen(s);
+    sh = (char*)s-oldhdrlen;
+
+    /* Return ASAP if the size is already good. */
+    if (sdsalloc(s) == size) return s;
+
+    /* Truncate len if needed. */
+    if (size < len) len = size;
+
+    /* Check what would be the minimum SDS header that is just good enough to
+     * fit this string. */
+    type = sdsReqType(size);
+    if (would_regrow) {
+        /* Don't use type 5, it is not good for strings that are expected to grow back. */
+        if (type == SDS_TYPE_5) type = SDS_TYPE_8;
+    }
+    hdrlen = sdsHdrSize(type);
+
+    /* If the type is the same, or can hold the size in it with low overhead
+     * (larger than SDS_TYPE_8), we just realloc(), letting the allocator
+     * to do the copy only if really needed. Otherwise if the change is
+     * huge, we manually reallocate the string to use the different header
+     * type. */
+    int use_realloc = (oldtype==type || (type < oldtype && type > SDS_TYPE_8));
+    size_t newlen = use_realloc ? oldhdrlen+size+1 : hdrlen+size+1;
+
+    if (use_realloc) {
+        int alloc_already_optimal = 0;
+        #if defined(USE_JEMALLOC)
+            /* je_nallocx returns the expected allocation size for the newlen.
+             * We aim to avoid calling realloc() when using Jemalloc if there is no
+             * change in the allocation size, as it incurs a cost even if the
+             * allocation size stays the same. */
+            alloc_already_optimal = (je_nallocx(newlen, 0) == zmalloc_size(sh));
+        #endif
+        if (!alloc_already_optimal) {
+            newsh = s_realloc(sh, newlen);
+            if (newsh == NULL) return NULL;
+            s = (char*)newsh+oldhdrlen;
+        }
+    } else {
+        newsh = s_malloc(newlen);
+        if (newsh == NULL) return NULL;
+        memcpy((char*)newsh+hdrlen, s, len);
+        s_free(sh);
+        s = (char*)newsh+hdrlen;
+        s[-1] = type;
+    }
+    s[len] = 0;
+    sdssetlen(s, len);
+    sdssetalloc(s, size);
+    return s;
+}
