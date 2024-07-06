@@ -4,7 +4,7 @@ LIB_OBJ?=
 TEST_MAIN?=config_test
 MODULE?=config
 BUILD_INCLUDE=config.h
-LIB_MODULES?=zmalloc sds dict utils 
+LIB_MODULES?=zmalloc sds dict utils dict_plugins
 include $(WORKSPACE)/mks/sys.mk
 include $(WORKSPACE)/mks/final.mk
 include $(WORKSPACE)/mks/malloc.mk

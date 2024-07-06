@@ -3,7 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include "utils/utils.h"
-
+#include "dict_plugins/dict_plugins.h"
 void* ll2ptr(long long value) {
     if (sizeof(void*) == sizeof(long long)) {
         return (void*)(value);
@@ -20,24 +20,8 @@ long long ptr2ll(void* value) {
     }
 }
 
-uint64_t dictSdsHash(const void *key) {
-    return dictGenHashFunction((unsigned char*)key, strlen((char*)key));
-}
 
-int dictCharKeyCompare(dict* privdata, const void *key1,
-    const void *key2) {
-    int l1, l2;
-    DICT_NOTUSED(privdata);
-    l1 = strlen(key1);
-    l2 = strlen(key2);
-    if (l1 != l2) return 0;
-    return memcmp(key1, key2, l1) == 0;
-}
-void dictSdsDestructor(dict *privdata, void *val)
-{
-    DICT_NOTUSED(privdata);
-    sdsfree(val);
-}
+
 dictType ruleDictType = {
     dictSdsHash,
     NULL,
