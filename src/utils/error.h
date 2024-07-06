@@ -22,9 +22,11 @@ typedef struct Error {
 
 static Error Ok = {COk, NULL};
 
-Error* errnoIoCreate(char* context);
-Error* errorCreate(Code code, sds state);
+Error* errnoIoCreate(char* context, ...);
+Error* errorCreate(Code code, char* state, char* message, ...);
 void errorRelease(Error* error);
 int isOk(Error* error);
+Error* ioErrorCreate(char* state, char* message);
+
 
 #endif

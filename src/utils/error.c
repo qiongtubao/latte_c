@@ -1,25 +1,34 @@
 #include "error.h"
-
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <string.h>
 int isOk(Error* error) {
     return error->code == COk;
 }
 //只有在error不是ok的情况下创建error
-Error* errorCreate(Code code, sds state) {
+Error* errorCreate(Code code, char* context, char* message, ...) {
     Error* error = (Error*)zmalloc(sizeof(Error));
     error->code = code;
-    error->state = state;
+    error->state = sdscatprintf(sdsempty(),"%s: %s",context, message);;
     return error;
 }
 
-Error* errnoIoCreate(char* context) {
-    Error* error = (Error*)zmalloc(sizeof(Error));
+Error* errnoIoCreate(char* format, ...) {
+    Code code;
     if (errno == ENOENT) {
-        error->code = CNotFound; 
+        code = CNotFound; 
     } else {
-        error->code = CIOError; 
+        code = CIOError; 
     }
-    error->state = sdscatprintf(sdsempty(),"%s: %s",context, strerror(errno));
-    return error;
+    va_list args;
+    
+
+    va_start(args, format); // 初始化va_list
+    char buf[512];
+    int result = vsnprintf(buf, sizeof(buf), format, args);
+    va_end(args); // 清理va_list
+    return errorCreate(code, buf, strerror(errno));
 }
 
 void errorRelease(Error* error) {
@@ -27,4 +36,8 @@ void errorRelease(Error* error) {
         sdsfree(error->state);
     }
     zfree(error);
+}
+
+Error* ioErrorCreate(char* context, char* message) {
+    return errorCreate(CIOError, context, message);
 }

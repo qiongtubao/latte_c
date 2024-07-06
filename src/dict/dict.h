@@ -45,6 +45,13 @@ typedef struct dictType {
 #define DICTHT_SIZE(exp) ((exp) == -1 ? 0 : (unsigned long)1<<(exp))
 #define DICTHT_SIZE_MASK(exp) ((exp) == -1 ? 0 : (DICTHT_SIZE(exp))-1)
 
+/* Hash table parameters */
+#define HASHTABLE_MIN_FILL        10      /* Minimal hash table fill 10% */
+#define dictSlots(d) (DICTHT_SIZE((d)->ht_size_exp[0])+DICTHT_SIZE((d)->ht_size_exp[1]))
+
+/**
+ *  可参考redis 7.2.5
+ */
 struct dict {
     dictType *type;
 
@@ -125,6 +132,12 @@ typedef struct dictIterator {
 /* API */
 dict *dictCreate(dictType *type);
 void dictRelease(dict *d);
+
+int _dictInit(dict* d, dictType *ty);
+#define  _dictInit  dictInit
+void dictDestroy(dict *d);
+
+
 dictEntry *dictAddRaw(dict *d, void *key, dictEntry **existing);
 dictEntry *dictAddOrFind(dict *d, void *key);
 uint64_t dictGenCaseHashFunction(const unsigned char *buf, size_t len);
@@ -142,4 +155,12 @@ int dictExpand(dict *d, unsigned long size);
 /* dict basic function */
 uint64_t dictGenHashFunction(const void *key, size_t len);
 
+int htNeedsResize(dict *dict);
+typedef enum {
+    DICT_RESIZE_ENABLE,
+    DICT_RESIZE_AVOID,
+    DICT_RESIZE_FORBID,
+} dictResizeEnable;
+int dictResize(dict *d);
+int dictDelete(dict *ht, const void *key);
 #endif

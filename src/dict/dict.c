@@ -117,9 +117,13 @@ int _dictClear(dict *d, int htidx, void(callback)(dict*)) {
 /* Clear & Release the hash table */
 void dictRelease(dict *d)
 {
+    dictDestroy(d);
+    zfree(d);
+}
+
+void dictDestroy(dict *d) {
     _dictClear(d,0,NULL);
     _dictClear(d,1,NULL);
-    zfree(d);
 }
 
 static signed char _dictNextExp(unsigned long size);
@@ -534,4 +538,159 @@ void dictReleaseIterator(dictIterator *iter)
             assert(iter->fingerprint == dictFingerprint(iter->d));
     }
     zfree(iter);
+}
+
+int hashTable_min_fill = HASHTABLE_MIN_FILL;
+/**
+ *  如果数据量/总量小于{hashTable_min_fill}%的时候进行可以缩容
+ *  这里值目前是10%
+ */
+int htNeedsResize(dict *dict) {
+    long long size, used;
+
+    size = dictSlots(dict);
+    used = dictSize(dict);
+    return (size > DICT_HT_INITIAL_SIZE &&
+            (used*100/size < hashTable_min_fill));
+}
+
+/* Resize the table to the minimal size that contains all the elements,
+ * but with the invariant of a USED/BUCKETS ratio near to <= 1 */
+int dictResize(dict *d)
+{
+    unsigned long minimal;
+
+    if (dict_can_resize != DICT_RESIZE_ENABLE || dictIsRehashing(d)) return DICT_ERR;
+    minimal = d->ht_used[0];
+    if (minimal < DICT_HT_INITIAL_SIZE)
+        minimal = DICT_HT_INITIAL_SIZE;
+    return dictExpand(d, minimal);
+}
+
+/* Returns 1 if the entry pointer is a pointer to a key, rather than to an
+ * allocated entry. Returns 0 otherwise. */
+static inline int entryIsKey(const dictEntry *de) {
+    return (uintptr_t)(void *)de & 1;
+}
+
+/* --------------------- dictEntry pointer bit tricks ----------------------  */
+
+/* The 3 least significant bits in a pointer to a dictEntry determines what the
+ * pointer actually points to. If the least bit is set, it's a key. Otherwise,
+ * the bit pattern of the least 3 significant bits mark the kind of entry. */
+
+#define ENTRY_PTR_MASK     7 /* 111 */
+#define ENTRY_PTR_NORMAL   0 /* 000 */
+#define ENTRY_PTR_NO_VALUE 2 /* 010 */
+
+/* Returns 1 if the pointer is actually a pointer to a dictEntry struct. Returns
+ * 0 otherwise. */
+static inline int entryIsNormal(const dictEntry *de) {
+    return ((uintptr_t)(void *)de & ENTRY_PTR_MASK) == ENTRY_PTR_NORMAL;
+}
+
+typedef struct {
+    void *key;
+    dictEntry *next;
+} dictEntryNoValue;
+
+/* Returns 1 if the entry is a special entry with key and next, but without
+ * value. Returns 0 otherwise. */
+static inline int entryIsNoValue(const dictEntry *de) {
+    return ((uintptr_t)(void *)de & ENTRY_PTR_MASK) == ENTRY_PTR_NO_VALUE;
+}
+
+static inline void *decodeMaskedPtr(const dictEntry *de) {
+    assert(!entryIsKey(de));
+    return (void *)((uintptr_t)(void *)de & ~ENTRY_PTR_MASK);
+}
+
+/* Decodes the pointer to an entry without value, when you know it is an entry
+ * without value. Hint: Use entryIsNoValue to check. */
+static inline dictEntryNoValue *decodeEntryNoValue(const dictEntry *de) {
+    return decodeMaskedPtr(de);
+}
+
+void *dictGetKey(const dictEntry *de) {
+    if (entryIsKey(de)) return (void*)de;
+    if (entryIsNoValue(de)) return decodeEntryNoValue(de)->key;
+    return de->key;
+}
+
+
+/* Returns the 'next' field of the entry or NULL if the entry doesn't have a
+ * 'next' field. */
+static dictEntry *dictGetNext(const dictEntry *de) {
+    if (entryIsKey(de)) return NULL; /* there's no next */
+    if (entryIsNoValue(de)) return decodeEntryNoValue(de)->next;
+    return de->next;
+}
+
+
+
+static void dictSetNext(dictEntry *de, dictEntry *next) {
+    assert(!entryIsKey(de));
+    if (entryIsNoValue(de)) {
+        dictEntryNoValue *entry = decodeEntryNoValue(de);
+        entry->next = next;
+    } else {
+        de->next = next;
+    }
+}
+
+
+
+/* You need to call this function to really free the entry after a call
+ * to dictUnlink(). It's safe to call this function with 'he' = NULL. */
+void dictFreeUnlinkedEntry(dict *d, dictEntry *he) {
+    if (he == NULL) return;
+    dictFreeKey(d, he);
+    dictFreeVal(d, he);
+    if (!entryIsKey(he)) zfree(decodeMaskedPtr(he));
+}
+
+
+/* Search and remove an element. This is a helper function for
+ * dictDelete() and dictUnlink(), please check the top comment
+ * of those functions. */
+static dictEntry *dictGenericDelete(dict *d, const void *key, int nofree) {
+    uint64_t h, idx;
+    dictEntry *he, *prevHe;
+    int table;
+
+    /* dict is empty */
+    if (dictSize(d) == 0) return NULL;
+
+    if (dictIsRehashing(d)) _dictRehashStep(d);
+    h = dictHashKey(d, key);
+
+    for (table = 0; table <= 1; table++) {
+        idx = h & DICTHT_SIZE_MASK(d->ht_size_exp[table]);
+        he = d->ht_table[table][idx];
+        prevHe = NULL;
+        while(he) {
+            void *he_key = dictGetKey(he);
+            if (key == he_key || dictCompareKeys(d, key, he_key)) {
+                /* Unlink the element from the list */
+                if (prevHe)
+                    dictSetNext(prevHe, dictGetNext(he));
+                else
+                    d->ht_table[table][idx] = dictGetNext(he);
+                if (!nofree) {
+                    dictFreeUnlinkedEntry(d, he);
+                }
+                d->ht_used[table]--;
+                return he;
+            }
+            prevHe = he;
+            he = dictGetNext(he);
+        }
+        if (!dictIsRehashing(d)) break;
+    }
+    return NULL; /* not found */
+}
+/* Remove an element, returning DICT_OK on success or DICT_ERR if the
+ * element was not found. */
+int dictDelete(dict *ht, const void *key) {
+    return dictGenericDelete(ht,key,0) ? DICT_OK : DICT_ERR;
 }
