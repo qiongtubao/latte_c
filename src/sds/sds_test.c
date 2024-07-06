@@ -123,6 +123,13 @@ int test_findlastof() {
     sdsfree(haystack);
     return 1;
 }
+
+int test_startsWith() {
+    sds haystack = sdsnew("Hello, world!");
+    assert(sdsStartsWith(haystack, "Hello"));
+    sdsfree(haystack);
+    return 1;
+}
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -138,6 +145,8 @@ int test_api(void) {
             test_resize() == 1);
         test_cond("sds find last of function",
             test_findlastof() == 1);
+        test_cond("sds starts with function",
+            test_startsWith() == 1);
     } test_report()
     return 1;
 }

@@ -809,8 +809,9 @@ sds sdsResize(sds s, size_t size, int would_regrow) {
     return s;
 }
 
+//给fs 提供路径判断的函数  后续再优化 更好用
 
-
+//c++ rfind函数
 // 用于查找子字符串最后一次出现位置的函数
 size_t sdsFindLastOf(sds haystack, const char *needle) {
     size_t needle_len = strlen(needle);
@@ -831,4 +832,22 @@ size_t sdsFindLastOf(sds haystack, const char *needle) {
     }
 
     return C_NPOS; // 没有找到needle，返回-1
+}
+
+//c++ starts_with函数
+int sdsStartsWith(sds str, const char *prefix) {
+    size_t str_len = sdslen(str);
+    size_t prefix_len = strlen(prefix);
+
+    // 如果前缀的长度大于字符串的长度，显然不可能以这个前缀开头
+    if (prefix_len > str_len) {
+        return 0; // 或者可以返回 false，取决于你的真假值表示
+    }
+
+    // 使用strncmp比较字符串的前缀部分和给定的前缀是否相等
+    if (strncmp(str, prefix, prefix_len) == 0) {
+        return 1; // 或者返回 true
+    }
+
+    return 0; // 或者返回 false
 }
