@@ -359,4 +359,6 @@ void sdsIncrLen(sds s, ssize_t incr);
 sds sdsMakeRoomFor(sds s, size_t addlen);
 sds sdsdup(const sds s);
 sds sdsResize(sds s, size_t size, int would_regrow);
+size_t sdsFindLastOf(sds haystack, const char *needle);
+#define C_NPOS ((size_t)(-1))
 #endif

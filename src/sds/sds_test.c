@@ -105,7 +105,24 @@ int test_resize() {
     sdsfree(x);
     return 1;
 }
+int test_findlastof() {
+    sds haystack = sdsnew("Hello world");
+    int index = sdsFindLastOf(haystack, "Hello");
+    test_cond("sds findlastof",index == 0);
+    sdsfree(haystack);
 
+    haystack = sdsnew("This is a test string with test inside.");
+    index = sdsFindLastOf(haystack, "test");
+    assert(index != C_NPOS);
+    assert(index > 0);
+    sdsfree(haystack);
+
+    haystack = sdsnew("abcd/edf");
+    index = sdsFindLastOf(haystack, "xyz");
+    assert(index == C_NPOS);
+    sdsfree(haystack);
+    return 1;
+}
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -119,6 +136,8 @@ int test_api(void) {
             test_sdstrynewlen() == 1);
         test_cond("sdsResize function",
             test_resize() == 1);
+        test_cond("sds find last of function",
+            test_findlastof() == 1);
     } test_report()
     return 1;
 }

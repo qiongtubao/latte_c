@@ -808,3 +808,27 @@ sds sdsResize(sds s, size_t size, int would_regrow) {
     sdssetalloc(s, size);
     return s;
 }
+
+
+
+// 用于查找子字符串最后一次出现位置的函数
+size_t sdsFindLastOf(sds haystack, const char *needle) {
+    size_t needle_len = strlen(needle);
+    size_t haystack_len = strlen(haystack);
+
+    if (needle_len == 0) {
+        return 0; // 如果needle为空，返回0
+    }
+
+    if (needle_len > haystack_len) {
+        return (size_t)-1; // 如果needle比haystack长，返回-1
+    }
+
+    for (size_t i = haystack_len - needle_len; i != (size_t)-1; i--) {
+        if (strncmp(haystack + i, needle, needle_len) == 0) {
+            return i; // 找到了needle，返回其在haystack中的位置
+        }
+    }
+
+    return C_NPOS; // 没有找到needle，返回-1
+}
