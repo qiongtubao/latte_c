@@ -55,7 +55,134 @@ sds sdsAppendFixed64(sds result, uint64_t value) {
     return sdscat(result, buf);
 }
 
-const char* getVarint32Ptr(const char* p, const char* limit,
-                        uint32_t* value) {
-    return "";
+int encodeVarint32(char* dst, uint32_t v) {
+    uint8_t* ptr = (uint8_t*)dst;
+    static const int B = 128;
+    if (v < (1 << 7)) {
+    *(ptr++) = v;
+  } else if (v < (1 << 14)) {
+    *(ptr++) = v | B;
+    *(ptr++) = v >> 7;
+  } else if (v < (1 << 21)) {
+    *(ptr++) = v | B;
+    *(ptr++) = (v >> 7) | B;
+    *(ptr++) = v >> 14;
+  } else if (v < (1 << 28)) {
+    *(ptr++) = v | B;
+    *(ptr++) = (v >> 7) | B;
+    *(ptr++) = (v >> 14) | B;
+    *(ptr++) = v >> 21;
+  } else {
+    *(ptr++) = v | B;
+    *(ptr++) = (v >> 7) | B;
+    *(ptr++) = (v >> 14) | B;
+    *(ptr++) = (v >> 21) | B;
+    *(ptr++) = v >> 28;
+  }
+  return  ((char*)ptr) - dst;
 }
+sds sdsAppendVarint32(sds result, uint32_t v) {
+    char buf[5];
+    int len = encodeVarint32(buf , v);
+    return sdscatlen(result, buf, len);
+}
+
+int encodeVarint64(char* dst, uint64_t v) {
+    static const int B = 128;
+    uint8_t* ptr = (uint8_t*)(dst);
+    while(v >= B) {
+        *(ptr++) = v | B;
+        v >>= 7;
+    }
+    *(ptr++) = (uint8_t)(v);
+    return ((char*)ptr) - dst;
+}
+int varintLength(uint64_t v) {
+    int len = 1;
+    while (v >= 128) {
+        v >>= 7;
+        len++;
+    }
+    return len;
+}
+
+sds sdsAppendVarint64(sds result, uint64_t v) {
+    char buf[10];
+    int len = encodeVarint64(buf , v);
+    return sdscatlen(result, buf, len);
+}
+
+char* GetVarint32PtrFallback(const char* p, const char* limit,
+                                   uint32_t* value) {
+    uint32_t result = 0;
+    for (uint32_t shift = 0; shift <= 28 && p < limit; shift += 7) {
+        uint32_t byte = *((const uint8_t*)(p));
+        p++;
+        if (byte & 128) {
+        // More bytes are present
+        result |= ((byte & 127) << shift);
+        } else {
+        result |= (byte << shift);
+        *value = result;
+        return (const char*)(p);
+        }
+    }
+    return NULL;
+}
+char* getVarint32Ptr(char* p, char* limit, uint32_t* v) {
+    if (p < limit) {
+        uint32_t result = *((const uint8_t*)(p));
+        if ((result & 128) == 0) {
+            *v = result;
+            return p + 1;
+        }
+    }
+    return GetVarint32PtrFallback(p, limit, v);
+}
+
+//可变长度，返回结束时长度
+bool getVarint32(Slice* slice, uint32_t* v) {
+    const char* p = slice->p;
+    const char* limit = p + slice->len;
+    const char* q = getVarint32Ptr(p, limit, v);
+    if (q == NULL) {
+        return false;
+    } else {
+        slice->len -= q - p;
+        slice->p = q;
+        return true;
+    }
+}
+
+const char* getVarint64Ptr(const char* p, const char* limit, uint64_t* value) {
+  uint64_t result = 0;
+  for (uint32_t shift = 0; shift <= 63 && p < limit; shift += 7) {
+    uint64_t byte = *((const uint8_t*)(p));
+    p++;
+    if (byte & 128) {
+      // More bytes are present
+      result |= ((byte & 127) << shift);
+    } else {
+      result |= (byte << shift);
+      *value = result;
+      return (const char*)(p);
+    }
+  }
+  return NULL;
+}
+
+//字符串长度
+bool getVarint64(Slice* slice, uint64_t* value) {
+  const char* p = slice->p;
+  const char* limit = p + slice->len;
+  //动态的64bit   limit会返回最后的位置
+  const char* q = getVarint64Ptr(p, limit, value);
+  if (q == NULL) {
+    return false;
+  } else {
+    slice->len -= q - p;
+    slice->p = q;
+    return true;
+  }
+}
+

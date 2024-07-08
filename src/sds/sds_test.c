@@ -83,7 +83,7 @@ int test_resize() {
     test_cond("sdsrezie() expand len", sdslen(x) == 40);
     test_cond("sdsrezie() expand strlen", strlen(x) == 40);
     test_cond("sdsrezie() expand alloc", sdsalloc(x) == 200);
-    /* Test sdsresize - trim free space */
+    /* Test sdsresize - trim free D1 */
     x = sdsResize(x, 80, 1);
     test_cond("sdsrezie() shrink len", sdslen(x) == 40);
     test_cond("sdsrezie() shrink strlen", strlen(x) == 40);
@@ -193,6 +193,80 @@ int test_fixed64() {
     return 1;
 }
 
+int test_varint32() {
+    char buf[10];
+    int len = encodeVarint32(buf, 0x12345678);
+    assert(0xFFFFFFF8 == buf[0]);
+    assert(0xFFFFFFAC == buf[1]);
+    assert(0xFFFFFFD1 == buf[2]);
+    assert(0xFFFFFF91 == buf[3]);
+    assert(0x00000001 == buf[4]);
+    assert(len == 5);
+    len = encodeVarint32(buf + len, 0x87654321);
+    assert(len == 5);
+    
+    assert(0xFFFFFFA1 == buf[5]);
+    assert(0xFFFFFF86 == buf[6]);
+    assert(0xFFFFFF95 == buf[7]);
+    assert(0xFFFFFFBB == buf[8]);
+    assert(0x00000008 == buf[9]);
+    Slice slice;
+    slice.p = buf;
+    slice.len = 10;
+    uint32_t value;
+    assert(getVarint32(&slice, &value));
+    assert(value == 0x12345678);
+    assert(slice.p == buf + 5);
+    assert(slice.len == 5);
+    assert(getVarint32(&slice, &value));
+    assert(value == 0x87654321);
+    assert(slice.p == buf + 10);
+    assert(slice.len == 0);
+    return 1;
+}
+
+int test_varint64() {
+    char buf[20];
+    int len = encodeVarint64(buf, 0x123456789ABCDEF0ull);
+    
+    assert(len == 9);
+    assert(0xFFFFFFF0 == buf[0]);
+    assert(0xFFFFFFBD == buf[1]);
+    assert(0xFFFFFFF3 == buf[2]);
+    assert(0xFFFFFFD5 == buf[3]);
+    assert(0xFFFFFF89 == buf[4]);
+    assert(0xFFFFFFCF == buf[5]);
+    assert(0xFFFFFF95 == buf[6]);
+    assert(0xFFFFFF9A == buf[7]);
+    assert(0x00000012 == buf[8]);
+
+    len = encodeVarint64(buf + len, 0x0FEDCBA987654321ull);
+    assert(len == 9);
+    
+    assert(0xFFFFFFA1 == buf[9]);
+    assert(0xFFFFFF86 == buf[10]);
+    assert(0xFFFFFF95 == buf[11]);
+    assert(0xFFFFFFBB == buf[12]);
+    assert(0xFFFFFF98 == buf[13]);
+    assert(0xFFFFFFF5 == buf[14]);
+    assert(0xFFFFFFF2 == buf[15]);
+    assert(0xFFFFFFF6 == buf[16]);
+    assert(0x0000000f == buf[17]);
+    // len = encodeVarint32(buf + len, 0x87654321);
+    Slice slice;
+    slice.p = buf;
+    slice.len = 20;
+    uint64_t value;
+    assert(getVarint64(&slice, &value));
+    assert(value == 0x123456789ABCDEF0ull);
+    assert(slice.p == buf + 9);
+    assert(slice.len == (11));
+    assert(getVarint64(&slice, &value));
+    assert(value == 0x0FEDCBA987654321ull);
+    assert(slice.p == buf + 18);
+    assert(slice.len == 2);
+    return 1;
+}
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -214,6 +288,10 @@ int test_api(void) {
             test_fixed32() == 1);
         test_cond("fixed64 function",
             test_fixed64() == 1);
+        test_cond("varint32 function",
+            test_varint32() == 1);
+        test_cond("varint64 function",
+            test_varint64() == 1);
     } test_report()
     return 1;
 }
