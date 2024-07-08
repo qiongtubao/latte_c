@@ -129,6 +129,8 @@ typedef struct dictIterator {
 #define dictPauseRehashing(d) (d)->pauserehash++
 #define dictResumeRehashing(d) (d)->pauserehash--
 
+#define dictGetEntryKey(he) ((he)->key)
+#define dictGetEntryVal(he) ((he)->v.val)
 /* API */
 dict *dictCreate(dictType *type);
 void dictRelease(dict *d);
