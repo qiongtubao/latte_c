@@ -1,5 +1,5 @@
 WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=sds.o 
+BUILD_OBJ?=sds.o sds_plugins.o
 LIB_OBJ?=
 TEST_MAIN?=sds_test
 LIB_MODULES?=zmalloc

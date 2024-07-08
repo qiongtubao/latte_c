@@ -2,6 +2,7 @@
 #include "../test/testassert.h"
 #include <stdio.h>
 #include "sds.h"
+#include "sds_plugins.h"
 
 int test_sdsnew(void) {
     //type 5
@@ -135,6 +136,63 @@ int test_startsWith() {
     sdsfree(haystack);
     return 1;
 }
+
+int test_fixed32() {
+
+    char dst1[5] = {0};
+    const uint32_t value = 0x12345678;
+    encodeFixed32(dst1, value);
+    assert(0x78 == dst1[0]);
+    assert(0x56 == dst1[1]);
+    assert(0x34 == dst1[2]);
+    assert(0x12 == dst1[3]);
+    uint32_t value1 = decodeFixed32(dst1);
+    assert(0x12345678 == value1);
+
+    sds s = sdsempty();
+    s = sdsAppendFixed32(s, 0x12345678);
+    assert(0x78 == s[0]);
+    assert(0x56 == s[1]);
+    assert(0x34 == s[2]);
+    assert(0x12 == s[3]);
+    value1 = decodeFixed32(s);
+    assert(0x12345678 == value1);
+    sdsfree(s);
+    return 1;
+}
+
+int test_fixed64() {
+
+    char dst1[8] = {0};
+    const uint64_t value = 0x123456789ABCDEF0ull;
+    encodeFixed64(dst1, value);
+    assert(0xFFFFFFF0 == dst1[0]);
+    assert(0xFFFFFFDE == dst1[1]);
+    assert(0xFFFFFFBC == dst1[2]);
+    assert(0xFFFFFF9A == dst1[3]);
+    assert(0x78 == dst1[4]);
+    assert(0x56 == dst1[5]);
+    assert(0x34 == dst1[6]);
+    assert(0x12 == dst1[7]);
+    uint64_t value1 = decodeFixed64(dst1);
+    assert(0x123456789ABCDEF0ull == value1);
+
+    sds s = sdsempty(); 
+    s = sdsAppendFixed64(s, 0x123456789ABCDEF0ull);
+    value1 = decodeFixed64(s);
+    assert(0xFFFFFFF0 == s[0]);
+    assert(0xFFFFFFDE == s[1]);
+    assert(0xFFFFFFBC == s[2]);
+    assert(0xFFFFFF9A == s[3]);
+    assert(0x78 == s[4]);
+    assert(0x56 == s[5]);
+    assert(0x34 == s[6]);
+    assert(0x12 == s[7]);
+    assert(0x123456789ABCDEF0ull == value1);
+    sdsfree(s);
+    return 1;
+}
+
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -152,6 +210,10 @@ int test_api(void) {
             test_findlastof() == 1);
         test_cond("sds starts with function",
             test_startsWith() == 1);
+        test_cond("fixed32 function",
+            test_fixed32() == 1);
+        test_cond("fixed64 function",
+            test_fixed64() == 1);
     } test_report()
     return 1;
 }
