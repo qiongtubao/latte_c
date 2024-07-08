@@ -186,3 +186,8 @@ bool getVarint64(Slice* slice, uint64_t* value) {
   }
 }
 
+sds sdsAppendLengthPrefixedSlice(sds dst, Slice* slice) {
+    dst = sdsAppendVarint32(dst, slice->len);
+    return sdscatlen(dst, slice->p, slice->len);
+}
+

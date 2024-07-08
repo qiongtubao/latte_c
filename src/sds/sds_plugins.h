@@ -28,4 +28,7 @@ int encodeVarint64(char* dst, uint64_t v);
 bool getVarint64(Slice* slice, uint64_t* value);
 sds sdsAppendVarint64(sds result, uint64_t v);
 
+//数据结构 {可变32位字符串长度}{字符串内容}
+sds sdsAppendLengthPrefixedSlice(sds, Slice* slice);
+
 #endif

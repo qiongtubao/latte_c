@@ -267,6 +267,16 @@ int test_varint64() {
     assert(slice.len == 2);
     return 1;
 }
+int test_appendLengthprefixedSlice() {
+    Slice slice;
+    slice.p = "hello";
+    slice.len = 5;
+    sds result = sdsAppendLengthPrefixedSlice(sdsempty(), &slice);
+    assert(6 == sdslen(result));
+    assert(0x00000005 == result[0]);
+    assert('h' == result[1]);
+    return 1;
+}
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -292,6 +302,8 @@ int test_api(void) {
             test_varint32() == 1);
         test_cond("varint64 function",
             test_varint64() == 1);
+        test_cond("put length prefixed slice", 
+            test_appendLengthprefixedSlice() == 1);
     } test_report()
     return 1;
 }
