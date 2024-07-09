@@ -2,7 +2,7 @@
 #include "file.h"
 #include <fcntl.h> // 包含必要的头文件
 #include "set/lockSet.h"
-
+#include "posix_file.h"
 
 Env* envCreate() {
     Env* env = zmalloc(sizeof(Env));
@@ -45,4 +45,8 @@ Error* envUnlockFile(Env* venv, FileLock* lock) {
     closeFile(lock->fd);
     fileLockRelease(lock);
     return &Ok;
+}
+
+Error* envNewWritableFile(Env* env, sds filename, WritableFile** file) {
+    return newWritableFile(filename, file);
 }

@@ -15,6 +15,6 @@ Error* envUnlockFile(Env* env,FileLock* lock);
 Env* envCreate();
 void envRelease(Env* env);
 
-Error* envNewWritableFile(Env* env, sds manifest, WritableFile* file);
+Error* envNewWritableFile(Env* env, sds filename, WritableFile** file);
 
 #endif
