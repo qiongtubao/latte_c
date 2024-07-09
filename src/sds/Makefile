@@ -4,7 +4,7 @@ LIB_OBJ?=
 TEST_MAIN?=sds_test
 LIB_MODULES?=zmalloc
 MODULE?=sds
-BUILD_INCLUDE=sds.h
+BUILD_INCLUDE=sds.h sds_plugins.h
 
 include $(WORKSPACE)/mks/sys.mk
 include $(WORKSPACE)/mks/final.mk
