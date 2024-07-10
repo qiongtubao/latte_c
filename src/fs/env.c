@@ -3,6 +3,7 @@
 #include <fcntl.h> // 包含必要的头文件
 #include "set/lockSet.h"
 #include "posix_file.h"
+#include "flags.h"
 
 Env* envCreate() {
     Env* env = zmalloc(sizeof(Env));

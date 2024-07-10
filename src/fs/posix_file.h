@@ -4,6 +4,7 @@
 #include "sds/sds.h"
 #include <stdbool.h>
 #include <stdlib.h>
+#include "utils/error.h"
 #define kWritableFileBufferSize  65536
 
 
@@ -17,5 +18,8 @@ typedef struct PosixWritableFile {
 } PosixWritableFile;
 
 PosixWritableFile* posixWritableFileCreate(char* filename, int fd);
-
+Error* posixWriteableFileAppend(PosixWritableFile* write, char* data, int size);
+Error* posixWritableFileFlush(PosixWritableFile* writer);
+Error* posixWritableFileSync(PosixWritableFile* file);
+Error* posixWritableFileClose(PosixWritableFile* file);
 #endif

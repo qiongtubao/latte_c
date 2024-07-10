@@ -12,4 +12,7 @@ USED_FS=yes
 
 ../fs/env.o:
 	cd ../fs && make env.o
+
+../fs/posix_file.o
+	cd ../fs && make posix_file.o
 endif

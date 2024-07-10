@@ -4,13 +4,12 @@
 #include <string.h>
 #include <unistd.h>
 #include "posix_file.h"
-// Common flags defined for all posix open operations
+#include "flags.h"
 #if defined(HAVE_O_CLOEXEC)
     int kOpenBaseFlags = O_CLOEXEC;
 #else
     int kOpenBaseFlags = 0;
 #endif  // defined(HAVE_O_CLOEXEC)
-
 Error* openFile(char* filename, int* fd, int flag, mode_t mode) {
     *fd = open(filename, flag, mode);
     if (*fd < 0) {
@@ -102,3 +101,23 @@ Error* newWritableFile(sds filename,
     *result = (WritableFile*)posixWritableFileCreate(filename, fd);
     return &Ok;
   }
+
+Error* writableFileAppendSds(WritableFile* file, sds data) {
+    return writableFileAppend(file, data, sdslen(data));
+}  
+
+Error* writableFileAppend(WritableFile* file, char* buf, size_t len) {
+    return posixWriteableFileAppend(file, buf, len);
+}
+
+Error* writableFileFlush(WritableFile* file) {
+    return posixWritableFileFlush(file);
+}
+
+Error* writableFileSync(WritableFile* file) {
+    return posixWritableFileSync(file);
+}
+
+Error* writableFileClose(WritableFile* file) {
+    return posixWritableFileClose(file);
+}
