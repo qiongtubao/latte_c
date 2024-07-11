@@ -277,6 +277,34 @@ int test_appendLengthprefixedSlice() {
     assert('h' == result[1]);
     return 1;
 }
+
+int test_slice() {
+    Slice a = {
+        .p = "hello",
+        .len = 5
+    };
+    assert(!SliceIsEmpty(&a));
+    assert(SliceData(&a) == a.p);
+    assert(SliceSize(&a) == a.len);
+    sds r = SliceToSds(&a);
+    assert(sdslen(r) == 5);
+    assert(strncmp(r, a.p, a.len) == 0);
+    sdsfree(r);
+    SliceRemovePrefix(&a, 1);
+    Slice b = {
+        .p = "ello",
+        .len = 4
+    };
+    assert(SliceCompare(&a, &b) == 0);
+    Slice c = {
+        .p = "hel",
+        .len = 3
+    };
+    assert(SliceStartsWith(&a, &c) == 0);
+    SliceClear(&c);
+    assert(SliceIsEmpty(&c));
+    return 1;
+}
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -304,6 +332,8 @@ int test_api(void) {
             test_varint64() == 1);
         test_cond("put length prefixed slice", 
             test_appendLengthprefixedSlice() == 1);
+        test_cond("slice test",
+            test_slice() == 1);
     } test_report()
     return 1;
 }

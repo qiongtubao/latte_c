@@ -191,3 +191,53 @@ sds sdsAppendLengthPrefixedSlice(sds dst, Slice* slice) {
     return sdscatlen(dst, slice->p, slice->len);
 }
 
+//
+SliceRemovePrefix(Slice* slice, size_t len) {
+  slice->p = slice->p + len;
+  slice->len = slice->len - len;
+}
+
+sds SliceToSds(Slice* slice) {
+  return sdsnewlen(slice->p, slice->len);
+}
+
+char SliceOperator(Slice* slice, size_t n) {
+  return slice->p[n];
+}
+
+bool SliceIsEmpty(Slice* slice) {
+  return slice->len == 0;
+}
+
+size_t SliceSize(Slice* slice) {
+  return slice->len;
+}
+char* SliceData(Slice* slice) {
+  return slice->p;
+}
+
+void SliceClear(Slice* slice) {
+  slice->p = "";
+  slice->len = 0;
+}
+
+void SliceInitSds(Slice* slice, sds result) {
+  slice->p = result;
+  slice->len = sdslen(result);
+}
+
+int SliceCompare(Slice* a, Slice* b) {
+  const size_t min_len = (a->len < b->len) ? a->len : b->len;
+  int r = memcmp(a->p, b->p, min_len);
+  if (r == 0) {
+    if (a->len < b->len)
+      r = -1;
+    else if (a->len > b->len)
+      r = +1;
+  }
+  return r;
+}
+
+bool SliceStartsWith(Slice* slice, Slice* x) {
+  return ((slice->len >= x->len) && (memcmp(slice->p, x->p, x->len) == 0));
+}
