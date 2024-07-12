@@ -16,5 +16,6 @@ Env* envCreate();
 void envRelease(Env* env);
 
 Error* envNewWritableFile(Env* env, sds filename, WritableFile** file);
+Error* envRemoveFile(Env* env, sds filename);
 
 #endif

@@ -51,3 +51,10 @@ Error* envUnlockFile(Env* venv, FileLock* lock) {
 Error* envNewWritableFile(Env* env, sds filename, WritableFile** file) {
     return newWritableFile(filename, file);
 }
+
+Error* envRemoveFile(Env* env, sds filename) {
+    if (removeFile(filename)) {
+        return errnoIoCreate(filename);
+    }
+    return &Ok;
+}

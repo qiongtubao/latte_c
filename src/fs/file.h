@@ -21,7 +21,7 @@ typedef struct WritableFile {
 } WritableFile;
 FileLock* fileLockCreate(int fd, char* filename);
 void fileLockRelease(FileLock* lock);
-
+int removeFile(char* file);
 int closeFile(int fd);
 bool fileExists(sds filename);
 

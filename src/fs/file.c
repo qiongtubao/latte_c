@@ -62,6 +62,10 @@ int closeFile(int fd) {
     return close(fd);
 }
 
+int removeFile(char* file) {
+    return unlink(file);
+}
+
 FileLock* fileLockCreate(int fd, char* filename) {
     FileLock* fl = zmalloc(sizeof(FileLock));
     fl->fd = fd;
