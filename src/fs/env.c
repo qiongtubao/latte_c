@@ -65,3 +65,7 @@ Error* envRenameFile(Env* env, sds from, sds to) {
     }
     return &Ok;
 }
+
+void envWritableFileRelease(Env* env, WritableFile* file) {
+    return posixWritableFileRelease(file);
+}

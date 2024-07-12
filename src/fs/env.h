@@ -14,6 +14,7 @@ Error* envLockFile(Env* env, sds filename, FileLock** lock);
 Error* envUnlockFile(Env* env,FileLock* lock);
 Env* envCreate();
 void envRelease(Env* env);
+void envWritableFileRelease(Env* env, WritableFile* file);
 
 Error* envNewWritableFile(Env* env, sds filename, WritableFile** file);
 Error* envRemoveFile(Env* env, sds filename);
