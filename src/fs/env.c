@@ -58,3 +58,10 @@ Error* envRemoveFile(Env* env, sds filename) {
     }
     return &Ok;
 }
+
+Error* envRenameFile(Env* env, sds from, sds to) {
+    if (renameFile(from, to)) {
+        return errnoIoCreate(from);
+    }
+    return &Ok;
+}

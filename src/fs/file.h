@@ -24,6 +24,7 @@ void fileLockRelease(FileLock* lock);
 int removeFile(char* file);
 int closeFile(int fd);
 bool fileExists(sds filename);
+int renameFile(sds from, sds to);
 
 Error* newWritableFile(sds filename,
                          WritableFile** result);

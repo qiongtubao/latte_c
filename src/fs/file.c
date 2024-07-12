@@ -66,6 +66,10 @@ int removeFile(char* file) {
     return unlink(file);
 }
 
+int renameFile(sds from, sds to) {
+    return rename(from, to);
+}
+
 FileLock* fileLockCreate(int fd, char* filename) {
     FileLock* fl = zmalloc(sizeof(FileLock));
     fl->fd = fd;
