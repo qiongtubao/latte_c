@@ -3,6 +3,7 @@
 
 #include <utils/error.h>
 #include <stdbool.h>
+#include "sds/sds_plugins.h"
 
 
 
@@ -26,8 +27,10 @@ bool fileExists(sds filename);
 
 Error* newWritableFile(sds filename,
                          WritableFile** result);
+void writableFileRelease(WritableFile* file);
 Error* writableFileAppendSds(WritableFile* file, sds data);
 Error* writableFileAppend(WritableFile* file, char* buf, size_t len);
+Error* writableFileAppendSlice(WritableFile* file, Slice* data);
 Error* writableFileFlush(WritableFile* file);
 Error* writableFileSync(WritableFile* file);
 Error* writableFileClose(WritableFile* file);

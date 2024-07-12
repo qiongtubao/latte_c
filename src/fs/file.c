@@ -121,3 +121,11 @@ Error* writableFileSync(WritableFile* file) {
 Error* writableFileClose(WritableFile* file) {
     return posixWritableFileClose(file);
 }
+
+Error* writableFileAppendSlice(WritableFile* file, Slice* data) {
+    return writableFileAppend(file, data->p, data->len);
+}
+
+void writableFileRelease(WritableFile* file) {
+    return posixWritableFileRelease(file);
+}

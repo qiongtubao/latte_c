@@ -198,3 +198,12 @@ Error* posixWritableFileClose(PosixWritableFile* file) {
     file->fd = -1;
     return error;
 }
+
+void posixWritableFileRelease(PosixWritableFile* file) {
+  if (file->fd >= 0) {
+    posixWritableFileClose(file);
+  }
+  sdsfree(file->dirname);
+  sdsfree(file->filename);
+  zfree(file);
+}

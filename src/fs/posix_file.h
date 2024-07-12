@@ -18,6 +18,7 @@ typedef struct PosixWritableFile {
 } PosixWritableFile;
 
 PosixWritableFile* posixWritableFileCreate(char* filename, int fd);
+void posixWritableFileRelease(PosixWritableFile* file);
 Error* posixWriteableFileAppend(PosixWritableFile* write, char* data, int size);
 Error* posixWritableFileFlush(PosixWritableFile* writer);
 Error* posixWritableFileSync(PosixWritableFile* file);
