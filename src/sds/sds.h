@@ -218,6 +218,7 @@ sds sdstrynewlen(const void *init, size_t initlen);
  *    assert(sdslen(empty) == 0);
  */
 sds sdsempty(void);
+sds sdsemptylen(int length);
 /**
  *
  * @param s

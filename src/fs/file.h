@@ -47,9 +47,9 @@ Error* writableFileClose(WritableFile* file);
 //创建顺序读文件
 Error* SequentialFileCreate(sds filename, SequentialFile** fd);
 //顺序读（读取文件）
-Error* readSequentialFile(SequentialFile* file,size_t n, Slice* slice);
+Error* sequentialFileRead(SequentialFile* file,size_t n, Slice* slice);
 //顺序读（跳过字节）
-Error* skipSequentialFile(SequentialFile* file,uint64_t n);
+Error* sequentialFileSkip(SequentialFile* file,uint64_t n);
 void SequentialFileRelease(SequentialFile* file);
 // ============== ==============
 #endif

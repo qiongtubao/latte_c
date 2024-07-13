@@ -99,6 +99,26 @@ int test_env_lockfile() {
     return 1;
 }
 
+int test_env_write_read() {
+    recursive_rmdir("test_env_dir");
+    Env* env = envCreate();
+    Error* error = dirCreate("test_env_dir");
+    sds file = sdsnew("test_env_dir/write.log");
+    sds read = NULL;
+    error = envReadFileToSds(env, file, &read);
+    assert(error->code == CNotFound);
+    assert(read == NULL);
+    sds data = sdsnew("test");
+    error = envWriteSdsToFileSync(env, file, data);
+    assert(isOk(error));
+    error = envReadFileToSds(env, file, &read);
+    assert(isOk(error));
+    printf("\n%s\n", read);
+    assert(strncmp(read, "test", 4) == 0);
+    envRelease(env);
+    recursive_rmdir("test_env_dir");
+    return 1;
+}
 
 int test_api(void) {
     {
@@ -109,7 +129,8 @@ int test_api(void) {
             test_create_dir() == 1);
         test_cond("env create function",
             test_env_lockfile() == 1);
-        
+        test_cond("env write read function",
+            test_env_write_read() == 1);
     } test_report()
     return 1;
 }

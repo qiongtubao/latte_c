@@ -322,6 +322,17 @@ sds sdsempty(void) {
     return sdsnewlen("",0);
 }
 
+/**
+ * 创建一个长度为length的空字符串
+ * 提前创建大的buffer
+ */
+sds sdsemptylen(int length) {
+    sds result = sdsnewlen(NULL, length);
+    sdssetlen(result, 0);
+    return result;
+}
+
+
 
 /* Like sdscatprintf() but gets va_list instead of being variadic. */
 sds sdscatvprintf(sds s, const char *fmt, va_list ap) {

@@ -222,7 +222,7 @@ Error* posixSequentialFileCreate(sds filename, PosixSequentialFile** file) {
     return &Ok;
 }
 
-Error* posixReadSequentialFile(PosixSequentialFile* file,size_t n, Slice* slice) {
+Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, Slice* slice) {
   Error* error = &Ok;
   while (true) {
     //read适合顺序读
@@ -240,7 +240,7 @@ Error* posixReadSequentialFile(PosixSequentialFile* file,size_t n, Slice* slice)
   return error;
 }
 
-Error* posixSkipSequentialFile(PosixSequentialFile* file,uint64_t n) {
+Error* posixSequentialFileSkip(PosixSequentialFile* file,uint64_t n) {
   if (lseek(file->fd, n, SEEK_CUR) == (off_t)(-1)) {
     return errnoIoCreate(file->filename);
   }

@@ -48,8 +48,8 @@ Error* envUnlockFile(Env* venv, FileLock* lock) {
     return &Ok;
 }
 
-Error* envNewWritableFile(Env* env, sds filename, WritableFile** file) {
-    return newWritableFile(filename, file);
+Error* envWritableFileCreate(Env* env, sds filename, WritableFile** file) {
+    return writableFileCreate(filename, file);
 }
 
 Error* envRemoveFile(Env* env, sds filename) {
@@ -72,10 +72,10 @@ void envWritableFileRelease(Env* env, WritableFile* file) {
 
 
 //
-Error* envDoWriteStringToFile(Env* env, Slice* data,
-                                  sds fname, bool should_sync) {
-  WritableFile* file;
-  Error* error = envNewWritableFile(env, fname, &file);
+Error* envDoWriteSdsToFile(Env* env, sds fname,
+                                Slice* data , bool should_sync) {
+  WritableFile* file = NULL;
+  Error* error = envWritableFileCreate(env, fname, &file);
   if (!isOk(error)) {
     return error;
   }
@@ -86,18 +86,26 @@ Error* envDoWriteStringToFile(Env* env, Slice* data,
   if (isOk(error)) {
     error = writableFileClose(file);
   }
-  writableFileRelease(file);  // Will auto-close if we did not close above
+  //writableFileRelease(file);  // Will auto-close if we did not close above
   if (!isOk(error)) {
     envRemoveFile(env, fname);
   }
   return error;
 }
 
-Error* envWriteStringToFileSync(Env* env, Slice* data,
-                             sds fname) {
-  return envDoWriteStringToFile(env, data, fname, true);
+Error* envWriteSdsToFileSync(Env* env, 
+                             sds fname, sds data) {
+    Slice slice = {
+       .p = data,
+       .len = sdslen(data) 
+    };
+  return envDoWriteSdsToFile(env,fname, &slice, true);
 }
 
+
+Error* envSequentialFileCreate(Env* env, sds filename, SequentialFile** file) {
+    return posixSequentialFileCreate(filename, &file);
+}
 Error* envReadFileToSds(Env* env, sds fname, sds* data) {
 
     SequentialFile* file;
@@ -106,21 +114,23 @@ Error* envReadFileToSds(Env* env, sds fname, sds* data) {
         return error;
     }
     static const int kBufferSize = 8192;
-    sds result = sdsnewlen(NULL, kBufferSize);
+    sds result = sdsemptylen(kBufferSize);
+    // sdssetlen(result, 0);
     Slice buffer = {
         .p = sdsnewlen(NULL, kBufferSize),
         .len = 0
     };
     while (true) {
         Slice fragment;
-        error = readSequentialFile(file, kBufferSize, &buffer);
+        error = sequentialFileRead(file, kBufferSize, &buffer);
         if (!isOk(error)) {
             break;
         }
-        result = sdscatlen(result, buffer.p, buffer.len);
         if (buffer.len == 0) {
+            *data = result;
             break;
         }
+        result = sdscatlen(result, buffer.p, buffer.len);
         buffer.len = 0; 
     }
     sdsfree(buffer.p);

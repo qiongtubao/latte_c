@@ -88,7 +88,7 @@ bool fileExists(sds filename) {
 }
 
 //创建一个写文件，如果原来有数据则清空数据， 
-Error* newWritableFile(sds filename,
+Error* writableFileCreate(sds filename,
                          WritableFile** result)  {
     //O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags: 这是一个位或运算表达式，用于设置open函数的标志参数。这些标志决定了文件的打开模式和行为：
     //O_TRUNC: 如果文件已存在，那么在打开时会被截断至零长度，即清空文件内容。如果文件不存在，此标志将被忽略。
@@ -155,15 +155,15 @@ Error* SequentialFileCreate(sds filename, SequentialFile** file) {
 // 如果遇到错误，则返回非 OK 状态。
 //
 // 需要：外部同步(不是线程安全的访问方式)
-Error* readSequentialFile(SequentialFile* file,size_t n, Slice* result) {
-    return posixReadSequentialFile(file, n, result);
+Error* sequentialFileRead(SequentialFile* file,size_t n, Slice* result) {
+    return posixSequentialFileRead(file, n, result);
 }
 
 // 从文件中跳过“n”个字节。这保证不会比读取相同数据慢，但可能会更快。
 // 如果到达文件末尾，跳过将在文件末尾停止，并且 Skip 将返回 OK。
 // 需要：外部同步(不是线程安全的访问方式)
-Error* skipSequentialFile(SequentialFile* file,uint64_t n) {
-    return posixSkipSequentialFile(file, n);
+Error* sequentialFileSkip(SequentialFile* file,uint64_t n) {
+    return posixSequentialFileSkip(file, n);
 }
 
 void SequentialFileRelease(SequentialFile* file) {

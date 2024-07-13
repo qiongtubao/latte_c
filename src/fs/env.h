@@ -17,11 +17,14 @@ Env* envCreate();
 void envRelease(Env* env);
 void envWritableFileRelease(Env* env, WritableFile* file);
 
-Error* envNewWritableFile(Env* env, sds filename, WritableFile** file);
+Error* envWritableFileCreate(Env* env, sds filename, WritableFile** file);
 Error* envRemoveFile(Env* env, sds filename);
 Error* envRenameFile(Env* env, sds oldname, sds newname);
 
-Error* envWriteStringToFileSync(Env* env, Slice* data,
-                             sds fname);
+Error* envWriteSdsToFileSync(Env* env, 
+                             sds fname, sds data);
+
+
+Error* envSequentialFileCreate(Env* env, sds filename, SequentialFile** file);
 Error* envReadFileToSds(Env* env, sds fname, sds* data);
 #endif

@@ -310,9 +310,7 @@ int test_sdscatfmt() {
     sds d = sdsnew("test");
     sds result = sdscatfmt(sdsempty(), "%S-%i-%I-%u-%U-%%", d, 1, 110LL, 11u, 11uLL);
     assert(sdslen(result) == 18);
-    printf("\n%s\n", result);
     assert(strncmp("test-1-110-11-11-%",result,18) == 0);
-
 
     sdsfree(d);
     sdsfree(result);
