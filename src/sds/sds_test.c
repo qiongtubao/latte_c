@@ -305,6 +305,20 @@ int test_slice() {
     assert(SliceIsEmpty(&c));
     return 1;
 }
+
+int test_sdscatfmt() {
+    sds d = sdsnew("test");
+    sds result = sdscatfmt(sdsempty(), "%S-%i-%I-%u-%U-%%", d, 1, 110LL, 11u, 11uLL);
+    assert(sdslen(result) == 18);
+    printf("\n%s\n", result);
+    assert(strncmp("test-1-110-11-11-%",result,18) == 0);
+
+
+    sdsfree(d);
+    sdsfree(result);
+    return 1;
+}
+
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -332,6 +346,8 @@ int test_api(void) {
             test_varint64() == 1);
         test_cond("put length prefixed slice", 
             test_appendLengthprefixedSlice() == 1);
+        test_cond("sdscatfmt function",
+            test_sdscatfmt());
         test_cond("slice test",
             test_slice() == 1);
     } test_report()
