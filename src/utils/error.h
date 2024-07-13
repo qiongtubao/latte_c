@@ -26,6 +26,7 @@ Error* errnoIoCreate(char* context, ...);
 Error* errorCreate(Code code, char* state, char* message, ...);
 void errorRelease(Error* error);
 int isOk(Error* error);
+int isNotFound(Error* error);
 Error* ioErrorCreate(char* state, char* message);
 
 

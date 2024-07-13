@@ -3,6 +3,9 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
+int isNotFound(Error* error) {
+    return error->code == CNotFound;
+}
 int isOk(Error* error) {
     return error->code == COk;
 }
