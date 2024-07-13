@@ -363,4 +363,5 @@ sds sdsResize(sds s, size_t size, int would_regrow);
 #define C_NPOS ((size_t)(-1))
 size_t sdsFindLastOf(sds haystack, const char *needle);
 int sdsStartsWith(sds str, const char *prefix);
+sds sdsReset(sds s, char* data, int len);
 #endif

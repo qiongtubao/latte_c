@@ -312,7 +312,11 @@ int test_sdscatfmt() {
     assert(sdslen(result) == 18);
     assert(strncmp("test-1-110-11-11-%",result,18) == 0);
 
-    sdsfree(d);
+    sds o = sdsReset(d, "a", 1);
+    assert(sdslen(o) == 1);
+    assert(strncmp(o, "a", 1) == 0);
+    // assert(d == o);
+    sdsfree(o);
     sdsfree(result);
     return 1;
 }

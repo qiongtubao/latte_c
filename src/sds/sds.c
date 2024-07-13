@@ -1049,3 +1049,17 @@ sds sdscatfmt(sds s, char const *fmt, ...) {
     s[i] = '\0';
     return s;
 }
+
+sds sdsReset(sds s, char* data, int len) {
+    sdsclear(s);
+    return sdscatlen(s, data, len);
+}
+
+/* Modify an sds string in-place to make it empty (zero length).
+ * However all the existing buffer is not discarded but set as free space
+ * so that next append operations will not require allocations up to the
+ * number of bytes previously available. */
+void sdsclear(sds s) {
+    sdssetlen(s, 0);
+    s[0] = '\0';
+}
