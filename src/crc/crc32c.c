@@ -390,3 +390,8 @@ static const uint32_t kMaskDelta = 0xa282ead8ul;
 uint32_t crc32c_mask(uint32_t crc) {
     return ((crc >> 15) | (crc << 17)) + kMaskDelta;
 }
+
+uint32_t crc32c_unmask(uint32_t masked_crc) {
+  uint32_t rot = masked_crc - kMaskDelta;
+  return ((rot >> 17) | (rot << 15));
+}
