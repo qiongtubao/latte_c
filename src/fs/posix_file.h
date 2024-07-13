@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "utils/error.h"
+#include "sds/sds_plugins.h"
 #define kWritableFileBufferSize  65536
 
 
@@ -23,4 +24,15 @@ Error* posixWriteableFileAppend(PosixWritableFile* write, char* data, int size);
 Error* posixWritableFileFlush(PosixWritableFile* writer);
 Error* posixWritableFileSync(PosixWritableFile* file);
 Error* posixWritableFileClose(PosixWritableFile* file);
+
+
+//============ PosixSequentialFile ============ 
+typedef struct PosixSequentialFile {
+    sds filename;
+    int fd;
+} PosixSequentialFile;
+Error* posixSequentialFileCreate(sds filename, PosixSequentialFile** fd);
+Error* posixReadSequentialFile(PosixSequentialFile* file,size_t n, Slice* result);
+Error* posixSkipSequentialFile(PosixSequentialFile* file,uint64_t n);
+void posixSequentialFileRelease(PosixSequentialFile* file);
 #endif

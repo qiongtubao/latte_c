@@ -137,3 +137,35 @@ Error* writableFileAppendSlice(WritableFile* file, Slice* data) {
 void writableFileRelease(WritableFile* file) {
     return posixWritableFileRelease(file);
 }
+
+
+// ================ SequentialFile =============
+
+//创建顺序读文件
+Error* SequentialFileCreate(sds filename, SequentialFile** file) {
+    return posixSequentialFileCreate(filename, file);
+}
+
+//sequentialFile
+// 从文件中读取最多“n”个字节。“scratch[0..n-1]”可能
+// 由此例程写入。将“*result”设置为已
+// 读取的数据（包括成功读取少于“n”个字节的情况）。
+// 可以将“*result”设置为指向“scratch[0..n-1]”中的数据，因此
+// 使用“*result”时，“scratch[0..n-1]”必须处于活动状态。
+// 如果遇到错误，则返回非 OK 状态。
+//
+// 需要：外部同步(不是线程安全的访问方式)
+Error* readSequentialFile(SequentialFile* file,size_t n, Slice* result) {
+    return posixReadSequentialFile(file, n, result);
+}
+
+// 从文件中跳过“n”个字节。这保证不会比读取相同数据慢，但可能会更快。
+// 如果到达文件末尾，跳过将在文件末尾停止，并且 Skip 将返回 OK。
+// 需要：外部同步(不是线程安全的访问方式)
+Error* skipSequentialFile(SequentialFile* file,uint64_t n) {
+    return posixSkipSequentialFile(file, n);
+}
+
+void SequentialFileRelease(SequentialFile* file) {
+    posixSequentialFileRelease(file);
+}

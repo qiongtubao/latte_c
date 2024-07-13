@@ -207,3 +207,47 @@ void posixWritableFileRelease(PosixWritableFile* file) {
   sdsfree(file->filename);
   zfree(file);
 }
+
+//============ posixSequentialFile ============ 
+Error* posixSequentialFileCreate(sds filename, PosixSequentialFile** file) {
+    int fd = open(filename, O_RDONLY | kOpenBaseFlags);
+    if (fd < 0) {
+      *file = NULL;
+      return errnoIoCreate(filename);
+    }
+    PosixSequentialFile* seq = zmalloc(sizeof(PosixSequentialFile));
+    seq->filename = filename;
+    seq->fd =fd;
+    *file = seq;
+    return &Ok;
+}
+
+Error* posixReadSequentialFile(PosixSequentialFile* file,size_t n, Slice* slice) {
+  Error* error = &Ok;
+  while (true) {
+    //read适合顺序读
+    ssize_t read_size = read(file->fd, slice->p, n);
+    if (read_size < 0) {
+      if (errno == EINTR) {
+        continue; //Retry
+      }
+      error = errnoIoCreate(file->filename);
+      break;
+    }
+    slice->len = read_size;
+    break;
+  }
+  return error;
+}
+
+Error* posixSkipSequentialFile(PosixSequentialFile* file,uint64_t n) {
+  if (lseek(file->fd, n, SEEK_CUR) == (off_t)(-1)) {
+    return errnoIoCreate(file->filename);
+  }
+  return &Ok;
+}
+
+void posixSequentialFileRelease(PosixSequentialFile* file) {
+  close(file->fd);
+  zfree(file);
+}

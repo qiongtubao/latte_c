@@ -69,3 +69,63 @@ Error* envRenameFile(Env* env, sds from, sds to) {
 void envWritableFileRelease(Env* env, WritableFile* file) {
     return posixWritableFileRelease(file);
 }
+
+
+//
+Error* envDoWriteStringToFile(Env* env, Slice* data,
+                                  sds fname, bool should_sync) {
+  WritableFile* file;
+  Error* error = envNewWritableFile(env, fname, &file);
+  if (!isOk(error)) {
+    return error;
+  }
+  error = writableFileAppendSlice(file, data);
+  if (isOk(error) && should_sync) {
+    error = writableFileSync(file);
+  }
+  if (isOk(error)) {
+    error = writableFileClose(file);
+  }
+  writableFileRelease(file);  // Will auto-close if we did not close above
+  if (!isOk(error)) {
+    envRemoveFile(env, fname);
+  }
+  return error;
+}
+
+Error* envWriteStringToFileSync(Env* env, Slice* data,
+                             sds fname) {
+  return envDoWriteStringToFile(env, data, fname, true);
+}
+
+Error* envReadFileToSds(Env* env, sds fname, sds* data) {
+
+    SequentialFile* file;
+    Error* error = posixSequentialFileCreate(fname, &file);
+    if (!isOk(error)) {
+        return error;
+    }
+    static const int kBufferSize = 8192;
+    sds result = sdsnewlen(NULL, kBufferSize);
+    Slice buffer = {
+        .p = sdsnewlen(NULL, kBufferSize),
+        .len = 0
+    };
+    while (true) {
+        Slice fragment;
+        error = readSequentialFile(file, kBufferSize, &buffer);
+        if (!isOk(error)) {
+            break;
+        }
+        result = sdscatlen(result, buffer.p, buffer.len);
+        if (buffer.len == 0) {
+            break;
+        }
+        buffer.len = 0; 
+    }
+    sdsfree(buffer.p);
+    SequentialFileRelease(file);
+    return error;
+
+
+}

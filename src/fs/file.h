@@ -19,6 +19,10 @@ typedef struct FileLock {
 typedef struct WritableFile {
 
 } WritableFile;
+
+typedef struct SequentialFile {
+
+} SequentialFile;
 FileLock* fileLockCreate(int fd, char* filename);
 void fileLockRelease(FileLock* lock);
 int removeFile(char* file);
@@ -26,7 +30,8 @@ int closeFile(int fd);
 bool fileExists(sds filename);
 int renameFile(sds from, sds to);
 
-Error* newWritableFile(sds filename,
+//   ================== WritableFile ==================
+Error* writableFileCreate(sds filename,
                          WritableFile** result);
 void writableFileRelease(WritableFile* file);
 Error* writableFileAppendSds(WritableFile* file, sds data);
@@ -35,4 +40,16 @@ Error* writableFileAppendSlice(WritableFile* file, Slice* data);
 Error* writableFileFlush(WritableFile* file);
 Error* writableFileSync(WritableFile* file);
 Error* writableFileClose(WritableFile* file);
+
+
+
+//   ================== SequentialFile ==================
+//创建顺序读文件
+Error* SequentialFileCreate(sds filename, SequentialFile** fd);
+//顺序读（读取文件）
+Error* readSequentialFile(SequentialFile* file,size_t n, Slice* slice);
+//顺序读（跳过字节）
+Error* skipSequentialFile(SequentialFile* file,uint64_t n);
+void SequentialFileRelease(SequentialFile* file);
+// ============== ==============
 #endif
