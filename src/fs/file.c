@@ -142,7 +142,7 @@ void writableFileRelease(WritableFile* file) {
 // ================ SequentialFile =============
 
 //创建顺序读文件
-Error* SequentialFileCreate(sds filename, SequentialFile** file) {
+Error* sequentialFileCreate(sds filename, SequentialFile** file) {
     return posixSequentialFileCreate(filename, file);
 }
 
@@ -166,6 +166,20 @@ Error* sequentialFileSkip(SequentialFile* file,uint64_t n) {
     return posixSequentialFileSkip(file, n);
 }
 
-void SequentialFileRelease(SequentialFile* file) {
+void sequentialFileRelease(SequentialFile* file) {
     posixSequentialFileRelease(file);
+}
+
+Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* data) {
+    Slice slice = {
+        .p = sdsemptylen(n),
+        .len = 0
+    };
+    Error* error = posixSequentialFileRead(file, n, &slice);
+    if (!isOk(error)) {
+        return error;
+    }
+    *data = slice.p;
+    sdssetlen(slice.p, slice.len);
+    return error;
 }

@@ -104,7 +104,7 @@ Error* envWriteSdsToFileSync(Env* env,
 
 
 Error* envSequentialFileCreate(Env* env, sds filename, SequentialFile** file) {
-    return posixSequentialFileCreate(filename, &file);
+    return posixSequentialFileCreate(filename, file);
 }
 Error* envReadFileToSds(Env* env, sds fname, sds* data) {
 
@@ -134,7 +134,7 @@ Error* envReadFileToSds(Env* env, sds fname, sds* data) {
         buffer.len = 0; 
     }
     sdsfree(buffer.p);
-    SequentialFileRelease(file);
+    sequentialFileRelease(file);
     return error;
 
 

@@ -226,7 +226,7 @@ Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, Slice* slice)
   Error* error = &Ok;
   while (true) {
     //read适合顺序读
-    ssize_t read_size = read(file->fd, slice->p, n);
+    ssize_t read_size = read(file->fd, slice->p + slice->len, n);
     if (read_size < 0) {
       if (errno == EINTR) {
         continue; //Retry
@@ -234,7 +234,7 @@ Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, Slice* slice)
       error = errnoIoCreate(file->filename);
       break;
     }
-    slice->len = read_size;
+    slice->len += read_size;
     break;
   }
   return error;

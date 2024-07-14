@@ -113,9 +113,35 @@ int test_env_write_read() {
     assert(isOk(error));
     error = envReadFileToSds(env, file, &read);
     assert(isOk(error));
-    printf("\n%s\n", read);
     assert(strncmp(read, "test", 4) == 0);
     envRelease(env);
+
+    
+    SequentialFile* sf;
+    error = sequentialFileCreate(file, &sf);
+    
+    assert(isOk(error));
+    Slice slice = {
+        .p = sdsemptylen(100),
+        .len = 0
+    };
+    sds result;
+    error = sequentialFileReadSds(sf, 100, &result);
+    sequentialFileRelease(sf);
+    assert(isOk(error));
+    assert(sdslen(result) == 4);
+    assert(strncmp("test", result, 4) == 0);
+    sdsfree(result);
+    
+    error = envSequentialFileCreate(env, file, &sf);
+    assert(isOk(error));
+    error = sequentialFileReadSds(sf, 100, &result);
+    sequentialFileRelease(sf);
+    assert(isOk(error));
+    assert(sdslen(result) == 4);
+    assert(strncmp("test", result, 4) == 0);
+    sdsfree(result);
+
     recursive_rmdir("test_env_dir");
     return 1;
 }
