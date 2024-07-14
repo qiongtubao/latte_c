@@ -303,6 +303,23 @@ int test_slice() {
     assert(SliceStartsWith(&a, &c) == 0);
     SliceClear(&c);
     assert(SliceIsEmpty(&c));
+
+    Slice d = {
+        .p = "hello",
+        .len = 5
+    };
+    sds result = sdsAppendLengthPrefixedSlice(sdsempty(), &d);
+    assert(sdslen(result) == 6);
+    Slice input = {
+        .p = result,
+        .len = sdslen(result),
+    };
+    Slice output = {.p = NULL, .len = 0};
+ 
+    assert(true == getLengthPrefixedSlice(&input, &output));
+    assert(output.len == 5);
+    assert(input.len == 0);
+    assert(strncmp(output.p , "hello", 5)== 0);
     return 1;
 }
 

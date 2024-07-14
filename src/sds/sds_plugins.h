@@ -30,7 +30,7 @@ sds sdsAppendVarint64(sds result, uint64_t v);
 
 //数据结构 {可变32位字符串长度}{字符串内容}
 sds sdsAppendLengthPrefixedSlice(sds, Slice* slice);
-
+bool getLengthPrefixedSlice(Slice* input , Slice* slice);
 //
 void SliceRemovePrefix(Slice* slice, size_t len);
 sds SliceToSds(Slice* slice);
@@ -42,5 +42,6 @@ void SliceClear(Slice* slice);
 void SliceInitSds(Slice* slice, sds result);
 int SliceCompare(Slice* a, Slice* b);
 bool SliceStartsWith(Slice* slice, Slice* x);
+
 
 #endif

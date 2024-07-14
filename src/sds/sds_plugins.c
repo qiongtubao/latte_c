@@ -191,6 +191,19 @@ sds sdsAppendLengthPrefixedSlice(sds dst, Slice* slice) {
     return sdscatlen(dst, slice->p, slice->len);
 }
 
+//这里不复制数据
+bool getLengthPrefixedSlice(Slice* input , Slice* result) {
+  uint32_t len;
+  if (getVarint32(input, &len) && input->len >= len) {
+    result->p = input->p;
+    result->len = len;
+    SliceRemovePrefix(input, len);
+    return true;
+  } else {
+    return false;
+  }
+}
+
 //
 SliceRemovePrefix(Slice* slice, size_t len) {
   slice->p = slice->p + len;
