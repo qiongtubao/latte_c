@@ -8,6 +8,14 @@
 #include <dict_plugins/dict_plugins.h>
 #include <stdbool.h>
 typedef dict set;
+
+#define setIterator dictIterator
+#define setGetIterator dictGetIterator
+#define setNext dictNext
+#define setReleaseIterator dictReleaseIterator
+#define setNode dictEntry 
+#define setNext dictNext 
+#define setNodeGetKey dictGetEntryKey 
 extern dictType sdsSetDictType;
 
 set* setCreate(dictType* dt);
