@@ -93,30 +93,30 @@
 //     sdsfree(key);
 //     return 1;
 // }
-int test_avlset() {
-    avlSet* set = avlSetCreate(&avlSetSdsType);
+int test_avlset_api() {
+    avlSet* s = avlSetCreate(&avlSetSdsType);
     sds key = sdsnew("key");
     sds key1 = sdsnew("key1");
     sds key2 = sdsnew("key2");
-    assert(avlSetContains(set, key) == 0);
-    assert(avlSetSize(set) == 0);
-    assert(avlSetAdd(set, key) == 1);
-    assert(avlSetSize(set) == 1);
-    assert(avlSetAdd(set, key) == 0);
-    assert(avlSetSize(set) == 1);
-    assert(avlSetContains(set, key) == 1);
-    assert(avlSetContains(set, key) == 1);
-    assert(avlSetRemove(set, key) == 1);
-    assert(avlSetContains(set, key) == 0);
-    assert(avlSetRemove(set, key) == 0);
-    assert(avlSetSize(set) == 0);
+    assert(avlSetContains(s, key) == 0);
+    assert(avlSetSize(s) == 0);
+    assert(avlSetAdd(s, key) == 1);
+    assert(avlSetSize(s) == 1);
+    assert(avlSetAdd(s, key) == 0);
+    assert(avlSetSize(s) == 1);
+    assert(avlSetContains(s, key) == 1);
+    assert(avlSetContains(s, key) == 1);
+    assert(avlSetRemove(s, key) == 1);
+    assert(avlSetContains(s, key) == 0);
+    assert(avlSetRemove(s, key) == 0);
+    assert(avlSetSize(s) == 0);
 
-    assert(avlSetAdd(set, key) == 1);
-    assert(avlSetAdd(set, key1) == 1);
-    assert(avlSetAdd(set, key2) == 1);
+    assert(avlSetAdd(s, key) == 1);
+    assert(avlSetAdd(s, key1) == 1);
+    assert(avlSetAdd(s, key2) == 1);
 
     sds keys[3] = {key, key1, key2};
-    avlSetIterator* iter = avlSetGetAvlSetIterator(set);
+    avlSetIterator* iter = avlSetGetAvlSetIterator(s);
     avlNode* node = NULL;
     int i = 0;
     while (avlSetIteratorHasNext(iter)) {
@@ -128,7 +128,7 @@ int test_avlset() {
     assert(i == 3);
     avlSetIteratorRelease(iter);
 
-    Iterator* iterator = avlSetGetIterator(set);
+    Iterator* iterator = avlSetGetIterator(s);
     i = 0;
     while (iteratorHasNext(iterator)) {
         node = iteratorNext(iterator);
@@ -137,6 +137,53 @@ int test_avlset() {
     }
     assert(i == 3);
     iteratorRelease(iterator);
+    sdsfree(key);
+    sdsfree(key1);
+    sdsfree(key2);
+    return 1;
+}
+
+int test_avlset_set_api() {
+    sds key = sdsnew("key");
+    sds key1 = sdsnew("key1");
+    sds key2 = sdsnew("key2");
+
+    set* s1 = setCreateAvl(&avlSetSdsType);
+    assert(setContains(s1, key) == 0);
+    assert(setSize(s1) == 0);
+    assert(setAdd(s1, key) == 1);
+    assert(setContains(s1, key) == 1);
+    assert(setAdd(s1, key) == 0);
+    assert(setSize(s1) == 1);
+    assert(setRemove(s1, key) == 1);
+    assert(setRemove(s1, key) == 0);
+    assert(setSize(s1) == 0);
+
+    assert(setAdd(s1, key) == 1);
+    assert(setAdd(s1, key1) == 1);
+    assert(setAdd(s1, key2) == 1);
+    assert(setSize(s1) == 3);
+
+    Iterator* iterator = setGetIterator(s1);
+    int i = 0;
+    sds keys[3] = {key, key1, key2};
+    while (iteratorHasNext(iterator)) {
+        avlNode* node = iteratorNext(iterator);
+        assert(sdscmp(node->key, keys[i]) == 0);
+        i++;
+    }
+    assert(i == 3);
+    iteratorRelease(iterator);
+
+    sdsfree(key);
+    sdsfree(key1);
+    sdsfree(key2);
+    return 1;
+}
+int test_avlset() {
+    assert(test_avlset_api() == 1);
+    assert(test_avlset_set_api() == 1);
+    
     return 1;
 }
 int test_api(void) {

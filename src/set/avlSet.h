@@ -1,14 +1,13 @@
-#ifndef __LATTE_ORDERLY_SET_H
-#define __LATTE_ORDERLY_SET_H
+#ifndef __LATTE_AVL_SET_H
+#define __LATTE_AVL_SET_H
 #include "stdlib.h"
 #include "set.h"
 #include "tree/avlTree.h"
 
 typedef struct avlTree avlSet;
 #define  avlSetCreate avlTreeCreate
-inline  int avlSetAdd(avlSet* set, void* key) {
-    return avlTreePut(set, key, NULL);
-}
+
+int avlSetAdd(avlSet* set, void* key);
 #define  avlSetRemove avlTreeRemove
 #define avlSetRelease avlTreeRelease
 #define  avlSetSize avlTreeSize
@@ -18,12 +17,10 @@ typedef struct avlTreeIterator avlSetIterator;
 #define avlSetIteratorHasNext avlTreeIteratorHasNext
 #define avlSetIteratorNext avlTreeIteratorNext
 #define avlSetIteratorRelease avlTreeIteratorRelease
-inline int avlSetContains(avlSet* set, void* element) {
-    avlNode* node = avlTreeGet(set, element);
-    return node == NULL? 0 : 1;
-}
+int avlSetContains(avlSet* set, void* element);
 
 extern avlTreeType avlSetSdsType;
+extern setType avlSetApi;
 set* setCreateAvl(avlTreeType* type);
 
 

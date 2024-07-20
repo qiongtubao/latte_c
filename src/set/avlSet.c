@@ -2,7 +2,14 @@
 #include "sds/sds.h"
 
 
+int avlSetAdd(avlSet* set, void* key) {
+    return avlTreePut(set, key, NULL);
+}
 
+int avlSetContains(avlSet* set, void* element) {
+    avlNode* node = avlTreeGet(set, element);
+    return node == NULL? 0 : 1;
+}
 
 int avlSetTypeAdd(set *set, void* key) {
     return avlSetAdd(set->data, key);
@@ -25,16 +32,21 @@ void avlSetTypeRelease(set* set) {
     zfree(set);
 }
 
+Iterator* avlSetTypeGetIterator(set* set) {
+    return avlSetGetIterator(set->data);
+}
+
 struct setType avlSetApi = {
     .add = avlSetTypeAdd,
     .contains = avlSetTypeContains,
     .remove = avlSetTypeRemove,
     .size = avlSetTypeSize,
     .release = avlSetTypeRelease,
+    .getIterator = avlSetTypeGetIterator
 };
 set* setCreateAvl(avlTreeType* type) {
     set* s = zmalloc(sizeof(set));
-    s->data = avlSetCreate(&type);
+    s->data = avlSetCreate(type);
     s->type = &avlSetApi;
     return s;
 }

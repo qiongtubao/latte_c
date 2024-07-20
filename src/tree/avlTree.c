@@ -12,7 +12,7 @@ void avlNodeRecursively(avlNode** node, avlTreeType* type) {
     if (*node != NULL) {
         avlNodeRecursively(&(*node)->left, type);
         avlNodeRecursively(&(*node)->right, type);
-        type->releaseNode(node);
+        type->releaseNode(*node);
         *node = NULL;
     }
 }

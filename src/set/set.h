@@ -11,7 +11,7 @@
 #include "zmalloc/zmalloc.h"
 
 typedef struct set set;
-typedef struct setIterator setIterator;
+
 // typedef struct setNode setNode;
 typedef struct setType {
     // char* (*getName)();
@@ -20,7 +20,7 @@ typedef struct setType {
     int (*contains)(set* set, void* element);
     int (*size)(set* set);
     void (*release)(set* set);
-    setIterator* (*getIterator)(set* set);
+    Iterator* (*getIterator)(set* set);
 } setType;
 //主要是用于不同set类型 如果无法明确用途就使用动态方式，
 //如果确定的话最好就用指定类型
@@ -68,5 +68,9 @@ inline size_t setSize(set* s) {
 
 inline void setRelease(set* s) {
     s->type->release(s);
+}
+
+inline Iterator* setGetIterator(set* s) {
+    return s->type->getIterator(s);
 }
 #endif
