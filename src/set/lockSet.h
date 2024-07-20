@@ -13,13 +13,13 @@ typedef struct lockSet {
     latte_mutex mutex;
 } lockSet;
 
-// lockSet* lockSetCreate(set* dt);
-// int lockSetInit(lockSet* lockset, set* type);
-// void lockSetDestroy(lockSet* lockset);
-// void lockSetRelease(lockSet* lockset);
+lockSet* lockSetCreate(set* dt);
+int lockSetInit(lockSet* lockset, set* type);
+void lockSetDestroy(lockSet* lockset);
+void lockSetRelease(lockSet* lockset);
 
-// bool lockSetAdd(lockSet* set, void* element);
-// bool lockSetRemove(lockSet* set, void* element);
-// bool lockSetContains(lockSet* set, void* element);
-// size_t lockSetSize(lockSet* set);
+bool lockSetAdd(lockSet* set, void* element);
+bool lockSetRemove(lockSet* set, void* element);
+bool lockSetContains(lockSet* set, void* element);
+size_t lockSetSize(lockSet* set);
 #endif
