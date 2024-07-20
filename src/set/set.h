@@ -18,7 +18,7 @@ typedef struct setType {
     int (*add)(set* set, void* element);
     int (*remove)(set* set, void* element);
     int (*contains)(set* set, void* element);
-    int (*size)(set* set);
+    size_t (*size)(set* set);
     void (*release)(set* set);
     Iterator* (*getIterator)(set* set);
 } setType;

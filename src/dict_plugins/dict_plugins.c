@@ -1,6 +1,7 @@
 #include "dict/dict.h"
 #include "dict_plugins.h"
 #include "sds/sds.h"
+#include <string.h>
 /* -------------------------- hash functions -------------------------------- */
 
 static uint8_t dict_hash_function_seed[16];

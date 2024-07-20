@@ -262,7 +262,7 @@ void avlTreeIteratorRelease(avlTreeIterator* iterator) {
     zfree(iterator);
 }
 
-avlNode* avlTreeIteratorTypeNext(Iterator* iterator) {
+void* avlTreeIteratorTypeNext(Iterator* iterator) {
    return avlTreeIteratorNext(iterator->data);
 }
 
