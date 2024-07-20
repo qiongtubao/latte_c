@@ -164,8 +164,9 @@ int test_hash_api() {
     return 1;
 }
 
-sds getHashNodeKey(hashSetNode* node) {
-    return node->key;
+sds getHashNodeKey(void* node) {
+    hashSetNode* n = (hashSetNode*)node;
+    return n->key;
 }
 int test_hash_set_api() {
     set* s = setCreateHash(&sdsHashSetDictType);
@@ -227,13 +228,16 @@ int test_avlset_api() {
     avlSetRelease(s);
     return 1;
 }
-sds getAvlNode(avlNode* node) {
+sds getAvlNode(void* n) {
+    avlNode* node = (avlNode*)n;
     return node->key;
 }
+
 int test_avlset_set_api() {
     set* s1 = setCreateAvl(&avlSetSdsType);
     return test_set_base(s1, getAvlNode, 1);
 }
+
 int test_avlset() {
     assert(test_avlset_api() == 1);
     assert(test_avlset_set_api() == 1);
