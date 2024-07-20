@@ -67,7 +67,6 @@ int test_tree() {
     i = 0;
     while(iteratorHasNext(iterator)) {
         avlNode* node = (avlNode*)iteratorNext(iterator);
-        printf("\n%lld\n", node->key);
         assert(node->key == result[i]);
         i++;
     }
