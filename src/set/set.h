@@ -10,6 +10,8 @@
 #include "iterator/iterator.h"
 #include "zmalloc/zmalloc.h"
 
+
+
 typedef struct set set;
 
 // typedef struct setNode setNode;
@@ -73,4 +75,9 @@ inline void setRelease(set* s) {
 inline Iterator* setGetIterator(set* s) {
     return s->type->getIterator(s);
 }
+
+// in avlSet.h
+// set* setCreateAvl(avlTreeType* type); 
+// in hashSet.h
+//set* setCreateHash(hashSetType* type);
 #endif

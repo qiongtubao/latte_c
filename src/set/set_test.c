@@ -4,6 +4,7 @@
 #include "set.h"
 #include "lockSet.h"
 #include "avlSet.h"
+#include "hashSet.h"
 // 全局变量，需要被多个线程共享
 // int global_count = 0;
 // typedef struct pthread_task
@@ -78,21 +79,95 @@
 //     lockSetRelease(lockset); 
 //     return 1;
 // }
+typedef sds (* getKey)(void*);
+int test_set_base(set* s1, getKey getNodeKey, int order) {
+    sds key = sdsnew("key");
+    sds key1 = sdsnew("key1");
+    sds key2 = sdsnew("key2");
+
+    
+    assert(setContains(s1, key) == 0);
+    assert(setSize(s1) == 0);
+    assert(setAdd(s1, key) == 1);
+    assert(setContains(s1, key) == 1);
+    assert(setAdd(s1, key) == 0);
+    assert(setSize(s1) == 1);
+    assert(setRemove(s1, key) == 1);
+    assert(setRemove(s1, key) == 0);
+    assert(setSize(s1) == 0);
+
+    assert(setAdd(s1, key) == 1);
+    assert(setAdd(s1, key1) == 1);
+    assert(setAdd(s1, key2) == 1);
+    assert(setSize(s1) == 3);
+
+    Iterator* iterator = setGetIterator(s1);
+    int i = 0;
+    sds keys[3] = {key, key1, key2};
+    while (iteratorHasNext(iterator)) {
+        void* node = iteratorNext(iterator);
+        if (order) {
+            assert(sdscmp(getNodeKey(node), keys[i]) == 0);
+        } else {
+            assert(sdscmp(getNodeKey(node), keys[0]) == 0 ||
+                sdscmp(getNodeKey(node), keys[1]) == 0 ||
+                sdscmp(getNodeKey(node), keys[2]) == 0 );
+        }
+        i++;
+    }
+    assert(i == 3);
+    iteratorRelease(iterator);
+
+    sdsfree(key);
+    sdsfree(key1);
+    sdsfree(key2);
+    setRelease(s1);
+    return 1;
+}
+
+int test_hash_api() {
+    hashSet* set = hashSetCreate(&sdsHashSetDictType);
+    sds key = sdsnew("1");
+    sds key1 = sdsnew("key1");
+    sds key2 = sdsnew("key2");
+    assert(!hashSetContains(set, key));
+    assert(hashSetAdd(set, key));
+    assert(!hashSetAdd(set, key));
+    assert(hashSetContains(set, key));
+    
+    assert(hashSetAdd(set, key1));
+    assert(hashSetAdd(set, key2));
+
+    hashSetIterator* iterator =  hashSetGetIterator(set);
+    hashSetNode* node;
+    int i = 0;
+    while ((node = hashSetNext(iterator)) != NULL) {
+        i++;
+    }
+    assert(i == 3);
+    hashSetReleaseIterator(iterator);
+    assert(hashSetRemove(set, key));
+    assert(!hashSetContains(set, key));
+    hashSetRelease(set);
+    sdsfree(key);
 
 
-// int test_set() {
-//     set* set = setCreate(&sdsSetDictType);
-//     sds key = sdsnew("1");
-//     assert(!setContains(set, key));
-//     assert(setAdd(set, key));
-//     assert(!setAdd(set, key));
-//     assert(setContains(set, key));
-//     assert(setRemove(set, key));
-//     assert(!setContains(set, key));
-//     setRelease(set);
-//     sdsfree(key);
-//     return 1;
-// }
+    return 1;
+}
+
+sds getHashNodeKey(hashSetNode* node) {
+    return node->key;
+}
+int test_hash_set_api() {
+    set* s = setCreateHash(&sdsHashSetDictType);
+    return test_set_base(s, getHashNodeKey, 0);
+}
+
+int test_hash() {
+    // assert(test_hash_api() == 1);
+    assert(test_hash_set_api() == 1);
+    return 1;
+}
 int test_avlset_api() {
     avlSet* s = avlSetCreate(&avlSetSdsType);
     sds key = sdsnew("key");
@@ -143,44 +218,12 @@ int test_avlset_api() {
     avlSetRelease(s);
     return 1;
 }
-
+sds getAvlNode(avlNode* node) {
+    return node->key;
+}
 int test_avlset_set_api() {
-    sds key = sdsnew("key");
-    sds key1 = sdsnew("key1");
-    sds key2 = sdsnew("key2");
-
     set* s1 = setCreateAvl(&avlSetSdsType);
-    assert(setContains(s1, key) == 0);
-    assert(setSize(s1) == 0);
-    assert(setAdd(s1, key) == 1);
-    assert(setContains(s1, key) == 1);
-    assert(setAdd(s1, key) == 0);
-    assert(setSize(s1) == 1);
-    assert(setRemove(s1, key) == 1);
-    assert(setRemove(s1, key) == 0);
-    assert(setSize(s1) == 0);
-
-    assert(setAdd(s1, key) == 1);
-    assert(setAdd(s1, key1) == 1);
-    assert(setAdd(s1, key2) == 1);
-    assert(setSize(s1) == 3);
-
-    Iterator* iterator = setGetIterator(s1);
-    int i = 0;
-    sds keys[3] = {key, key1, key2};
-    while (iteratorHasNext(iterator)) {
-        avlNode* node = iteratorNext(iterator);
-        assert(sdscmp(node->key, keys[i]) == 0);
-        i++;
-    }
-    assert(i == 3);
-    iteratorRelease(iterator);
-
-    sdsfree(key);
-    sdsfree(key1);
-    sdsfree(key2);
-    setRelease(s1);
-    return 1;
+    return test_set_base(s1, getAvlNode, 1);
 }
 int test_avlset() {
     assert(test_avlset_api() == 1);
@@ -193,8 +236,8 @@ int test_api(void) {
         #ifdef LATTE_TEST
             // ..... private
         #endif
-        // test_cond("about set function", 
-        //     test_set() == 1);
+        test_cond("about set function", 
+            test_hash() == 1);
         // test_cond("about lockSet function", 
         //     test_lockSet() == 1);
         test_cond("about avlSet function",

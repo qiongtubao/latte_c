@@ -4,18 +4,19 @@
 
 #include <dict/dict.h>
 #include <dict_plugins/dict_plugins.h>
-typedef dict hashSet;
+#include "set.h"
 
+typedef struct dict hashSet;
+typedef struct dictType hashSetType; 
 #define hashSetIterator dictIterator
 #define hashSetGetIterator dictGetIterator
 #define hashSetNext dictNext
 #define hashSetReleaseIterator dictReleaseIterator
 #define hashSetNode dictEntry 
-#define hashSetNext dictNext 
 #define hashSetNodeGetKey dictGetEntryKey 
-extern dictType sdshashSetDictType;
+extern hashSetType sdsHashSetDictType;
 
-hashSet* hashSetCreate(dictType* dt);
+hashSet* hashSetCreate(hashSetType* dt);
 void hashSetRelease(hashSet* hashSet);
 
 void hashSetInit(hashSet* hashSet, dictType* dt);
@@ -28,4 +29,7 @@ int hashSetContains(hashSet* hashSet, void* element);
 
 size_t hashSetSize(hashSet* hashSet);
 
+
+//set api
+set* setCreateHash(hashSetType* type);
 #endif
