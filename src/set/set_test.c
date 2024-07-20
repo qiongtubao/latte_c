@@ -140,6 +140,7 @@ int test_avlset_api() {
     sdsfree(key);
     sdsfree(key1);
     sdsfree(key2);
+    avlSetRelease(s);
     return 1;
 }
 
@@ -178,6 +179,7 @@ int test_avlset_set_api() {
     sdsfree(key);
     sdsfree(key1);
     sdsfree(key2);
+    setRelease(s1);
     return 1;
 }
 int test_avlset() {
