@@ -1,5 +1,5 @@
 WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?= lockSet.o avlSet.o hashSet.o
+BUILD_OBJ?= lockSet.o avlSet.o hashSet.o set.o
 LIB_OBJ?=
 TEST_MAIN?=set_test
 LIB_MODULES?=zmalloc mutex sds dict dict_plugins tree iterator

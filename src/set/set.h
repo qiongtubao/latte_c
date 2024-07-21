@@ -45,36 +45,19 @@ typedef struct setKeyType {
 
 } setKeyType;
 
-inline set* setCreate(setType* type, void* data) {
-    set* s = zmalloc(sizeof(set));
-    s->data = data;
-    s->type = type;
-    return s;
-}
+set* setCreate(setType* type, void* data);
 // -1 失败  0 已经存在  1 新添加
-inline int setAdd(set* s, void* key) {
-    return s->type->add(s, key);
-}
+int setAdd(set* s, void* key);
 //0 不存在 1 存在
-inline int setContains(set* s, void* key) {
-    return s->type->contains(s, key);
-}
+int setContains(set* s, void* key);
 
-inline int setRemove(set* s, void* key) {
-    return s->type->remove(s, key);
-}
+int setRemove(set* s, void* key);
 
-inline size_t setSize(set* s) {
-    return s->type->size(s);
-}
+size_t setSize(set* s);
 
-inline void setRelease(set* s) {
-    s->type->release(s);
-}
+void setRelease(set* s);
 
-inline Iterator* setGetIterator(set* s) {
-    return s->type->getIterator(s);
-}
+Iterator* setGetIterator(set* s);
 
 // in avlSet.h
 // set* setCreateAvl(avlTreeType* type); 

@@ -6,7 +6,7 @@ include $(WORKSPACE)/src/tree/lib.mk
 include $(WORKSPACE)/src/iterator/lib.mk
 FINAL_CC_CFLAGS+= -I../set
 
-LIB_OBJ+=  ../set/lockSet.o ../set/avlSet.o ../set/hashSet.o
+LIB_OBJ+=  ../set/lockSet.o ../set/avlSet.o ../set/hashSet.o ../set/set.o:
 
 USED_SET=yes
 
@@ -18,4 +18,7 @@ USED_SET=yes
 
 ../set/hashSet.o:
 	cd ../set && make hashSet.o
+
+../set/set.o:
+	cd ../set && make set.o
 endif
