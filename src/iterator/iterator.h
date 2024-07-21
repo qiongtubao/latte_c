@@ -15,17 +15,11 @@ typedef struct Iterator {
     void* data;
 } Iterator;
 
-inline  bool iteratorHasNext(Iterator* iterator) {
-    return iterator->type->hasNext(iterator);
-}
+bool iteratorHasNext(Iterator* iterator) ;
 
-inline void* iteratorNext(Iterator* iterator) {
-    return iterator->type->next(iterator);
-}
+ void* iteratorNext(Iterator* iterator) ;
 
-inline void iteratorRelease(Iterator* iterator) {
-    return iterator->type->release(iterator);
-}
+ void iteratorRelease(Iterator* iterator);
 
 
 

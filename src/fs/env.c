@@ -4,10 +4,12 @@
 #include "set/lockSet.h"
 #include "posix_file.h"
 #include "flags.h"
+#include "set/hashSet.h"
 
 Env* envCreate() {
     Env* env = zmalloc(sizeof(Env));
-    lockSetInit(&env->locks_, &sdsSetDictType);
+    set* set = setCreateHash(&sdsHashSetDictType);
+    lockSetInit(&env->locks_, set);
     return env;
 }
 void envRelease(Env* env) {
