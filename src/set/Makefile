@@ -2,7 +2,7 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?= lockSet.o avlSet.o hashSet.o
 LIB_OBJ?=
 TEST_MAIN?=set_test
-LIB_MODULES?=zmalloc mutex sds dict dict_plugins tree
+LIB_MODULES?=zmalloc mutex sds dict dict_plugins tree iterator
 MODULE?=set
 BUILD_INCLUDE=set.h lockSet.h avlSet.h
 
@@ -17,7 +17,7 @@ include $(WORKSPACE)/src/dict/lib.mk
 include $(WORKSPACE)/src/dict_plugins/lib.mk
 include $(WORKSPACE)/src/mutex/lib.mk
 include $(WORKSPACE)/src/tree/lib.mk
-
+include $(WORKSPACE)/src/iterator/lib.mk
 
 
 

@@ -1,12 +1,7 @@
 #include "avlTree.h"
 #include "zmalloc/zmalloc.h"
 
-avlTree* avlTreeCreate(avlTreeType* type) {
-    avlTree* tree = zmalloc(sizeof(avlTree));
-    tree->type = type;
-    tree->root = NULL;
-    return tree;
-}
+
 
 void avlNodeRecursively(avlNode** node, avlTreeType* type) {
     if (*node != NULL) {
@@ -285,4 +280,11 @@ Iterator* avlTreeGetIterator(avlTree* tree) {
     iterator->type = &avlTreeIteratorType;
     iterator->data = avlTreeGetAvlTreeIterator(tree);
     return iterator;
+}
+
+avlTree* avlTreeCreate(avlTreeType* type) {
+    avlTree* tree = zmalloc(sizeof(avlTree));
+    tree->type = type;
+    tree->root = NULL;
+    return tree;
 }
