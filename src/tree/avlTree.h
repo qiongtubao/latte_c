@@ -4,16 +4,17 @@
 #include "stdlib.h"
 #include "iterator/iterator.h"
 #include "stdbool.h"
+#include "tree.h"
 /**
  * avl 
  */
 typedef struct avlNode avlNode;
-typedef struct avlTreeType {
-    int (*operator)(void* f1, void* f2);
-    void (*releaseNode)(avlNode* node);
-    avlNode* (*createNode)(void* key, void* value);
-    void (*nodeSetVal)(avlNode* node, void* value);
-} avlTreeType;
+// typedef struct avlTreeType {
+//     int (*operator)(void* f1, void* f2);
+//     void (*releaseNode)(avlNode* node);
+//     avlNode* (*createNode)(void* key, void* value);
+//     void (*nodeSetVal)(avlNode* node, void* value);
+// } avlTreeType;
 
 typedef struct avlNode {
     void* key;
@@ -31,11 +32,11 @@ typedef struct avlTreeIterator {
 } avlTreeIterator;
 
 typedef struct avlTree {
-    avlTreeType* type;
+    treeType* type;
     avlNode* root;
 } avlTree;
 
-avlTree* avlTreeCreate(avlTreeType* type);
+avlTree* avlTreeCreate(treeType* type);
 void avlTreeRelease(avlTree* tree);
 
 int avlTreePut(avlTree* tree, void* key, void* value);

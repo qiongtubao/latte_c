@@ -3,7 +3,7 @@
 
 
 
-void avlNodeRecursively(avlNode** node, avlTreeType* type) {
+void avlNodeRecursively(avlNode** node, treeType* type) {
     if (*node != NULL) {
         avlNodeRecursively(&(*node)->left, type);
         avlNodeRecursively(&(*node)->right, type);
@@ -62,7 +62,7 @@ avlNode* rotateLeft(avlNode* x) {
     return y;
 }
 
-avlNode* avlNodeInsert(avlNode* node, avlTreeType* type, void* key, void* value, int* puted) {
+avlNode* avlNodeInsert(avlNode* node, treeType* type, void* key, void* value, int* puted) {
     if (node == NULL) {
         avlNode* node = type->createNode(key, value);
         node->left = node->right = NULL;
@@ -76,7 +76,7 @@ avlNode* avlNodeInsert(avlNode* node, avlTreeType* type, void* key, void* value,
     } else if (cmp > 0) {
         node->right = avlNodeInsert(node->right, type, key, value, puted);
     } else {
-        type->nodeSetVal(node, value);
+        type->setVal(node, value);
         *puted = 0;
     }
 
@@ -114,7 +114,7 @@ int avlTreePut(avlTree* tree, void* key, void* value) {
     return puted;
 }
 
-void* avlNodeSearch(avlNode* node, avlTreeType* type, void* key) {
+void* avlNodeSearch(avlNode* node, treeType* type, void* key) {
     if (node == NULL) {
         return NULL;
     }
@@ -142,7 +142,7 @@ avlNode* avlTreeGetMin(avlTree* tree) {
     return minValueNode(tree->root);
 }
 
-avlNode* deleteNode(avlNode* node, avlTreeType* type, void* key, int* deleted) {
+avlNode* deleteNode(avlNode* node, treeType* type, void* key, int* deleted) {
     if (node == NULL) return node;
 
     int result = type->operator(key, node->key);
@@ -282,7 +282,7 @@ Iterator* avlTreeGetIterator(avlTree* tree) {
     return iterator;
 }
 
-avlTree* avlTreeCreate(avlTreeType* type) {
+avlTree* avlTreeCreate(treeType* type) {
     avlTree* tree = zmalloc(sizeof(avlTree));
     tree->type = type;
     tree->root = NULL;

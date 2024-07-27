@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include "avlTree.h"
 #include "zmalloc/zmalloc.h"
+#include "tree.h"
+#include "rbTree.h"
 typedef struct avlIntNode {
     avlNode node;
     void* value;
@@ -33,14 +35,20 @@ void avlNodeRelease(avlNode* node_) {
     zfree(node->value);
     zfree(node);
 }
-avlTreeType treeType = {
+
+void* avlNodeGetVal(avlNode* node_) {
+    avlIntNode* node = node_;
+    return node->value;
+}
+treeType avtType = {
     .createNode = avlTreeCreateIntNode,
-    .nodeSetVal = avlNodeSetVal,
+    .setVal = avlNodeSetVal,
+    .getVal = avlNodeGetVal,
     .operator = avlKeyOperator,
     .releaseNode = avlNodeRelease
 };
 int test_tree() {
-    avlTree* tree = avlTreeCreate(&treeType);
+    avlTree* tree = avlTreeCreate(&avtType);
     assert(avlTreeGet(tree, 10L) == NULL);
     assert(avlTreePut(tree, 10L, NULL) == 1);
     assert(avlTreeGet(tree, 10L) != NULL);
@@ -78,6 +86,73 @@ int test_tree() {
     return 1;
 }
 
+typedef struct rbIntNode {
+    rbNode node;
+    void* value;
+} rbIntNode;
+rbIntNode* rbTreeCreateIntNode(void* key, void* value) {
+    rbIntNode* node = zmalloc(sizeof(rbIntNode));
+    node->node.key = key;
+    node->value = value;
+    return node;
+}
+
+void rbNodeSetVal(void* node_, void* value) {
+    rbIntNode* node = (rbIntNode*)node_;
+    if (node->value != NULL) zfree(node->value);
+    node->value = value;
+}
+
+void* rbNodeGetVal(void* node_) {
+    rbIntNode* node = (rbIntNode*)node_;
+    return node->value;
+}
+int rbKeyOperator(void* key, void* key1) {
+    long k = key;
+    long k2 = key1;
+    long r = k - k2;
+    if (r > 0) return 1;
+    if (r < 0) return -1;
+    return 0;
+}
+
+void rbNodeRelease(void* node_) {
+    rbIntNode* node = (rbIntNode*)node_;
+    zfree(node->value);
+    zfree(node);
+}
+
+typedef struct rbTreeIntNode {
+    rbNode node;
+    void* value;
+} rbTreeIntNode;
+rbTreeIntNode* rbTreeIntNodeCreate(void* key, void* value) {
+    rbTreeIntNode* node = zmalloc(sizeof(rbTreeIntNode));
+    node->node.key = key;
+    node->node.left = NULL;
+    node->node.right = NULL;
+    node->node.parent = NULL;
+    node->node.color = RED;
+    node->value = value;
+    return node;
+}
+treeType rbtType = {
+    .operator = rbKeyOperator,
+    .createNode = rbTreeIntNodeCreate,
+    .setVal = rbNodeSetVal,
+    .getVal = rbNodeGetVal,
+    .releaseNode = rbNodeRelease
+};
+
+int test_rb_tree() {
+    rbTree* tree = rbTreeCreate(&rbtType);
+    assert(rbTreeGetNode(tree, 10L) == NULL);
+    assert(rbTreePut(tree, 10L, NULL) == 1);
+    assert(rbTreeGetNode(tree, 10L) != NULL);
+
+    return 1;
+}
+
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -85,6 +160,8 @@ int test_api(void) {
         #endif
         test_cond("about tree function", 
             test_tree() == 1);
+        test_cond("about rbTree function",
+            test_rb_tree() == 1);
     } test_report()
     return 1;
 }
