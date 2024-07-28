@@ -139,7 +139,6 @@ rbNode* rbTreeInsert(rbTree* tree, void* key, void* value, int* action) {
         if (op > 0) {
             y->left = new_node;
         } else {
-            printf("right\n");
             y->right = new_node;
         }
     }
@@ -168,7 +167,7 @@ rbNode* rbTreeGetNode(rbTree* tree, void* key) {
     return NULL;
 }
 
-rbIterator* rbTreeGetIterator(rbTree* tree) {
+rbIterator* rbTreeGetRbIterator(rbTree* tree) {
     rbIterator* iterator = zmalloc(sizeof(rbIterator));
     iterator->current = NULL;
     iterator->tree = tree;
@@ -234,4 +233,145 @@ rbNode* rbIteratorNext(rbIterator* iter) {
 }
 void rbIteratorRelease(rbIterator* iter) {
     zfree(iter);
+}
+
+bool rbTreeIteratorHasNext(Iterator *iterator) {
+    rbIterator * rbIter = iterator->data;
+    return rbIteratorHasNext(rbIter);
+}
+
+void* rbTreeIteratorNext(Iterator *iterator) {
+    rbIterator * rbIter = iterator->data;
+    return rbIteratorNext(rbIter);
+}
+
+void rbTreeIteratorRelease(Iterator *iterator) {
+    rbIteratorRelease(iterator->data);
+    zfree(iterator);
+}
+
+IteratorType rbTreeIteratorType = {
+    .hasNext = rbTreeIteratorHasNext,
+    .next = rbTreeIteratorNext,
+    .release = rbTreeIteratorRelease
+};
+
+Iterator* rbTreeGetIterator(rbTree* tree) {
+    Iterator* iterator = zmalloc(sizeof(Iterator));
+    iterator->data = rbTreeGetRbIterator(tree);
+    iterator->type = &rbTreeIteratorType;
+    return iterator;
+}
+
+void rbTransplant(rbTree *tree, rbNode *u, rbNode *v) {
+    if (u->parent == NULL) {
+        tree->root = v;
+    } else if (u == u->parent->left) {
+        u->parent->left = v;
+    } else {
+        u->parent->right = v;
+    }
+    v->parent = u->parent;
+}
+
+rbNode *rbTreeMinimum(rbNode *node) {
+    while (node->left != NULL) {
+        node = node->left;
+    }
+    return node;
+}
+
+void rbDeleteFixup(rbTree *tree, rbNode *node) {
+    while (node != tree->root && node->color == BLACK) {
+        if (node == node->parent->left) {
+            rbNode *sibling = node->parent->right;
+            if (sibling->color == RED) {
+                sibling->color = BLACK;
+                node->parent->color = RED;
+                rbTreeLeftRotate(tree, node->parent);
+                sibling = node->parent->right;
+            }
+            if ((sibling->left == NULL || sibling->left->color == BLACK)
+                && (sibling->right == NULL || sibling->right->color == BLACK)) {
+                sibling->color = RED;
+                node = node->parent;
+            } else {
+                if (sibling->right == NULL || sibling->right->color == BLACK) {
+                    if (sibling->left != NULL) sibling->left->color = BLACK;
+                    sibling->color = RED;
+                    rbTreeRightRotate(tree, sibling);
+                    sibling = node->parent->right;
+                }
+                sibling->color = node->parent->color;
+                node->parent->color = BLACK;
+                if (sibling->right != NULL) sibling->right->color = BLACK;
+                rbTreeLeftRotate(tree, node->parent);
+                node = tree->root;
+            }
+        } else { // node is the right child
+            rbNode *sibling = node->parent->left;
+            if (sibling->color == RED) {
+                sibling->color = BLACK;
+                node->parent->color = RED;
+                rbTreeRightRotate(tree, node->parent);
+                sibling = node->parent->left;
+            }
+            if ((sibling->right == NULL || sibling->right->color == BLACK)
+                && (sibling->left == NULL || sibling->left->color == BLACK)) {
+                sibling->color = RED;
+                node = node->parent;
+            } else {
+                if (sibling->left == NULL || sibling->left->color == BLACK) {
+                    if (sibling->right != NULL) sibling->right->color = BLACK;
+                    sibling->color = RED;
+                    rbTreeLeftRotate(tree, sibling);
+                    sibling = node->parent->left;
+                }
+                sibling->color = node->parent->color;
+                node->parent->color = BLACK;
+                if (sibling->left != NULL) sibling->left->color = BLACK;
+                rbTreeRightRotate(tree, node->parent);
+                node = tree->root;
+            }
+        }
+    }
+    node->color = BLACK;
+}
+
+int rbTreeRemove(rbTree* tree, void* key) {
+    rbNode *z = rbTreeGetNode(tree, key);
+    if (z == NULL) return 0;
+
+    rbNode *y = z;
+    rbColor y_original_color = y->color;
+    rbNode *x;
+
+    if (z->left == NULL) {
+        x = z->right;
+        rbTransplant(tree, z, z->right);
+    } else if (z->right == NULL) {
+        x = z->left;
+        rbTransplant(tree, z, z->left);
+    } else {
+        y = rbTreeMinimum(z->right);
+        y_original_color = y->color;
+        x = y->right;
+        if (y->parent == z) {
+            x->parent = y;
+        } else {
+            rbTransplant(tree, y, y->right);
+            y->right = z->right;
+            y->right->parent = y;
+        }
+        rbTransplant(tree, z, y);
+        y->left = z->left;
+        y->left->parent = y;
+        y->color = z->color;
+    }
+    tree->type->releaseNode(z);
+
+    if (y_original_color == BLACK) {
+        rbDeleteFixup(tree, x);
+    }
+    return 1;
 }

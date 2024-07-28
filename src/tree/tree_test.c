@@ -159,7 +159,7 @@ int test_rb_tree() {
     assert(rbTreePut(tree, 15L, NULL) == 1); 
     
 
-    rbIterator* iterator = rbTreeGetIterator(tree);
+    rbIterator* iterator = rbTreeGetRbIterator(tree);
     int result[4] = {1L,5L,10L,15L};
     int i = 0;
     while(rbIteratorHasNext(iterator)) {
@@ -169,6 +169,19 @@ int test_rb_tree() {
     }
     assert(i == 4);
     rbIteratorRelease(iterator);
+
+    Iterator* it = rbTreeGetIterator(tree);
+    i = 0;
+    while(iteratorHasNext(it)) {
+        rbNode* node = (rbNode*)iteratorNext(it);
+        assert(node->key == result[i]);
+        i++;
+    }
+    assert(i == 4);
+    iteratorRelease(it);
+
+    assert(rbTreeRemove(tree, 10L) == 1);
+    assert(rbTreeGetNode(tree, 10L) == NULL);
     return 1;
 }
 

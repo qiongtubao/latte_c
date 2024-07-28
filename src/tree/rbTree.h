@@ -37,11 +37,13 @@ typedef struct rbIterator {
 rbTree* rbTreeCreate(treeType* type);
 int rbTreePut(rbTree* tree, void* key, void* value);
 rbNode* rbTreeGetNode(rbTree* tree, void* key);
-rbIterator* rbTreeGetIterator(rbTree* tree);
+rbIterator* rbTreeGetRbIterator(rbTree* tree);
 bool rbIteratorHasNext(rbIterator* iterator);
 rbNode* rbIteratorNext(rbIterator* iterator);
 void rbIteratorRelease(rbIterator* iterator);
 
+Iterator* rbTreeGetIterator(rbTree* tree);
+int rbTreeRemove(rbTree* tree, void* key);
 
 
 #endif
