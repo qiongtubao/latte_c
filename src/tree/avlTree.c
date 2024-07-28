@@ -71,9 +71,9 @@ avlNode* avlNodeInsert(avlNode* node, treeType* type, void* key, void* value, in
         return node;
     }
     int cmp = type->operator(key, node->key);
-    if (cmp < 0) {
+    if (cmp > 0) {
         node->left = avlNodeInsert(node->left, type, key, value, puted);
-    } else if (cmp > 0) {
+    } else if (cmp < 0) {
         node->right = avlNodeInsert(node->right, type, key, value, puted);
     } else {
         type->setVal(node, value);

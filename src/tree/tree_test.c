@@ -5,6 +5,7 @@
 #include "zmalloc/zmalloc.h"
 #include "tree.h"
 #include "rbTree.h"
+#include "iterator/iterator.h"
 typedef struct avlIntNode {
     avlNode node;
     void* value;
@@ -24,7 +25,7 @@ void avlNodeSetVal(avlNode* node_, void* value) {
 int avlKeyOperator(void* key, void* key1) {
     long k = key;
     long k2 = key1;
-    long r = k - k2;
+    long r = k2 - k;
     if (r > 0) return 1;
     if (r < 0) return -1;
     return 0;
@@ -110,7 +111,7 @@ void* rbNodeGetVal(void* node_) {
 int rbKeyOperator(void* key, void* key1) {
     long k = key;
     long k2 = key1;
-    long r = k - k2;
+    long r = k2 - k;
     if (r > 0) return 1;
     if (r < 0) return -1;
     return 0;
@@ -144,12 +145,30 @@ treeType rbtType = {
     .releaseNode = rbNodeRelease
 };
 
+
 int test_rb_tree() {
     rbTree* tree = rbTreeCreate(&rbtType);
+
     assert(rbTreeGetNode(tree, 10L) == NULL);
     assert(rbTreePut(tree, 10L, NULL) == 1);
     assert(rbTreeGetNode(tree, 10L) != NULL);
+    assert(rbTreePut(tree, 10L, NULL) == 0);
+    assert(rbTreeGetNode(tree, 10L) != NULL);
+    assert(rbTreePut(tree, 1L, NULL) == 1);
+    assert(rbTreePut(tree, 5L, NULL) == 1);
+    assert(rbTreePut(tree, 15L, NULL) == 1); 
+    
 
+    rbIterator* iterator = rbTreeGetIterator(tree);
+    int result[4] = {1L,5L,10L,15L};
+    int i = 0;
+    while(rbIteratorHasNext(iterator)) {
+        rbNode* node = rbIteratorNext(iterator);
+        assert(node->key == result[i]);
+        i++;
+    }
+    assert(i == 4);
+    rbIteratorRelease(iterator);
     return 1;
 }
 

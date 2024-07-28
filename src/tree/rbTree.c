@@ -2,15 +2,7 @@
 #include "zmalloc/zmalloc.h"
 #include <stdlib.h>
 
-rbNode* rbNodeCreate(void* key, void* value) {
-    rbNode* node = zmalloc(sizeof(rbNode));
-    node->key = key;
-    node->left = NULL;
-    node->right = NULL;
-    node->parent = NULL;
-    node->color = RED;
-    return node;
-}
+
 
 void rbTreeLeftRotate(rbTree* tree, rbNode* node) {
     rbNode *y = node->right;
@@ -84,45 +76,80 @@ rbTree* rbTreeCreate(treeType* type) {
 }
 
 rbNode* rbTreeInsert(rbTree* tree, void* key, void* value, int* action) {
-    rbNode* y = NULL;
-    rbNode* x = tree->root;
+    // rbNode* y = NULL;
+    // rbNode* x = tree->root;
+
+    // while (x != NULL) {
+    //     y = x;
+    //     int operator = tree->type->operator(key, x->key);
+    //     if (operator > 0) {
+    //         x = x->left;
+    //     } else if(operator < 0) {
+    //         x = x->right;
+    //     } else {
+    //         tree->type->setVal(x, value);
+    //         *action = 0;
+    //         return x;
+    //     }
+    // }
+    // rbNode *new_node = tree->type->createNode(key, value);
+    // new_node->parent = y;
+    // new_node->color = RED;
+    
+    // *action = 1;
+    // if (y == NULL) {
+    //     tree->root = new_node;
+    //     new_node->color = BLACK;
+    // } else {
+    //     int operator = tree->type->operator(key, y->key);
+    //     if (operator > 0) {
+    //         y->left = new_node;
+    //     } else {
+    //         y->right = new_node;
+    //     }
+    // }
+    
+    // rbTreeInsertFixup(tree, new_node);
+    // return new_node;
+    rbNode *new_node = tree->type->createNode(key, value);
+    new_node->color = RED;
+    rbNode *y = NULL;
+    rbNode *x = tree->root;
+    *action = 1;
 
     while (x != NULL) {
         y = x;
-        int operator = tree->type->operator(key, x->key);
-        if (operator > 0) {
+        int op = tree->type->operator(new_node->key, x->key);
+        if (op > 0) {
             x = x->left;
-        } else if(operator < 0) {
+        } else if (op < 0) {
             x = x->right;
         } else {
-            tree->type->setVal(x, value);
             *action = 0;
+            tree->type->setVal(x, value);
             return x;
         }
     }
-    rbNode *new_node = tree->type->createNode(key, value);
     new_node->parent = y;
-    new_node->color = RED;
-    
-    *action = 1;
     if (y == NULL) {
         tree->root = new_node;
+        new_node->color = BLACK; // Root must be black
     } else {
-        int operator = tree->type->operator(key, y->key);
-        if (operator > 0) {
+        int op = tree->type->operator(new_node->key, y->key);
+        if (op > 0) {
             y->left = new_node;
         } else {
+            printf("right\n");
             y->right = new_node;
         }
     }
-    
     rbTreeInsertFixup(tree, new_node);
     return new_node;
 }
 
 int rbTreePut(rbTree* tree, void* key, void* value) {
     int puted = -1;
-    tree->root = rbTreeInsert(tree, key, value, &puted);
+    rbTreeInsert(tree, key, value, &puted);
     return puted;
 }
 
@@ -139,4 +166,72 @@ rbNode* rbTreeGetNode(rbTree* tree, void* key) {
         }
     }
     return NULL;
+}
+
+rbIterator* rbTreeGetIterator(rbTree* tree) {
+    rbIterator* iterator = zmalloc(sizeof(rbIterator));
+    iterator->current = NULL;
+    iterator->tree = tree;
+    return iterator;
+}
+bool rbIteratorHasNext(rbIterator* iter) {
+    if (iter->current == NULL) {
+        if (iter->tree->root != NULL) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    rbIterator i = {
+        .current = iter->current
+    };
+    if (i.current->right != NULL) {
+        return true;
+    } else {
+        rbNode *parent = i.current->parent;
+        while (parent != NULL && i.current == parent->right) {
+            i.current = parent;
+            parent = parent->parent;
+        }
+        if (parent == NULL) {
+            return false;
+        }
+        return true;
+    }
+}
+rbNode* rbIteratorNext(rbIterator* iter) {
+    if (iter->current == NULL) {
+        if (iter->tree->root == NULL) {
+            return NULL;
+        } else {
+            iter->current = iter->tree->root;
+            while (iter->current->left != NULL) {
+                iter->current = iter->current->left;
+            }
+            return iter->current;
+        }
+    }
+
+    if (iter->current->right != NULL) {
+        iter->current = iter->current->right;
+        while (iter->current->left != NULL) {
+            iter->current = iter->current->left;
+        }
+        return iter->current;
+    } else {
+        rbNode *parent = iter->current->parent;
+        while (parent != NULL && iter->current == parent->right) {
+            iter->current = parent;
+            parent = parent->parent;
+        }
+        if (parent == NULL) {
+            iter->current = NULL;
+            return NULL;
+        }
+        iter->current = parent;
+        return iter->current;
+    }
+}
+void rbIteratorRelease(rbIterator* iter) {
+    zfree(iter);
 }
