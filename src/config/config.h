@@ -59,5 +59,17 @@ struct arraySds* configGetArray(config* c, char* key);
 /* object attribute */
 int objectUpdate(configRule* rule, void* old_value, void* new_value);
 
+#define LL_CONFIG_INIT(v) \
+    { .update = longLongUpdate, \
+    .writeConfigSds = longLongWriteConfigSds,\
+     .releaseValue = longLongReleaseValue, \
+     .load = longLongLoadConfig,\
+      .value = v }
 
+#define SDS_CONFIG_INIT(v) \
+    { .update = sdsUpdate, \
+    .writeConfigSds = sdsWriteConfigSds, \
+    .releaseValue = sdsReleaseValue, \
+    .load = sdsLoadConfig, \
+    .value = v }
 #endif
