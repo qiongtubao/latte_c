@@ -49,3 +49,13 @@ Error* dirCreateRecursive(const char* path, mode_t mode) {
     free(buf);
     return status;
 }
+
+int dirIs(char* path) {
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        // 如果路径不存在或无法访问，返回错误
+        return 0;
+    }
+    // S_ISDIR 宏检查是否为目录
+    return S_ISDIR(st.st_mode);
+}
