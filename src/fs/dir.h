@@ -4,6 +4,6 @@
 #include "utils/error.h"
 
 Error* dirCreate(char* path);
-
+Error* dirCreateRecursive(const char* path, mode_t mode);
 
 #endif

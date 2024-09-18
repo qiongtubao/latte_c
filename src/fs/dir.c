@@ -2,6 +2,8 @@
 #include <sys/stat.h> // 包含mkdir函数声明
 #include <errno.h>    // 包含errno和错误码
 #include <dirent.h>
+#include <fcntl.h>
+#include <string.h>
 
 #include "dir.h"
 
@@ -17,4 +19,33 @@ Error* dirCreate(char* path) {
         return errnoIoCreate("create dir fail");
     }
     return &Ok;
+}
+
+Error* dirCreateRecursive(const char* path, mode_t mode) {
+    char *buf;
+    size_t len;
+    int status = 0;
+    int i;
+
+    buf = strdup(path);
+    if (!buf) {
+        perror("strdup");
+        return -1;
+    }
+
+    len = strlen(buf) + 1;
+    for (i = 1; i < len; ++i) {
+        if (buf[i] == '/' || buf[i] == '\\') {
+            buf[i] = '\0';
+            if (mkdir(buf, mode) == -1 && errno != EEXIST) {
+                perror("mkdir");
+                status = -1;
+                break;
+            }
+            buf[i] = '/';
+        }
+    }
+
+    free(buf);
+    return status;
 }
