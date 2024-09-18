@@ -10,4 +10,7 @@ int dictSdsKeyCompare(void *privdata, const void *key1,
         const void *key2);
 void dictSdsDestructor(dict *privdata, void *val);
 void *dictSdsDup(dict *d, const void *key);
+
+int dictCharKeyCompare(void* privdata, const void *key1,
+    const void *key2);
 #endif
