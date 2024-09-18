@@ -5,5 +5,5 @@
 
 Error* dirCreate(char* path);
 Error* dirCreateRecursive(const char* path, mode_t mode);
-
+int dirIs(char* path);
 #endif
