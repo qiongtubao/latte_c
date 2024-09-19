@@ -85,6 +85,14 @@ int test_create_dir() {
     assert(check_dir_exists("test_create_dir") == 1);
     recursive_rmdir("test_create_dir");
     assert(check_dir_exists("test_create_dir") == 0);
+
+
+    assert(dirIs("test_create_dir") == 0);
+    error = dirCreateRecursive("test_create_dir", 0755);
+    assert(isOk(error));
+    assert(dirIs("test_create_dir") == 1);
+    recursive_rmdir("test_create_dir");
+    assert(dirIs("test_create_dir") == 0);
     return 1;
 }
 

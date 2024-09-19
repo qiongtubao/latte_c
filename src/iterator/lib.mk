@@ -6,5 +6,6 @@ LIB_OBJ+= ../iterator/iterator.o
 USED_ITERATOR=yes
 
 ../iterator/iterator.o:
-	cd ../iterator && make iterator
+	cd ../iterator && make iterator.o
+
 endif
