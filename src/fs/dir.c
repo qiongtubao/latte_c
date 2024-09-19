@@ -4,7 +4,8 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <string.h>
-
+#include <stdlib.h>
+#include <strings.h>
 #include "dir.h"
 
 Error* dirCreate(char* path) {
@@ -21,17 +22,32 @@ Error* dirCreate(char* path) {
     return &Ok;
 }
 
+char* my_strdup(const char *s) {
+    if (s == NULL) {
+        return NULL;
+   }
+
+    size_t length = strlen(s) + 1; // 包括终止符 '\0'
+    char *copy = (char *)zmalloc(length);
+
+    if (copy != NULL) {
+        memcpy(copy, s, length);
+    }
+
+    copy[strlen(s)] = '\0';
+    return copy;
+}
+
 Error* dirCreateRecursive(const char* path, mode_t mode) {
-    char *buf;
+    char *buf = NULL;
     size_t len;
     Error* status = &Ok;
     int i;
-
-    buf = strdup(path);
-    if (!buf) {
+    buf = my_strdup(path);
+    if (buf == NULL) {
         return errnoIoCreate("strdup");
     }
-
+    
     len = strlen(buf) + 1;
     for (i = 1; i < len; ++i) {
         if (buf[i] == '/' || buf[i] == '\\') {
@@ -43,8 +59,10 @@ Error* dirCreateRecursive(const char* path, mode_t mode) {
             buf[i] = '/';
         }
     }
-
-    free(buf);
+    if (mkdir(buf, mode) == -1 && errno != EEXIST) {
+        status =  errnoIoCreate("mkdir");
+    }
+    zfree(buf);
     return status;
 }
 
