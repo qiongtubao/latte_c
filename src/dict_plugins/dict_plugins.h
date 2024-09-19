@@ -11,6 +11,7 @@ int dictSdsKeyCompare(void *privdata, const void *key1,
 void dictSdsDestructor(void *privdata, void *val);
 void *dictSdsDup(dict *d, const void *key);
 
+uint64_t dictCharHash(const void *key);
 int dictCharKeyCompare(void* privdata, const void *key1,
     const void *key2);
 #endif

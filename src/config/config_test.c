@@ -37,11 +37,13 @@ configRule array_sds_rule = {
 int test_configCreate() {
     config* c = createConfig();
     //sds
-    sds name = sdsnewlen("name", 4);
+    sds name = sdsnew("name");
     registerConfig(c, name, &name_rule);
     //long long
-    sds age = sdsnewlen("age", 3);
+    sds age = sdsnew("age");
     registerConfig(c, age, &age_rule);
+
+    assert(dictSize(c->rules) == 2);
 
     sds value = sdsnew("latte");
     assert(configSetSds(c, "name", value) == 1);

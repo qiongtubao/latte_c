@@ -23,7 +23,7 @@ long long ptr2ll(void* value) {
 
 
 dictType ruleDictType = {
-    dictSdsHash,
+    dictCharHash,
     NULL,
     NULL,
     dictCharKeyCompare,
