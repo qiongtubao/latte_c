@@ -35,6 +35,12 @@ void *dictSdsDup(dict *d, const void *key) {
     return sdsdup((const sds) key);
 }
 
+
+uint64_t dictCharHash(const void *key) {
+    return dictGenHashFunction((unsigned char*)key, strlen((char*)key));
+}
+
+
 int dictCharKeyCompare(void* privdata, const void *key1,
     const void *key2) {
     int l1, l2;
