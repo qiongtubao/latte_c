@@ -24,13 +24,12 @@ Error* dirCreate(char* path) {
 Error* dirCreateRecursive(const char* path, mode_t mode) {
     char *buf;
     size_t len;
-    int status = 0;
+    Error* status = &Ok;
     int i;
 
     buf = strdup(path);
     if (!buf) {
-        perror("strdup");
-        return -1;
+        return errnoIoCreate("strdup");
     }
 
     len = strlen(buf) + 1;
@@ -38,8 +37,7 @@ Error* dirCreateRecursive(const char* path, mode_t mode) {
         if (buf[i] == '/' || buf[i] == '\\') {
             buf[i] = '\0';
             if (mkdir(buf, mode) == -1 && errno != EEXIST) {
-                perror("mkdir");
-                status = -1;
+                status =  errnoIoCreate("mkdir");
                 break;
             }
             buf[i] = '/';
