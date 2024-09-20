@@ -17,4 +17,7 @@ uint32_t crc32c(const char* buf, int len);
 uint32_t crc32c_extend(uint32_t crc, const char* buf, int len);
 uint32_t crc32c_mask(uint32_t);
 uint32_t crc32c_unmask(uint32_t masked_crc);
+
+//crc32-jamcrc算法
+uint32_t crc32jamcrc(const char *buffer, int len);
 #endif

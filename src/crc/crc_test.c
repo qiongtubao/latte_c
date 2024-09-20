@@ -21,6 +21,12 @@ int test_crc32c() {
     assert(a == 0xe3069283);
     return 1;
 }
+
+
+int test_crc32jamcrc() {
+    assert(0x340bc6d9 == crc32jamcrc("123456789", 9));
+    return 1;
+}
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -30,6 +36,8 @@ int test_api(void) {
             test_crc16xmodem() == 1);
         test_cond("crc32c function", 
             test_crc32c() == 1); 
+        test_cond("crc32 jamcrc function", 
+            test_crc32jamcrc() == 1);
     } test_report()
     return 1;
 }
