@@ -160,6 +160,7 @@ int test_fs() {
     recursive_rmdir("test_fs");
     assert(isOk(dirCreate("test_fs")));
     int fd = open("test_fs/test.txt", O_CREAT | O_RDWR , 0644);
+    assert(file_exists("test_fs/test.txt"));
     char buf[10];
     int size = 0;
     int ret = readn(fd, buf, 10, &size);

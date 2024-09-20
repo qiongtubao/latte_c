@@ -8,6 +8,10 @@
 #include <error.h>
 #include <errno.h>
 
+
+bool file_exists(char* filename) {
+  return access(filename, F_OK) == 0;
+}
 /**
   *  写入文件或者socket
   *  return  0 写入完成
