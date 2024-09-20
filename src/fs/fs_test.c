@@ -10,6 +10,8 @@
 #include <sys/stat.h> // stat
 #include <unistd.h>   // rmdir, unlink
 #include <string.h>
+#include "fs.h"
+#include <fcntl.h>
 
 // 递归删除目录及其中的所有文件和子目录
 void recursive_rmdir(const char *path) {
@@ -154,6 +156,41 @@ int test_env_write_read() {
     return 1;
 }
 
+int test_fs() {
+    recursive_rmdir("test_fs");
+    assert(isOk(dirCreate("test_fs")));
+    int fd = open("test_fs/test.txt", O_CREAT | O_RDWR , 0644);
+    char buf[10];
+    int size = 0;
+    int ret = readn(fd, buf, 10, &size);
+    assert(ret == -1);
+    assert(size == 0);
+    
+    ret = writen(fd, "hello", 5);
+    assert(ret == 0);
+
+    assert(lseek(fd, 0, SEEK_SET) != -1);
+    ret = readn(fd, buf, 10, &size);
+    assert(ret == -1);
+    assert(size == 5);
+    assert(strncmp(buf, "hello", 5) == 0);
+
+    assert(lseek(fd, 0, SEEK_SET) != -1);
+    ret = writen(fd, "hello_world", 11);
+    assert(ret == 0);
+
+    assert(lseek(fd, 0, SEEK_SET) != -1);
+    size = 0;
+    ret = readn(fd, buf, 10, &size);
+    assert(ret == 0);
+    assert(size == 10);
+    assert(strncmp(buf, "hello_world", 11) != 0);
+    assert(strncmp(buf, "hello_world", 10) == 0);
+
+    recursive_rmdir("test_fs");
+    return 1;
+}
+
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -165,6 +202,8 @@ int test_api(void) {
             test_env_lockfile() == 1);
         test_cond("env write read function",
             test_env_write_read() == 1);
+        test_cond("fs function",
+            test_fs() == 1);
     } test_report()
     return 1;
 }

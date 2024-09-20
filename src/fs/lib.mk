@@ -18,6 +18,9 @@ FINAL_CC_CFLAGS+= -I../fs
 ../fs/posix_file.o:
 	cd $(WORKSPACE)/src/fs && make posix_file.o
 
-LIB_OBJ+= ../fs/file.o ../fs/dir.o ../fs/env.o ../fs/posix_file.o
+../fs/fs.o:
+	cd $(WORKSPACE)/src/fs && make fs.o
+
+LIB_OBJ+= ../fs/file.o ../fs/dir.o ../fs/env.o ../fs/posix_file.o ../fs/fs.o
 USED_FS=yes
 endif
