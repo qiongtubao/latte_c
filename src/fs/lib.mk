@@ -3,6 +3,8 @@ include $(WORKSPACE)/src/zmalloc/lib.mk
 include $(WORKSPACE)/src/sds/lib.mk
 include $(WORKSPACE)/src/set/lib.mk
 include $(WORKSPACE)/src/utils/lib.mk
+include $(WORKSPACE)/src/list/lib.mk
+include $(WORKSPACE)/src/log/lib.mk
 FINAL_CC_CFLAGS+= -I../fs
 
 
