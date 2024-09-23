@@ -194,7 +194,8 @@ static void init_event(log_Event *ev, void *udata) {
 }
 
 
-void log_log(char* tag, int level, const char *file, char* func, int line, const char *fmt, ...) {
+void log_log(char* tag, int level, char *file, char* func, int line, char *fmt, ...) {
+  if (loggerFactory.loggers == NULL) return;
   log_Event ev = {
     .fmt   = fmt,
     .file  = file,

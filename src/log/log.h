@@ -104,6 +104,9 @@ int log_add_callback(char* tag, log_LogFn fn, void *udata, int level);
 int log_add_file(char* tag, char *fp, int level);
 int log_add_stdout(char* tag, int level);
 
-void log_log(char* tag, int level, const char *file, char* function, int line, const char *fmt, ...);
+void log_log(char* tag, int level, char *file, char* function, int line, char *fmt, ...);
+
+#define LATTE_LIB "latte_lib" 
+#define LATTE_LIB_LOG(level, ...) log_log(LATTE_LIB, level, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #endif
