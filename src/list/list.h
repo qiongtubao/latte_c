@@ -1,6 +1,7 @@
 #ifndef __LATTE_LIST_H
 #define __LATTE_LIST_H
 
+#include "iterator/iterator.h"
 typedef struct listNode {
     struct listNode *prev;
     struct listNode *next;
@@ -58,6 +59,7 @@ void listRotateTailToHead(list *list);
 void listRotateHeadToTail(list *list);
 void listJoin(list *l, list *o);
 
+Iterator* listGetLatteIterator(list* l, int free_list);
 
 #define AL_START_HEAD 0
 #define AL_START_TAIL 1

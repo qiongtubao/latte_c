@@ -379,3 +379,54 @@ void listJoin(list *l, list *o) {
     o->head = o->tail = NULL;
     o->len = 0;
 }
+
+
+typedef struct latteListIter {
+    Iterator it;
+    listNode* next;
+    list* list;
+} latteListIter;
+
+
+bool freeListIteratorApiHasNext(Iterator* iterator) {
+    latteListIter* it = (latteListIter*)iterator;
+    listNode* node = listNext(it->it.data);
+    if (node == NULL) {
+        return false;
+    }
+    it->next = node;
+    return true;
+}
+
+void* freeListIteratorApiNext(Iterator* iterator) {
+    latteListIter* it = (latteListIter*)iterator;
+    listNode* node = it->next;
+    it->next = NULL;
+    return listNodeValue(node);
+}
+
+void freeListIteratorApiRelease(Iterator* iterator) {
+    latteListIter* it = (latteListIter*)iterator;
+    listReleaseIterator(it->it.data);
+    if (it->list != NULL) {
+        listRelease(it->list);
+        it->list = NULL;
+    }
+}
+
+IteratorType freeListIteratorApi = {
+    .hasNext = freeListIteratorApiHasNext,
+    .next = freeListIteratorApiNext,
+    .release = freeListIteratorApiRelease
+};
+
+Iterator* listGetLatteIterator(list* l, int free_list) {
+    latteListIter* it = zmalloc(sizeof(latteListIter*));
+    it->it.data = listGetIterator(l, AL_START_HEAD);
+    it->it.type = &freeListIteratorApi;
+    it->next = NULL;
+    if (free_list) {
+        it->list = l;
+    }
+    return it;
+}
