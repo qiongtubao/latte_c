@@ -1,5 +1,9 @@
 ifneq ($(USED_UTILS), yes) 
+
+include $(WORKSPACE)/src/sds/lib.mk
+
 FINAL_CC_CFLAGS+= -I../utils
+
 LIB_OBJ+= ../utils/utils.o ../utils/error.o
 USED_UTILS=yes
 ../utils/utils.o:
