@@ -192,6 +192,30 @@ int test_fs() {
     return 1;
 }
 
+int test_dir() {
+    assert(dirIs("./test_dir") == 1);
+    Iterator* iter = dir_scan_file("./test_dir", ".*\\.txt$");
+    int i = 0;
+    while(iteratorHasNext(iter)) {
+        sds file = iteratorNext(iter);
+        i++;
+    }
+    //a.txt b.txt
+    assert(i == 2);
+    iteratorRelease(iter);
+
+    iter = dir_scan_file("./test_dir", ".*\\.t$");
+    while(iteratorHasNext(iter)) {
+        sds file = iteratorNext(iter);
+        assert(sdscmp(file, "a.t"));
+    }
+    iteratorRelease(iter);
+
+    iter = dir_scan_file("./test_dir1", ".*\\.txt$");
+    assert(iter == NULL);
+    return 1;
+}
+
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -205,6 +229,8 @@ int test_api(void) {
             test_env_write_read() == 1);
         test_cond("fs function",
             test_fs() == 1);
+        test_cond("dir function",
+            test_dir() == 1);
     } test_report()
     return 1;
 }

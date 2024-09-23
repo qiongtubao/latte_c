@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <strings.h>
 #include "dir.h"
+#include "list/list.h"
+#include "iterator/iterator.h"
+#include <regex.h>
+#include "log/log.h"
 
 Error* dirCreate(char* path) {
     // 创建目录
@@ -74,4 +78,43 @@ int dirIs(char* path) {
     }
     // S_ISDIR 宏检查是否为目录
     return S_ISDIR(st.st_mode);
+}
+
+#define PATH_MAX 4096
+Iterator* dir_scan_file(char* dir_path, const char* filter_pattern) {
+  regex_t reg;
+  if (filter_pattern) {
+    const int res = regcomp(&reg, filter_pattern, REG_NOSUB);
+    if (res) {
+      char errbuf[256];
+      regerror(res, &reg, errbuf, sizeof(errbuf));
+      LATTE_LIB_LOG(LOG_ERROR,"regcomp return error. filter pattern %s. errmsg %d:%s", filter_pattern, res, errbuf);
+      return NULL;
+    }
+  }
+  DIR *pdir = opendir(dir_path);
+  if (!pdir) {
+    if (filter_pattern) {
+      regfree(&reg);
+      LATTE_LIB_LOG(LOG_ERROR,"open directory failure. path %s, errmsg %d:%s", dir_path, errno, strerror(errno));
+      return NULL;
+    }
+  }
+  struct dirent *pentry;
+  list* files = listCreate();
+  char tmp_path[PATH_MAX];
+  while ((pentry = readdir(pdir)) != NULL) {
+    if ('.' == pentry->d_name[0]) // 跳过 ./ ..文件和隐藏文件
+      continue;
+    snprintf(tmp_path, sizeof(tmp_path), "%s/%s", dir_path, pentry->d_name);
+    if (dirIs(tmp_path))
+      continue;
+    
+    if (!filter_pattern || 0 == regexec(&reg, pentry->d_name, 0, NULL, 0))
+      listAddNodeTail(files, sdsnew(pentry->d_name));
+  }
+  if (filter_pattern)
+    regfree(&reg);
+  closedir(pdir);
+  return listGetLatteIterator(files, 1);
 }

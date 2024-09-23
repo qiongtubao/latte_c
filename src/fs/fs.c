@@ -9,6 +9,7 @@
 #include <errno.h>
 
 
+
 bool file_exists(char* filename) {
   return access(filename, F_OK) == 0;
 }

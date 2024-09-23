@@ -2,7 +2,7 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?= file.o dir.o env.o posix_file.o fs.o
 LIB_OBJ?=
 TEST_MAIN?=fs_test
-LIB_MODULES?=zmalloc utils sds set
+LIB_MODULES?=zmalloc utils sds set log list
 MODULE?=fs
 BUILD_INCLUDE= file.h dir.h env.h posix_file.h flags.h fs.h
 
@@ -16,7 +16,8 @@ include $(WORKSPACE)/src/zmalloc/lib.mk
 include $(WORKSPACE)/src/sds/lib.mk
 include $(WORKSPACE)/src/utils/lib.mk
 include $(WORKSPACE)/src/set/lib.mk
-
+include $(WORKSPACE)/src/list/lib.mk
+include $(WORKSPACE)/src/log/lib.mk
 
 
 
