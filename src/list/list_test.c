@@ -5,7 +5,7 @@
 #include "sds/sds.h"
 #include "list.h"
 
-int test_list() {
+int test_list_iterator() {
     list* l = listCreate();
     l->free = sdsfree;
     listAddNodeTail(l, sdsnew("hello"));
@@ -21,11 +21,42 @@ int test_list() {
     return 1;
 }
 
+int test_list() {
+    list* l = listCreate();
+    
+    listAddNodeHead(l, 0);
+    listAddNodeTail(l, 1);
+    listAddNodeTail(l, 2);
+    listAddNodeTail(l, 3);
+    Iterator* iter = listGetLatteIterator(l, 0);
+    int a[4] = {0,1,2,3};
+    int i = 0;
+    while (iteratorHasNext(iter)) {
+        int v = iteratorNext(iter);
+        assert(a[i] == v);
+        i++;
+    }
+    iteratorRelease(iter);
+    int b[4] = {1,0,2,3};
+    i = 0;
+    listMoveHead(l, l->head->next);
+    iter = listGetLatteIterator(l, 0);
+    while (iteratorHasNext(iter)) {
+        int v = iteratorNext(iter);
+        assert(b[i] == v);
+        i++;
+    }
+    iteratorRelease(iter);
+    return 1;
+}
+
 int test_api(void) {
 
     {
         
         test_cond("list iterator test", 
+            test_list_iterator() == 1);
+        test_cond("list function test", 
             test_list() == 1);
     } test_report()
     return 1;
