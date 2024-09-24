@@ -20,20 +20,20 @@ void* increment_counter(void* arg) {
         task->global_count++;
         // 解锁
         mutexUnlock(task->mutex);
-        usleep(1000); // 模拟一些工作时间，非必须
+        usleep(10); // 模拟一些工作时间，非必须
     }
     return NULL;
 }
 
-int test_mutex_(latte_mutex* mutex) {
+int test_mutex_(latte_mutex* mutex, void *(*__start_routine)(void *)) {
     // 创建两个线程
     pthread_t thread1, thread2;
     pthread_task task;
     task.mutex = mutex;
     task.timers = 100000;
     task.global_count = 0;
-    if(pthread_create(&thread1, NULL, increment_counter, &task) != 0 ||
-       pthread_create(&thread2, NULL, increment_counter, &task) != 0) {
+    if(pthread_create(&thread1, NULL, __start_routine, &task) != 0 ||
+       pthread_create(&thread2, NULL, __start_routine, &task) != 0) {
         printf("\n Failed to create threads\n");
         return -1;
     }
@@ -47,14 +47,52 @@ int test_mutex_(latte_mutex* mutex) {
 int test_mutex() {
     latte_mutex mutex;
     assert(mutexInit(&mutex) == 0);
-    test_mutex_(&mutex);
+    test_mutex_(&mutex, increment_counter);
     mutexDestroy(&mutex);
     return 1;
 }
 
 int test_mutex_new() {
     latte_mutex* mutex = mutexCreate();
-    test_mutex_(mutex);
+    test_mutex_(mutex, increment_counter);
+    mutexRelease(mutex); 
+    return 1;
+}
+
+int test_muext_recuresive2(latte_mutex* mutex) {
+    mutexLock(mutex);
+    sleep(1);
+    mutexUnlock(mutex);
+    return 1;
+}
+
+int test_mutex_recuresive() {
+    latte_mutex* mutex = mutextRecursiveCreate();
+    mutexLock(mutex);
+    test_muext_recuresive2(mutex);
+    mutexUnlock(mutex);
+    mutexRelease(mutex);
+    return 1;
+}
+
+// 线程执行的函数
+void* increment_counter_recursive(void* arg) {
+    pthread_task* task = (pthread_task*)arg; // 获取线程需要执行的次数
+    for(int i = 0; i < task->timers; ++i) {
+        // 加锁
+        mutexLock(task->mutex);
+        mutexLock(task->mutex);
+        task->global_count++;
+        // 解锁
+        mutexUnlock(task->mutex);
+        mutexUnlock(task->mutex);
+        usleep(10); // 模拟一些工作时间，非必须
+    }
+    return NULL;
+}
+int test_mutex_recursive_new() {
+    latte_mutex* mutex = mutextRecursiveCreate();
+    test_mutex_(mutex, increment_counter_recursive);
     mutexRelease(mutex); 
     return 1;
 }
@@ -68,6 +106,10 @@ int test_api(void) {
             test_mutex() == 1);
         test_cond("about new mutex function", 
             test_mutex_new() == 1);
+        test_cond("about mutex recuresive",
+            test_mutex_recuresive() == 1);
+        test_cond("test_mutex_recursive",
+            test_mutex_recursive_new() == 1);
     } test_report()
     return 1;
 }
