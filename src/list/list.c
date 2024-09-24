@@ -430,3 +430,23 @@ Iterator* listGetLatteIterator(list* l, int free_list) {
     }
     return it;
 }
+
+void listMoveHead(list* l, listNode* node) {
+    if ( NULL == node->prev) {
+        return;
+    }
+    node->prev->next = node->next;
+
+    if (node->next != NULL) {
+        node->next->prev = node->prev;
+    } else {
+        l->tail = node->prev;
+    }
+
+    node->prev = NULL;
+    node->next = l->head;
+    if (l->head != NULL) {
+        l->head->prev = node;
+    }
+    l->head = node;
+}

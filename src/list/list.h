@@ -61,6 +61,9 @@ void listJoin(list *l, list *o);
 
 Iterator* listGetLatteIterator(list* l, int free_list);
 
+
+void listMoveHead(list* l, listNode* node);
+
 #define AL_START_HEAD 0
 #define AL_START_TAIL 1
 #endif
