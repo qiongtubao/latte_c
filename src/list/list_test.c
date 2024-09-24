@@ -10,7 +10,7 @@ int test_list_iterator() {
     l->free = sdsfree;
     listAddNodeTail(l, sdsnew("hello"));
     listAddNodeTail(l, sdsnew("world"));
-    Iterator* iter = listGetLatteIterator(l, 0);
+    Iterator* iter = listGetLatteIterator(l, 1);
     int i = 0;
     while (iteratorHasNext(iter)) {
         iteratorNext(iter);
@@ -40,13 +40,15 @@ int test_list() {
     int b[4] = {1,0,2,3};
     i = 0;
     listMoveHead(l, l->head->next);
-    iter = listGetLatteIterator(l, 0);
-    while (iteratorHasNext(iter)) {
-        int v = iteratorNext(iter);
-        assert(b[i] == v);
-        i++;
+    for(int i = 0; i < 4; i++) {
+        assert(listNodeValue(listIndex(l, i)) == b[i]);
     }
-    iteratorRelease(iter);
+
+    int r = listPop(l);
+    assert(r == 1);
+    assert(listLength(l) == 3);
+
+    listRelease(l);
     return 1;
 }
 
