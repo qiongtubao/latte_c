@@ -21,15 +21,14 @@
 //     return 1;
 // }
 int test_set_log() {
-    initLogger();
+  
     if (access("./test.log", F_OK) != -1) {
         assert(remove("./test.log") == 0);
     }
 
     log_debug("test", "test %s", "word"); 
     
-    assert(log_add_stdout("test", LOG_DEBUG) == 1);
-    assert(log_add_file("test", "./test.log", LOG_INFO) == 1);
+    
     log_debug("test", "hello %s", "word");
     assert(access("./test.log", F_OK) == -1);
     char line[100];
@@ -46,14 +45,27 @@ int test_set_log() {
     return 1;
 }
 
-int test_api(void) {
+void t() {
+    char buffer[BT_BUFFER_SIZE];
+    log_debug("test", "lbt %s", lbt(&buffer)); 
+}
+int test_lbt() {
+    t();
+    return 1;
+}
 
+int test_api(void) {
     {
         #ifdef LATTE_TEST
             // ..... private
         #endif
+        initLogger();
+        assert(log_add_stdout("test", LOG_DEBUG) == 1);
+        assert(log_add_file("test", "./test.log", LOG_INFO) == 1);
         test_cond("log test", 
             test_set_log() == 1);
+        test_cond("log lbt", 
+            test_lbt() == 1);
     } test_report()
     return 1;
 }
