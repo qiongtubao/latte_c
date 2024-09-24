@@ -2,9 +2,14 @@
 #ifndef __LATTE_MUTEX_H
 #define __LATTE_MUTEX_H
 #include <pthread.h>
-typedef pthread_mutex_t latte_mutex;
+// typedef pthread_mutex_t latte_mutex;
+typedef struct latte_mutex {
+  pthread_mutex_t supper;
+  pthread_mutexattr_t* attr;
+} latte_mutex;
 //new and init
 latte_mutex* mutexCreate();
+latte_mutex* mutextRecursiveCreate();
 void mutexRelease(latte_mutex*);
 
 /**
