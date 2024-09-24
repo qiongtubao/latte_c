@@ -450,3 +450,15 @@ void listMoveHead(list* l, listNode* node) {
     }
     l->head = node;
 }
+
+void* listPop(list* l) {
+    listNode* node = l->head;
+    
+    if (node == NULL) return NULL;
+    void* result = listNodeValue(node);
+    if (l->free != NULL) {
+        node->value = NULL;
+    }
+    listDelNode(l, node);
+    return result;
+}
