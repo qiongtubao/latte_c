@@ -109,4 +109,6 @@ void log_log(char* tag, int level, char *file, char* function, int line, char *f
 #define LATTE_LIB "latte_lib" 
 #define LATTE_LIB_LOG(level, ...) log_log(LATTE_LIB, level, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 
+#define BT_BUFFER_SIZE 8192
+char *lbt(char* backtrace_buffer);
 #endif

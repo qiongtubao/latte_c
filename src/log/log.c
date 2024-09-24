@@ -21,7 +21,11 @@
  */
 
 #include "log.h"
+#include <execinfo.h>  // 提供 backtrace 和 backtrace_symbols
+#include <dlfcn.h>     // 提供 dladdr
+#include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 struct Logger* getLoggerByTag(char* tag) {
   dictEntry* entry = dictFind(loggerFactory.loggers, tag);
@@ -227,3 +231,41 @@ void log_log(char* tag, int level, char *file, char* func, int line, char *fmt, 
 
   unlock(logger);
 }
+
+
+char *lbt(char* backtrace_buffer)
+{
+  int buffer_size = 100;
+  void* buffer[buffer_size];
+
+  // int     bt_buffer_size = 8192;
+  // char backtrace_buffer[bt_buffer_size];
+
+  int size = backtrace(buffer, buffer_size);
+  printf("\n lbt  %d\n", size);
+  char **symbol_array = NULL;
+// #ifdef LBT_SYMBOLS
+  /* 有些环境下，使用addr2line 无法根据地址输出符号 */
+  symbol_array = backtrace_symbols(buffer, size);
+// #endif  // LBT_SYMBOLS
+
+  int offset = 0;
+  for (int i = 0; i < size && offset < BT_BUFFER_SIZE - 1; i++) {
+    if (i != 0) {
+      offset += snprintf(backtrace_buffer + offset, BT_BUFFER_SIZE - offset, "\n");
+    }
+    const char *format = (0 == i) ? "0x%lx" : " 0x%lx";
+    offset += snprintf(
+        backtrace_buffer + offset, BT_BUFFER_SIZE - offset, format, (buffer[i]));
+
+    if (symbol_array != NULL) {
+      offset += snprintf(backtrace_buffer + offset, BT_BUFFER_SIZE - offset, " %s", symbol_array[i]);
+    }
+  }
+
+  if (symbol_array != NULL) {
+    free(symbol_array);
+  }
+  return backtrace_buffer;
+}
+
