@@ -2,6 +2,7 @@
 #include "../test/testassert.h"
 #include <stdio.h>
 #include "utils.h"
+#include "atomic.h"
 
 int test_ll2string(void) {
     char buf[100];
@@ -17,6 +18,24 @@ int test_string2ll(void) {
     return 1;
 }
 
+int test_atomic() {
+    latteAtomic int a = 0;
+    int r ;
+    atomicGet(a, r);
+    assert(r == 0);
+    atomicGetIncr(a , r, 1);
+    assert(r == 0);
+    atomicGet(a, r);
+    assert(r == 1);
+    atomicIncr(a ,1);
+    atomicGet(a, r);
+    assert(r == 2);
+    atomicDecr(a, 1);
+    atomicGet(a, r);
+    assert(r == 1);
+    return 1;
+}
+
 
 
 int test_api(void) {
@@ -28,6 +47,8 @@ int test_api(void) {
             test_ll2string() == 1);
         test_cond("string2ll function",
             test_string2ll() == 1);
+        test_cond("atomic function",
+            test_atomic() == 1);
     } test_report()
     return 1;
 }
