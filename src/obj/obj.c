@@ -5,7 +5,7 @@
 latteObj* latteObjCreate(void* data, free_fn f) {
     latteObj* o = zmalloc(sizeof(latteObj));
     o->data = data;
-    atomic_store(&o->refcount, 1);
+    atomicSet(o->refcount, 1);
     o->free = f;
     return o;
 }
@@ -16,9 +16,10 @@ latteObj* latteObjCreate(void* data, free_fn f) {
 
 
 int latteObjDecrRefCount(latteObj* obj) {
-    int count = atomic_load(&obj->refcount);
+    int count ;
+    atomicGet(obj->refcount, count);
     if (count != OBJ_SHARED_REFCOUNT && count > 0) {
-        if (1 == atomic_fetch_sub(&obj->refcount, 1)) {
+        if (1 == atomicDecr(obj->refcount, 1)) {
             obj->free(obj->data);
             obj->data = NULL;
             zfree(obj);
@@ -34,7 +35,7 @@ int latteObjDecrRefCount(latteObj* obj) {
 
 int latteObjIncrRefCount(latteObj* obj) {
     if (obj->refcount < OBJ_FIRST_SPECIAL_REFCOUNT) {
-        atomic_fetch_add(&obj->refcount, 1);
+        atomicIncr(obj->refcount, 1);
     } else {
         if (obj->refcount == OBJ_SHARED_REFCOUNT) {
 
