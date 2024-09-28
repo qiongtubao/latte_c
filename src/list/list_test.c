@@ -37,11 +37,22 @@ int test_list() {
         i++;
     }
     iteratorRelease(iter);
-    int b[4] = {1,0,2,3};
+
+    iter = listGetLatteIterator(l, 1);
+    int b[4] = {3,2,1,0};
+    i = 0;
+    while (iteratorHasNext(iter)) {
+        int v = iteratorNext(iter);
+        assert(b[i] == v);
+        i++;
+    }
+    iteratorRelease(iter);
+
+    int c[4] = {1,0,2,3};
     i = 0;
     listMoveHead(l, l->head->next);
     for(int i = 0; i < 4; i++) {
-        assert(listNodeValue(listIndex(l, i)) == b[i]);
+        assert(listNodeValue(listIndex(l, i)) == c[i]);
     }
 
     int r = listPop(l);
