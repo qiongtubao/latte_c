@@ -420,14 +420,21 @@ IteratorType freeListIteratorApi = {
     .release = freeListIteratorApiRelease
 };
 
-Iterator* listGetLatteIterator(list* l, int free_list) {
+Iterator* listGetLatteIterator(list* l, int for_seq) {
     latteListIter* it = zmalloc(sizeof(latteListIter*));
-    it->it.data = listGetIterator(l, AL_START_HEAD);
+    it->it.data = listGetIterator(l, for_seq);
     it->it.type = &freeListIteratorApi;
     it->next = NULL;
-    if (free_list) {
-        it->list = l;
-    }
+    it->list = NULL;
+    return it;
+}
+
+Iterator* listGetLatteIteratorFree(list* l, int for_seq) {
+    latteListIter* it = zmalloc(sizeof(latteListIter*));
+    it->it.data = listGetIterator(l, for_seq);
+    it->it.type = &freeListIteratorApi;
+    it->next = NULL;
+    it->list = l;
     return it;
 }
 

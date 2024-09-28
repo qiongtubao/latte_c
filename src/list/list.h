@@ -59,8 +59,8 @@ void listRotateTailToHead(list *list);
 void listRotateHeadToTail(list *list);
 void listJoin(list *l, list *o);
 
-Iterator* listGetLatteIterator(list* l, int free_list);
-
+Iterator* listGetLatteIterator(list* l, int for_seq);
+Iterator* listGetLatteIteratorFreeList(list* l, int for_seq);
 
 void listMoveHead(list* l, listNode* node);
 void* listPop(list* l) ;
