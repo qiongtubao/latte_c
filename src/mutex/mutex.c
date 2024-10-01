@@ -19,8 +19,10 @@ latte_mutex* mutextRecursiveCreate() {
     mutex->attr = zmalloc(sizeof(pthread_mutexattr_t));
     pthread_mutexattr_init(mutex->attr);
     //暂时没对系统做兼容  其他系统使用的PTHREAD_MUTEX_RECURSIVE
-    #if defined(__APPLE__) || defined(__FreeBSD__)
+    #ifdef __linux__
         pthread_mutexattr_settype_np(mutex->attr, PTHREAD_MUTEX_RECURSIVE_NP);
+    #elif defined(__APPLE__) && defined(__MACH__)
+        pthread_mutexattr_settype(mutex->attr, PTHREAD_MUTEX_RECURSIVE);
     #else
         pthread_mutexattr_settype(mutex->attr, PTHREAD_MUTEX_RECURSIVE);
     #endif

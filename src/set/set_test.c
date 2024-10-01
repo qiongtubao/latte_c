@@ -20,12 +20,16 @@ void* increment_counter(void* arg) {
     sds k1 = sdsnew("1");
     sds k2 = sdsnew("2");
     sds k3 = sdsnew("3");
-    sds keys[t->timers];
+
+    //栈不能太大 
+    sds* keys = zmalloc(sizeof(sds) * t->timers);
+    // printf("keys before %p \n", keys);
     for(int i  = 0; i < t->timers; i++) {
         char buf[10];
         int size = sprintf(buf, "%d", i);
         sds k4 = sdsnewlen(buf, size);
         keys[i] = k4;
+       
         // 添加一些值
         lockSetAdd(set, k1);
         lockSetAdd(set, k2);
@@ -39,15 +43,21 @@ void* increment_counter(void* arg) {
         lockSetContains(set, k2);
         lockSetContains(set, k3);
         lockSetContains(set, k1);
+
+        lockSetAdd(set, keys[i]);
     }
+    // printf("keys after %p \n", keys);
+    // printf("keys %d %p \n", 0, keys[0]);
     sdsfree(k1);
     sdsfree(k2);
     sdsfree(k3);
     for(int i  = 0; i < t->timers; i++) {
+        // printf("keys %d %s \n", i, keys[i]);
         lockSetRemove(set, keys[i]);
         sdsfree(keys[i]);
     }
-    // pthread_exit(NULL);
+    zfree(keys);
+    pthread_exit(NULL);
     return NULL;
 }
 
