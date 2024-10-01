@@ -4,13 +4,18 @@
 
 #include "sds/sds.h"
 #include "list.h"
+#include "iterator/iterator.h"
 
+void valueSdsFree(void* node) {
+    sdsfree((sds)node);
+}
 int test_list_iterator() {
     list* l = listCreate();
-    l->free = sdsfree;
+    l->free = valueSdsFree;
     listAddNodeTail(l, sdsnew("hello"));
     listAddNodeTail(l, sdsnew("world"));
     Iterator* iter = listGetLatteIterator(l, 1);
+    printf("???? : %p %p \n",iter->data, ((listIter*)(iter->data))->direction);
     int i = 0;
     while (iteratorHasNext(iter)) {
         iteratorNext(iter);
@@ -24,39 +29,39 @@ int test_list_iterator() {
 int test_list() {
     list* l = listCreate();
     
-    listAddNodeHead(l, 0);
-    listAddNodeTail(l, 1);
-    listAddNodeTail(l, 2);
-    listAddNodeTail(l, 3);
+    listAddNodeHead(l, (void*)0);
+    listAddNodeTail(l, (void*)1L);
+    listAddNodeTail(l, (void*)2L);
+    listAddNodeTail(l, (void*)3L);
     Iterator* iter = listGetLatteIterator(l, 0);
-    int a[4] = {0,1,2,3};
+    long a[4] = {0L,1L,2L,3L};
     int i = 0;
     while (iteratorHasNext(iter)) {
-        int v = iteratorNext(iter);
+        long v = (long)iteratorNext(iter);
         assert(a[i] == v);
         i++;
     }
     iteratorRelease(iter);
 
     iter = listGetLatteIterator(l, 1);
-    int b[4] = {3,2,1,0};
+    long b[4] = {3L,2L,1L,0L};
     i = 0;
     while (iteratorHasNext(iter)) {
-        int v = iteratorNext(iter);
+        long v = (long)iteratorNext(iter);
         assert(b[i] == v);
         i++;
     }
     iteratorRelease(iter);
 
-    int c[4] = {1,0,2,3};
+    long c[4] = {1L,0L,2L,3L};
     i = 0;
     listMoveHead(l, l->head->next);
     for(int i = 0; i < 4; i++) {
         assert(listNodeValue(listIndex(l, i)) == c[i]);
     }
 
-    int r = listPop(l);
-    assert(r == 1);
+    long r = ((long)listPop(l));
+    assert(r == 1L);
     assert(listLength(l) == 3);
 
     listRelease(l);
