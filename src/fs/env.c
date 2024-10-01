@@ -13,7 +13,7 @@ Env* envCreate() {
     return env;
 }
 void envRelease(Env* env) {
-    lockSetRelease(&env->locks_);
+    lockSetDestroy(&env->locks_);
     zfree(env);
 }
 //锁定指定文件，避免引发多线程操作对同一个文件的竞争访问

@@ -124,6 +124,7 @@ int test_env_write_read() {
     error = envReadFileToSds(env, file, &read);
     assert(isOk(error));
     assert(strncmp(read, "test", 4) == 0);
+    //double free
     envRelease(env);
 
     

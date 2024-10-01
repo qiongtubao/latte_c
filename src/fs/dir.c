@@ -109,12 +109,12 @@ Iterator* dir_scan_file(char* dir_path, const char* filter_pattern) {
     snprintf(tmp_path, sizeof(tmp_path), "%s/%s", dir_path, pentry->d_name);
     if (dirIs(tmp_path))
       continue;
-    
+
     if (!filter_pattern || 0 == regexec(&reg, pentry->d_name, 0, NULL, 0))
       listAddNodeTail(files, sdsnew(pentry->d_name));
   }
   if (filter_pattern)
     regfree(&reg);
   closedir(pdir);
-  return listGetLatteIterator(files, 1);
+  return listGetLatteIteratorFreeList(files, 0);
 }
