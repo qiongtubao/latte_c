@@ -3,7 +3,7 @@ BUILD_OBJ?=dict.o siphash.o dict_plugins.o
 LIB_OBJ?=
 TEST_MAIN?=dict_test
 MODULE?=dict
-BUILD_INCLUDE=dict.h
+BUILD_INCLUDE=dict.h dict_plugins.h
 include $(WORKSPACE)/mks/sys.mk
 include $(WORKSPACE)/mks/final.mk
 include $(WORKSPACE)/mks/malloc.mk
