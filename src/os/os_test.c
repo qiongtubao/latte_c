@@ -11,7 +11,7 @@
 void *quit_thread_func(void *_signum)
 {
   intptr_t signum = (intptr_t)_signum;
-  log_info("Receive signal: %ld", signum);
+  LATTE_LIB_LOG(LOG_INFO,"Receive signal: %ld", signum);
   return NULL;
 }
 
@@ -73,7 +73,7 @@ int readFromFile(const char* fileName, char** outputData, size_t* fileSize)
 {
   FILE *file = fopen(fileName, "rb");
   if (file == NULL) {
-    log_error("latte_lib", "Failed to open file %s" ,fileName);
+    LATTE_LIB_LOG(LOG_ERROR, "Failed to open file %s" ,fileName);
     return -1;
   }
 
@@ -90,7 +90,7 @@ int readFromFile(const char* fileName, char** outputData, size_t* fileSize)
     memset(buffer, 0, sizeof(buffer));
     oneRead = fread(buffer, 1, sizeof(buffer), file);
     if (ferror(file)) {
-      log_error("latte_lib", "Failed to read data %s" , fileName);
+      LATTE_LIB_LOG(LOG_ERROR, "Failed to read data %s" , fileName);
       fclose(file);
       if (data != NULL) {
         free(data);
@@ -101,7 +101,7 @@ int readFromFile(const char* fileName, char** outputData, size_t* fileSize)
 
     data = (char *)realloc(data, readSize + oneRead);
     if (data == NULL) {
-      log_error("latte_lib","Failed to alloc memory for %s" ,fileName);
+      LATTE_LIB_LOG(LOG_ERROR,"Failed to alloc memory for %s" ,fileName);
       free(data);
       fclose(file);
       return -1;
