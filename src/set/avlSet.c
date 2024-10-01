@@ -67,10 +67,14 @@ void releaseSetSdsNode(avlNode* node) {
     sdsfree(node->key);
     zfree(node);
 }
+
+int avlSetSdsOperator(void* a, void* b) {
+    return sdscmp((sds)a, (sds)b);
+}
 avlTreeType avlSetSdsType = {
     .createNode = createSetSdsNode,
     .nodeSetVal = UNSETVAL,
-    .operator = sdscmp,
+    .operator = avlSetSdsOperator,
     .releaseNode = releaseSetSdsNode
 };
 

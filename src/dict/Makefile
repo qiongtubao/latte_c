@@ -1,5 +1,5 @@
 WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=dict.o siphash.o
+BUILD_OBJ?=dict.o siphash.o dict_plugins.o
 LIB_OBJ?=
 TEST_MAIN?=dict_test
 MODULE?=dict
@@ -10,4 +10,5 @@ include $(WORKSPACE)/mks/malloc.mk
 include $(WORKSPACE)/mks/latte.mk
 include $(WORKSPACE)/mks/info.mk
 include $(WORKSPACE)/src/zmalloc/lib.mk
+include $(WORKSPACE)/src/sds/lib.mk
 

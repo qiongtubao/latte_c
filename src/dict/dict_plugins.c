@@ -10,7 +10,7 @@ uint64_t dictSdsHash(const void *key) {
     return dictGenHashFunction((unsigned char*)key, sdslen((char*)key));
 }
 
-int dictSdsKeyCompare(void *privdata, const void *key1,
+int dictSdsKeyCompare(dict *privdata, const void *key1,
         const void *key2)
 {
     int l1,l2;
@@ -41,7 +41,7 @@ uint64_t dictCharHash(const void *key) {
 }
 
 
-int dictCharKeyCompare(void* privdata, const void *key1,
+int dictCharKeyCompare(dict* privdata, const void *key1,
     const void *key2) {
     int l1, l2;
     DICT_NOTUSED(privdata);

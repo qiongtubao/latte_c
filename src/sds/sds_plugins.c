@@ -1,5 +1,6 @@
 #include "sds_plugins.h"
-#include <memory.h>
+
+#include <string.h>
 // 32位定长数据编码
 void encodeFixed32(char* dst, uint32_t value) {
     uint8_t* const buffer = (uint8_t*)dst;
