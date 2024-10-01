@@ -60,7 +60,7 @@ void set_signal_handler0(int sig, sighandler_t func) {
 
   int rc = sigaction(sig, &newsa, &oldsa);
   if (rc) {
-     log_error("Failed to set signal %d ",sig);
+     log_error("latte_lib","Failed to set signal %d ",sig);
   }
 }
 

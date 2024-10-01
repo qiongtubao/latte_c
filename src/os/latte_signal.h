@@ -2,8 +2,15 @@
 #define LATTE_C_SIGNAL_H
 
 #include <signal.h>
-#include <bits/types/sigset_t.h>
-#include <bits/sigaction.h>
+#ifdef __linux__
+    #include <bits/types/sigset_t.h>
+    #include <bits/sigaction.h>
+#elif defined(__APPLE__) && defined(__MACH__)
+
+
+#else
+
+#endif 
 
 void block_default_signals(sigset_t *signal_set, sigset_t *old_set);
 void unblock_default_signals(sigset_t *signal_set, sigset_t *old_set);
