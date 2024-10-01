@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "posix_file.h"
 #include "flags.h"
+#include <stdio.h>
 #if defined(HAVE_O_CLOEXEC)
     int kOpenBaseFlags = O_CLOEXEC;
 #else
