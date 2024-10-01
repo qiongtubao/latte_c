@@ -1,18 +1,22 @@
 #include "lockSet.h"
 
-lockSet* lockSetCreate(set* dt) {
+lockSet* lockSetCreate(set* s) {
     lockSet* lockset = zmalloc(sizeof(lockSet));
-    lockSetInit(lockset, dt);
+    lockSetInit(lockset, s);
     return lockset;
 }
 
-int lockSetInit(lockSet* lockset, set* dt) {
-    lockset->set = dt;
+int lockSetInit(lockSet* lockset, set* s) {
+    lockset->set = s;
     return mutexInit(&lockset->mutex);
 }
 
 void lockSetDestroy(lockSet* lockset) {
-    lockset->set->type->release(lockset->set);
+    mutexLock(&lockset->mutex);
+    set* s = lockset->set;
+    lockset->set = NULL;
+    mutexUnlock(&lockset->mutex);
+    setRelease(s);
     mutexDestroy(&lockset->mutex);
 }
 void lockSetRelease(lockSet* lockset) {
@@ -22,28 +26,28 @@ void lockSetRelease(lockSet* lockset) {
 
 bool lockSetAdd(lockSet* set, void* element) {
     mutexLock(&set->mutex);
-    bool result = set->set->type->add(set->set, element);
+    bool result = setAdd(set->set, element);
     mutexUnlock(&set->mutex);
     return result;
 }
 
 bool lockSetRemove(lockSet* set, void* element) {
     mutexLock(&set->mutex);
-    bool result = set->set->type->remove(set->set, element);
+    bool result = setRemove(set->set, element);
     mutexUnlock(&set->mutex);
     return result;
 }
 
 bool lockSetContains(lockSet* set, void* element) {
     mutexLock(&set->mutex);
-    bool result = set->set->type->contains(set->set, element);
+    bool result = setContains(set->set, element);
     mutexUnlock(&set->mutex);
     return result;
 }
 
 size_t lockSetSize(lockSet* set) {
     mutexLock(&set->mutex);
-    size_t result = set->set->type->size(set->set);
+    size_t result = setSize(set->set);
     mutexUnlock(&set->mutex);
     return result; 
 }

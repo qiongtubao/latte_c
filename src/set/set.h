@@ -5,7 +5,7 @@
 #define __LATTE_SET_H
 
 #include <dict/dict.h>
-#include <dict_plugins/dict_plugins.h>
+#include <dict/dict_plugins.h>
 #include <stdbool.h>
 #include "iterator/iterator.h"
 #include "zmalloc/zmalloc.h"

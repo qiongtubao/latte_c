@@ -3,7 +3,7 @@
 #define __LATTE_HASH_SET_H
 
 #include <dict/dict.h>
-#include <dict_plugins/dict_plugins.h>
+#include <dict/dict_plugins.h>
 #include "set.h"
 
 typedef struct dict hashSet;
