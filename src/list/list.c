@@ -387,10 +387,9 @@ typedef struct latteListIter {
     list* list;
 } latteListIter;
 
-
 bool freeListIteratorApiHasNext(Iterator* iterator) {
     latteListIter* it = (latteListIter*)iterator;
-    listNode* node = listNext(it->it.data);
+    listNode* node = listNext(((listIter*)it->it.data));
     if (node == NULL) {
         return false;
     }
@@ -421,16 +420,17 @@ IteratorType freeListIteratorApi = {
 };
 
 Iterator* listGetLatteIterator(list* l, int for_seq) {
-    latteListIter* it = zmalloc(sizeof(latteListIter*));
-    it->it.data = listGetIterator(l, for_seq);
+    latteListIter* it = zmalloc(sizeof(latteListIter));
+    listIter * t = listGetIterator(l, for_seq);
+    it->it.data = t;
     it->it.type = &freeListIteratorApi;
     it->next = NULL;
     it->list = NULL;
-    return it;
+    return (Iterator*)it;
 }
 
-Iterator* listGetLatteIteratorFree(list* l, int for_seq) {
-    latteListIter* it = zmalloc(sizeof(latteListIter*));
+Iterator* listGetLatteIteratorFreeList(list* l, int for_seq) {
+    latteListIter* it = zmalloc(sizeof(latteListIter));
     it->it.data = listGetIterator(l, for_seq);
     it->it.type = &freeListIteratorApi;
     it->next = NULL;

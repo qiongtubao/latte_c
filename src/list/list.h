@@ -2,6 +2,7 @@
 #define __LATTE_LIST_H
 
 #include "iterator/iterator.h"
+
 typedef struct listNode {
     struct listNode *prev;
     struct listNode *next;
