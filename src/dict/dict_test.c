@@ -20,7 +20,7 @@ uint64_t testHashCallback(const void *key) {
     return dictGenCaseHashFunction((unsigned char*)key, strlen((char*)key));
 }
 
-int testCompareCallback(void *privdata, const void *key1, const void *key2) {
+int testCompareCallback(dict *privdata, const void *key1, const void *key2) {
     int l1,l2;
     DICT_NOTUSED(privdata);
     l1 = strlen((char*) key1);
@@ -29,7 +29,7 @@ int testCompareCallback(void *privdata, const void *key1, const void *key2) {
     return memcmp(key1, key2,l1) == 0;
 }
 
-void testFreeCallback(void* privdata, void* val) {
+void testFreeCallback(dict* privdata, void* val) {
     DICT_NOTUSED(privdata);
     // printf("delete :%p\n", val);
     if(val != NULL) {

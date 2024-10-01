@@ -1,4 +1,5 @@
 #include "sds_plugins.h"
+#include <string.h>
 
 // 32位定长数据编码
 void encodeFixed32(char* dst, uint32_t value) {
@@ -205,7 +206,7 @@ bool getLengthPrefixedSlice(Slice* input , Slice* result) {
 }
 
 //
-SliceRemovePrefix(Slice* slice, size_t len) {
+void SliceRemovePrefix(Slice* slice, size_t len) {
   slice->p = slice->p + len;
   slice->len = slice->len - len;
 }

@@ -15,7 +15,6 @@ include $(WORKSPACE)/mks/latte.mk
 include $(WORKSPACE)/src/zmalloc/lib.mk
 include $(WORKSPACE)/src/sds/lib.mk
 include $(WORKSPACE)/src/dict/lib.mk
-include $(WORKSPACE)/src/dict_plugins/lib.mk
 include $(WORKSPACE)/src/mutex/lib.mk
 include $(WORKSPACE)/src/tree/lib.mk
 include $(WORKSPACE)/src/iterator/lib.mk

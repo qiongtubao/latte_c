@@ -3,7 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include "utils/utils.h"
-#include "dict_plugins/dict_plugins.h"
+#include "dict/dict_plugins.h"
 void* ll2ptr(long long value) {
     if (sizeof(void*) == sizeof(long long)) {
         return (void*)(value);
