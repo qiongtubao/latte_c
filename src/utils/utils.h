@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdint.h>
+#include "sds/sds.h"
 
+#define MAX_LONG_DOUBLE_CHARS 5*1024
 
 #ifdef __GNUC__
 #  define likely(x)   __builtin_expect(!!(x), 1)
@@ -21,13 +23,17 @@
 #endif
 
 int ll2string(char *s, size_t len, long long value);
+sds ll2sds(long long value);
 int string2ll(const char *s, size_t slen, long long *value);
+int sds2ll(sds s, long long* value);
 // int string2ll(const char *s, size_t slen, long long *value);
 // int string2ull(const char *s, unsigned long long *value);
 // int string2l(const char *s, size_t slen, long *value);
 // int string2ld(const char *s, size_t slen, long double *dp);
-// int string2d(const char *s, size_t slen, double *dp);
-// int d2string(char *buf, size_t len, double value);
+int string2d(const char *s, size_t slen, double *dp);
+int sds2d(sds value, double* dp);
+int d2string(char *buf, size_t len, double value);
+sds d2sds(double value);
 long long ustime(void);
 
 static long long nowustime;

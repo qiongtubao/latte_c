@@ -36,6 +36,20 @@ int test_atomic() {
     return 1;
 }
 
+int test_d2string() {
+    double d = 1.21;
+    sds result = d2sds(d);
+    assert(strcmp(result, "1.21") == 0);
+
+    double d1 = 0;
+    assert(sds2d(result, &d1) == 1);
+    assert(d == d1);
+    return 1;
+}
+
+
+
+
 
 
 int test_api(void) {
@@ -49,6 +63,8 @@ int test_api(void) {
             test_string2ll() == 1);
         test_cond("atomic function",
             test_atomic() == 1);
+        test_cond("string2d + 2dstring function",
+            test_d2string() == 1);
     } test_report()
     return 1;
 }
