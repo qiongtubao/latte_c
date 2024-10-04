@@ -47,6 +47,18 @@ int test_d2string() {
     return 1;
 }
 
+int test_ld2string() {
+    long double  ld = 1.234;
+    sds result = ld2sds(ld, 0);
+    assert(strcmp(result, "1.234") == 0);
+
+    printf("\n%s\n", result);
+    long double ld1 = 0;
+    assert(sds2ld(result, &ld1) == 1);
+    assert(ld - ld1 < 0.001);
+    return 1;
+}
+
 
 
 
@@ -63,8 +75,10 @@ int test_api(void) {
             test_string2ll() == 1);
         test_cond("atomic function",
             test_atomic() == 1);
-        test_cond("string2d + 2dstring function",
+        test_cond("string2d + d2string function",
             test_d2string() == 1);
+        test_cond("string2ld + ld2string function",
+            test_ld2string() == 1);
     } test_report()
     return 1;
 }

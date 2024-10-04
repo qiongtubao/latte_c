@@ -29,7 +29,16 @@ int sds2ll(sds s, long long* value);
 // int string2ll(const char *s, size_t slen, long long *value);
 // int string2ull(const char *s, unsigned long long *value);
 // int string2l(const char *s, size_t slen, long *value);
-// int string2ld(const char *s, size_t slen, long double *dp);
+int string2ld(const char *s, size_t slen, long double *dp);
+int sds2ld(sds s, long double* dp);
+/* long double to string convertion options */
+typedef enum {
+    LD_STR_AUTO,     /* %.17Lg */
+    LD_STR_HUMAN,    /* %.17Lf + Trimming of trailing zeros */
+    LD_STR_HEX       /* %La */
+} ld2string_mode;
+int ld2string(char *buf, size_t len, long double value, ld2string_mode mode);
+sds ld2sds(long double value, ld2string_mode mode);
 int string2d(const char *s, size_t slen, double *dp);
 int sds2d(sds value, double* dp);
 int d2string(char *buf, size_t len, double value);
