@@ -2,7 +2,7 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=value.o
 LIB_OBJ?=
 TEST_MAIN?=value_test
-LIB_MODULES?=zmalloc sds iterator dict vector
+LIB_MODULES?=zmalloc sds iterator dict vector utils
 MODULE?=value
 BUILD_INCLUDE=value.h
 
