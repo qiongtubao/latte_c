@@ -11,6 +11,7 @@ typedef enum valueType {
     UNDEFINED,
     SDSS,
     INTS,
+    UINTS,
     DOUBLES,
     BOOLEANS,
     LISTTYPS,
@@ -20,8 +21,9 @@ typedef struct value {
     valueType type;
     union {
         sds sds_value;
-        long l_value;
-        double d_value;
+        int64_t ll_value;
+        uint64_t  ull_value;
+        long double ld_value;
         bool bool_value;
         vector* list_value;
         dict* map_value;
@@ -33,15 +35,17 @@ void valueRelease(value* v);
 
 
 sds valueGetSds(value* v);
-long valueGetLong(value* v);
-double valueGetDouble(value* v);
+int64_t valueGetInt64(value* v);
+uint64_t valueGetUint64(value* v);
+long double valueGetLongDouble(value* v);
 bool valueGetBool(value* v);
 vector* valueGetArray(value* v);
 dict* valueGetDict(value* v);
 
 void valueSetSds(value* v, sds s);
-void valueSetLong(value* v, long l);
-void valueSetDouble(value* v, double d);
+void valueSetInt64(value* v, int64_t l);
+void valueSetUint64(value* v, uint64_t ull);
+void valueSetLongDouble(value* v, long double d);
 void valueSetBool(value* v, bool b);
 void valueSetArray(value* v, vector* ve);
 void valueSetDict(value* v, dict* d);

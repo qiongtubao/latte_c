@@ -4,12 +4,14 @@
 #include "value.h"
 int test_value() {
     value* v = valueCreate();
-    valueSetLong(v, 1000L);
-    assert(1000L == valueGetLong(v));
+    valueSetInt64(v, 1000L);
+    assert(1000L == valueGetInt64(v));
+    valueSetUint64(v, 30000ULL);
+    assert(30000ULL == valueGetUint64(v));
     valueSetBool(v, true);
     assert(true == valueGetBool(v));
-    valueSetDouble(v, 1.11);
-    assert(1.11 == valueGetDouble(v));
+    valueSetLongDouble(v, 1.11);
+    assert(1.11 == valueGetLongDouble(v));
    
     valueSetSds(v, sdsnew("hello"));
     assert(strcmp("hello", valueGetSds(v)) == 0);
