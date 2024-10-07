@@ -1,0 +1,25 @@
+WORKSPACE?=$(CURDIR)/../..
+BUILD_OBJ?=latte_json.o 
+LIB_OBJ?=
+TEST_MAIN?=latte_json_test
+LIB_MODULES?=zmalloc sds iterator dict vector value utils log
+MODULE?=json
+BUILD_INCLUDE=latte_json.h 
+
+include $(WORKSPACE)/mks/sys.mk
+include $(WORKSPACE)/mks/final.mk
+include $(WORKSPACE)/mks/malloc.mk
+include $(WORKSPACE)/mks/latte.mk
+include $(WORKSPACE)/mks/info.mk
+include $(WORKSPACE)/src/zmalloc/lib.mk
+include $(WORKSPACE)/src/sds/lib.mk
+include $(WORKSPACE)/src/iterator/lib.mk
+include $(WORKSPACE)/src/vector/lib.mk
+include $(WORKSPACE)/src/dict/lib.mk
+include $(WORKSPACE)/src/value/lib.mk
+include $(WORKSPACE)/src/utils/lib.mk
+
+# FINAL_CC_CFLAGS+= -DUSE_JSONC -I../../deps/json-c/ -I../../deps/json-c/build
+# FINAL_CXX_CFLAGS+= -DUSE_JSONC -I../../deps/json-c/ -I../../deps/json-c/build
+# FINAL_CC_LIBS := ../../deps/json-c/build/libjson-c.a $(FINAL_CC_LIBS)
+# FINAL_CXX_LIBS := ../../deps/json-c/build/libjson-c.a $(FINAL_CXX_LIBS)
