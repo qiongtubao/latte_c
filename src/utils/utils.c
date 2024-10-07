@@ -402,3 +402,65 @@ int string2ld(const char *s, size_t slen, long double *dp) {
 int sds2ld(sds s, long double *dp) {
     return string2ld(s, sdslen(s), dp);
 }
+
+/* Helper function to convert a string to an unsigned long long value.
+ * The function attempts to use the faster string2ll() function inside
+ * Redis: if it fails, strtoull() is used instead. The function returns
+ * 1 if the conversion happened successfully or 0 if the number is
+ * invalid or out of range. */
+int string2ull(const char *s, unsigned long long *value) {
+    long long ll;
+    if (string2ll(s,strlen(s),&ll)) {
+        if (ll < 0) return 0; /* Negative values are out of range. */
+        *value = ll;
+        return 1;
+    }
+    errno = 0;
+    char *endptr = NULL;
+    *value = strtoull(s,&endptr,10);
+    if (errno == EINVAL || errno == ERANGE || !(*s != '\0' && *endptr == '\0'))
+        return 0; /* strtoull() failed. */
+    return 1; /* Conversion done! */
+}
+
+int ull2string(char* s, size_t len, unsigned long long v) {
+    char *p, aux;
+    size_t l;
+
+    /* Generate the string representation, this method produces
+     * an reversed string. */
+    p = s;
+    do {
+        *p++ = '0'+(v%10);
+        v /= 10;
+    } while(v);
+
+    /* Compute length and add null term. */
+    l = p-s;
+    if (len < l) return 0;
+    *p = '\0';
+
+    /* Reverse the string. */
+    p--;
+    while(s < p) {
+        aux = *s;
+        *s = *p;
+        *p = aux;
+        s++;
+        p--;
+    }
+    return l;
+}
+
+
+
+void latte_assert(int condition, const char *message, ...) {
+    if (!condition) {
+        va_list args;
+        va_start(args, message);
+        fprintf(stderr, "Assertion failed: ");
+        vfprintf(stderr, message, args);
+        va_end(args);
+        exit(1);
+    }
+}
