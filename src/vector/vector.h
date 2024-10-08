@@ -19,6 +19,7 @@ void* vectorPop(vector* v);
 size_t vectorSize(vector* v);
 void* vectorGet(const vector* v, size_t index);
 void vectorSet(vector* v, size_t index, void* element);
+int vectorShrink(vector* v, int empty_slots);
 
 Iterator* vectorGetIterator(vector* v);
 
