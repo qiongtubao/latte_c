@@ -67,3 +67,7 @@ tmalloc:
 	cd gpreftools && sh ./autogen.sh 
 	cd gpreftools && mkdir ./build 
 	cd gpreftools/build && make ../configure --disable-cpu-profiler --disable-heap-profiler --disable-heap-checker --disable-debugalloc --enable-minimal 
+
+json-c: .make-prerequisites
+	cd json-c && rm -rf build && mkdir build 
+	cd json-c/build  && cmake ../ && make 

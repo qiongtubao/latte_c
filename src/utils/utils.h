@@ -22,6 +22,13 @@
 #define latte_unreachable abort
 #endif
 
+#ifndef latte_min
+#define latte_min(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
+#ifndef latte_max
+#define latte_max(a, b) ((a) > (b) ? (a) : (b))
+#endif
 
 // 检查并打印错误信息
 void latte_assert(int condition, const char *message, ...);
@@ -32,7 +39,7 @@ int string2ll(const char *s, size_t slen, long long *value);
 int sds2ll(sds s, long long* value);
 // int string2ll(const char *s, size_t slen, long long *value);
 int string2ull(const char *s, unsigned long long *value);
-int ull2string(char *s, size_t len, unsigned long long* value);
+int ull2string(char *s, size_t len, unsigned long long value);
 // int string2l(const char *s, size_t slen, long *value);
 int string2ld(const char *s, size_t slen, long double *dp);
 int sds2ld(sds s, long double* dp);
