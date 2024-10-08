@@ -61,7 +61,12 @@ int test_ld2string() {
 
 
 
-
+int test_string2ull() {
+    uint64_t v = 0; 
+    assert(1 == string2ull("12345", &v));
+    assert(v == 12345);
+    return 1;
+}
 
 
 int test_api(void) {
@@ -79,6 +84,9 @@ int test_api(void) {
             test_d2string() == 1);
         test_cond("string2ld + ld2string function",
             test_ld2string() == 1);
+
+        test_cond("string2ull function",
+            test_string2ull() == 1);
     } test_report()
     return 1;
 }
