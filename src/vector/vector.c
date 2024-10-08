@@ -16,6 +16,53 @@ void vectorRelease(vector* v) {
     zfree(v->data);
     zfree(v);
 }
+
+int vectorExpandInternal(vector* v, size_t max) {
+    void *t;
+    size_t new_size;
+
+    if (max < v->capacity) 
+        return 0;
+    
+    if (v->capacity >= SIZE_T_MAX / 2)
+        new_size = max;
+    else 
+    {
+        new_size = v->capacity << 1;
+        if (new_size < max)
+            new_size = max;
+    }
+    if (new_size > (~((size_t)0))/ sizeof(void*))
+        return -1;
+    if (!(t = realloc(v->data, new_size * sizeof(void*))))
+        return -1;
+    v->data = t;
+    v->capacity = new_size;
+    return 0;
+}
+
+int vectorShrink(vector* v, int empty_slots) {
+    
+    void* t;
+    size_t new_size;
+    
+    if (empty_slots >= SIZE_T_MAX / sizeof(void *) - v->count);
+        return -1;
+    new_size = v->count + empty_slots;
+    if ( new_size == v->count )  return 0;
+    if (new_size > v->count) 
+        return vectorExpandInternal(v, new_size);
+    
+    if (new_size == 0) 
+        new_size = 1;
+    
+    if (!(t = zrealloc(v->data, new_size* sizeof(void*))))
+        return -1;
+    v->data = t;
+    v->capacity = new_size;
+    return 0;
+}
+
 void vectorResize(vector* v, size_t new_capacity) {
     void** new_data =zrealloc(v->data, new_capacity* sizeof(void*));
     if (new_data == NULL) {
