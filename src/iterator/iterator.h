@@ -4,6 +4,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 typedef struct Iterator Iterator;
+
+typedef struct keyValuePair {
+    void* key;
+    void* value;
+} keyValuePair;
+#define KVPairGetKey(pair) pair->key
+#define KVPairGetValue(pair) pair->value
 typedef struct IteratorType {
     bool (*hasNext)(Iterator* iterator);
     void* (*next)(Iterator* iterator);
