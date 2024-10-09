@@ -8,10 +8,12 @@
  * avl 
  */
 typedef struct avlNode avlNode;
+typedef void* (*getvalue_func_t)(const void*);
 typedef struct avlTreeType {
     int (*operator)(void* f1, void* f2);
     void (*releaseNode)(avlNode* node);
     avlNode* (*createNode)(void* key, void* value);
+    getvalue_func_t getValue;
     void (*nodeSetVal)(avlNode* node, void* value);
 } avlTreeType;
 
@@ -50,6 +52,12 @@ avlTreeIterator* avlTreeGetAvlTreeIterator(avlTree* tree);
 bool avlTreeIteratorHasNext(avlTreeIterator* iterator);
 avlNode* avlTreeIteratorNext(avlTreeIterator* iterator);
 void avlTreeIteratorRelease(avlTreeIterator* iterator);
+
+typedef struct avlTreeLatteIterator {
+    Iterator iterator;
+    keyValuePair pair;
+    avlTree* tree;
+} avlTreeLatteIterator;
 
 Iterator* avlTreeGetIterator(avlTree* tree);
 
