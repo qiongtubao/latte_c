@@ -338,6 +338,16 @@ int test_sdscatfmt() {
     return 1;
 }
 
+int test_memcpy() {
+    sds result = sdsnewlen("", 5);
+    assert(5 == sdslen(result));
+    printf("result == %s\n", result);
+    memcpy(result, "hello", 5);
+    assert(5 == sdslen(result));
+    assert(strncmp(result, "hello", 5) == 0);
+    return 1;
+}
+
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -369,6 +379,8 @@ int test_api(void) {
             test_sdscatfmt());
         test_cond("slice test",
             test_slice() == 1);
+        test_cond("reset sds",
+            test_memcpy() == 1);
     } test_report()
     return 1;
 }
