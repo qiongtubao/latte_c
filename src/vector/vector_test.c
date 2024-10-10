@@ -36,8 +36,40 @@ int test_vector() {
 
     assert(vectorSize(v) == 1);
     vectorRelease(v);
-    Iterator* iter = vectorGetIterator(v);
 
+    return 1;
+}
+int long_comparator(void* v1, void* v2) {
+    long l1 = v1;
+    long l2 = v2;
+    return l1 - l2;
+}
+int test_sort_vector() {
+    vector* v = vectorCreate();
+    
+    long a[7] = {2,4,5,8,10,13,19};
+    for(int i = 0; i < 7; i++) {
+        vectorPush(v, a[i]);
+    }
+    Iterator* iterator = vectorGetIterator(v);
+    int index = 0;
+    while(iteratorHasNext(iterator)) {
+        void* r = iteratorNext(iterator);
+        assert(r == a[index++]);
+    }
+    iteratorRelease(iterator);
+    
+
+    vectorSort(v, long_comparator);
+
+    long b[7] = {2,4,5,8,10,13,19};
+    iterator = vectorGetIterator(v);
+    index = 0;
+    while(iteratorHasNext(iterator)) {
+        void* r = iteratorNext(iterator);
+        assert(r == b[index++]);
+    }
+    iteratorRelease(iterator);
     return 1;
 }
 
@@ -48,6 +80,8 @@ int test_api(void) {
 #endif
         test_cond("test vector fuinction", 
             test_vector() == 1);
+        test_cond("test vector fuinction", 
+            test_sort_vector() == 1);
     } test_report()
     return 1;
 }
