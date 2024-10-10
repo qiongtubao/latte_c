@@ -95,9 +95,11 @@ void* vectorPop(vector* v) {
     v->count--;
     return element;
 }
-size_t vectorSize(vector* v) {
-    return v->count;
-}
+
+// size_t vectorSize(vector* v) {
+//     return v->count;
+// }
+
 void* vectorGet(const vector* v, size_t index) {
     if (index >= v->count) {
         return NULL;
@@ -149,4 +151,38 @@ Iterator* vectorGetIterator(vector* v) {
     iterator->data = data;
     iterator->type = &vector_iterator_type;
     return iterator;
+}
+
+void swap(void** a, void** b) {
+    void* c = *a;
+    *a = *b;
+    *b = c;
+}
+// 分区函数
+int partition(void* arr[], int low, int high, comparator_t c) {
+    void* pivot = arr[high]; // 选择最后一个元素作为基准
+    int i = (low - 1); // i指向小于pivot的元素的最后一个位置
+
+    for (int j = low; j <= high - 1; j++) {
+        // 如果当前元素小于或等于pivot
+        if (c(arr[j] , pivot) <= 0) {
+            i++; // 增加小于pivot的元素的计数
+            swap(&arr[i], &arr[j]); // 交换
+        }
+    }
+    swap(&arr[i + 1], &arr[high]); // 把pivot放到正确的位置
+    return (i + 1);
+}
+// 快速排序函数
+void quickSort(void* array[], int low, int hight, comparator_t c) {
+    if (low < hight) {
+        // pi 是分区后的基准元素索引
+        int pi = partition(array, low, hight, c);
+        //单独对基准元素左右两边的子数组进行排序
+        quickSort(array, low, pi -1, c);
+        quickSort(array, pi + 1, hight, c);
+    }
+}
+void vectorSort(vector* v, comparator_t c) {
+    quickSort(v->data, 0, v->count - 1, c);
 }

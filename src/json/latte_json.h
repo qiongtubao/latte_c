@@ -38,6 +38,11 @@ int jsonMapPutBool(value* root, sds key, bool v);
 int jsonMapPutLongDouble(value* root, sds key, long double v);
 value* jsonMapGet(value* root, char* key);
 
+#define jsonMapGetSds(root, key)  valueGetSds(jsonMapGet(root, key))
+#define jsonMapGetInt64(root, key)  valueGetInt64(jsonMapGet(root, key))
+#define jsonMapGetBool(root, key)  valueGetBool(jsonMapGet(root, key))
+#define jsonMapGetLongDouble(root, key)  valueGetLongDouble(jsonMapGet(root, key))
+
 value* jsonListCreate();
 int jsonListPutSds(value* v, sds element);
 int jsonListPutBool(value* root, bool element);
