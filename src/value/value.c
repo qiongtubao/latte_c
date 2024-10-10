@@ -30,7 +30,7 @@ void valueClean(value* v) {
             dictRelease(v->value.map_value);
             v->value.map_value = NULL;
         default:
-        
+        break;
     }
 }
 void valueRelease(value* v) {

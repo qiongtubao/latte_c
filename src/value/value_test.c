@@ -28,6 +28,17 @@ int test_value() {
     valueRelease(v);
     return 1;
 }
+
+int test_type() {
+    int64_t v0 = 9223372036854775807 + 1;
+    long v1 = 9223372036854775807L + 1L;
+    long long v2 = 9223372036854775807LL + 1LL;
+    printf("sizeof int64_t :%ld %ld \n", sizeof(int64_t), v0);
+    printf("sizeof long :%ld %ld\n", sizeof(long), v1);
+    printf("sizeof long long :%ld %lld\n", sizeof(long long), v2);
+    
+    return 1;
+}
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -35,6 +46,8 @@ int test_api(void) {
         #endif
         test_cond("about tree function", 
             test_value() == 1);
+        test_cond("about type function",
+            test_type() == 1);
     } test_report()
     return 1;
 }
