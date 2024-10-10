@@ -33,7 +33,7 @@
 value* jsonMapCreate();
 int jsonMapPutValue(value* root, sds key, value* v);
 int jsonMapPutSds(value* root, sds key, sds sv);
-int jsonMapPutInt64(value* root, sds key, long long sv);
+int jsonMapPutInt64(value* root, sds key, int64_t sv);
 int jsonMapPutBool(value* root, sds key, bool v);
 int jsonMapPutLongDouble(value* root, sds key, long double v);
 value* jsonMapGet(value* root, char* key);
@@ -41,7 +41,7 @@ value* jsonMapGet(value* root, char* key);
 value* jsonListCreate();
 int jsonListPutSds(value* v, sds element);
 int jsonListPutBool(value* root, bool element);
-int jsonListPutInt64(value* root, long long element);
+int jsonListPutInt64(value* root, int64_t element);
 int jsonListPutLongDouble(value* root, long double element);
 int jsonListPutValue(value* root, value* element);
 int jsonListShrink(value* root, int max);
