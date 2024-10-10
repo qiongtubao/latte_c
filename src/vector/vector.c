@@ -1,6 +1,13 @@
 #include "vector.h"
 #include "zmalloc/zmalloc.h"
 #include "log/log.h"
+#include <limits.h>
+#include <stddef.h>
+
+#ifndef SIZE_T_MAX
+#  define SIZE_T_MAX	SIZE_MAX
+#endif
+
 vector* vectorCreate() {
     vector* v = zmalloc(sizeof(vector));
     if (v == NULL) {
