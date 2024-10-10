@@ -50,4 +50,7 @@ void valueSetBool(value* v, bool b);
 void valueSetArray(value* v, vector* ve);
 void valueSetDict(value* v, dict* d);
 
+#define valueIsArray(v) (v->type == LISTTYPS)
+#define valueIsMap(v) (v->type == MAPTYPES)
+
 #endif

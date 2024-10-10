@@ -25,6 +25,8 @@ int vectorShrink(vector* v, int empty_slots);
 typedef int comparator_t(void* v1, void* v2);
 void vectorSort(vector* v, comparator_t c);
 
+#define vectorLast(v) vectorGet(v, v->count - 1)
+#define vectorFrist(v) vectorGet(v , 0)
 
 Iterator* vectorGetIterator(vector* v);
 
