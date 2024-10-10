@@ -189,6 +189,12 @@ int test_fs() {
     assert(strncmp(buf, "hello_world", 11) != 0);
     assert(strncmp(buf, "hello_world", 10) == 0);
 
+    assert(lseek(fd, 0, SEEK_SET) != -1);
+    sds result = readall(fd);
+    assert(result != NULL);
+    assert(sdslen(result) == 11);
+    assert(strncmp(result, "hello_world", 11) == 0);
+
     recursive_rmdir("test_fs");
     return 1;
 }

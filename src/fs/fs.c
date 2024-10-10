@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <error.h>
 #include <errno.h>
-
+#include <sys/stat.h>
 
 
 bool file_exists(char* filename) {
@@ -64,4 +64,32 @@ int readn(int fd, void *buf, int size, int* len) {
       return err;
   }
   return 0;
+}
+
+sds readall(int fd) {
+  if (fd == -1) {
+    perror("Error opening file");
+    return NULL;
+  }
+  struct stat sb;
+  if (fstat(fd, &sb) == -1) {
+      perror("Error getting file size");
+      close(fd);
+      return NULL;
+  }
+  int len = sb.st_size;
+  sds buffer = sdsnewlen("", len);
+  if (buffer == NULL) {
+    perror("Error allocating memory");
+    return NULL;
+  }
+  int size = 0;
+  // 读取文件内容
+  int error = readn(fd, buffer, len, &size);
+  if (error != 0 || size != len) {
+      perror("Error reading file");
+      sdsfree(buffer);
+      return NULL;
+  }
+  return buffer;
 }
