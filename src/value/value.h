@@ -50,6 +50,9 @@ void valueSetBool(value* v, bool b);
 void valueSetArray(value* v, vector* ve);
 void valueSetMap(value* v, dict* d);
 
+// 1 success 0 fail
+int valueSetBinary(value* v, valueType type,char* s, int len);
+sds valueGetBinary(value* v);
 #define valueIsInt64(v) (v != NULL && v->type == VALUE_INT)
 #define valueIsUInt64(v) (v != NULL && v->type == VALUE_UINT)
 #define valueIsLongDouble(v) (v!= NULL && v->type == VALUE_DOUBLE)

@@ -1,7 +1,7 @@
 #include "value.h"
 #include "iterator/iterator.h"
 #include "utils/utils.h"
-
+#include "log/log.h"
 value* valueCreate() {
     value* v = zmalloc(sizeof(value));
     v->type = VALUE_UNDEFINED;
@@ -110,4 +110,55 @@ dict* valueGetMap(value* v) {
     return v->value.map_value;
 }
 
+sds valueGetBinary(value* v) {
+    switch (v->type)
+    {
+    case VALUE_SDS:
+        return v->value.sds_value;
+        /* code */
+        break;
+    case VALUE_INT:
+        return sdsnewlen((const char*)&v->value.i64_value, sizeof(int64_t));
+    case VALUE_UINT:
+        return sdsnewlen((const char*)&v->value.u64_value, sizeof(uint64_t));
+    case VALUE_DOUBLE:
+        return sdsnewlen((const char*)&v->value.ld_value, sizeof(long double));
+    case VALUE_BOOLEAN:
+        return sdsnewlen((const char*)&v->value.bool_value, sizeof(int));
+    default:
+        LATTE_LIB_LOG(LOG_ERROR, "[valueGetBinary] unsupport data type: %d", v->type);
+        break;
+    }
 
+    return NULL;
+}
+
+/**
+ *   1 success
+ *   0 fail
+ */
+int valueSetBinary(value* v, valueType type, char* data, int len) {
+    switch (type)
+    {
+    case VALUE_SDS:
+        valueSetSds(v, sdsnewlen(data, len));
+        break;
+    case VALUE_INT:
+        valueSetInt64(v, *(int64_t*)data);
+        break;
+    case VALUE_UINT:
+        valueSetUInt64(v, *(uint64_t*)data);
+        break;
+    case VALUE_DOUBLE:
+        valueSetLongDouble(v, *(long double*)data);
+        break;
+    case VALUE_BOOLEAN:
+        valueSetBool(v, *(int *)data != 0);
+        break;
+    default:
+        LATTE_LIB_LOG(LOG_ERROR, "[valueSetBinary] unsupport or unknown data type: %d", type);
+        return 0;
+        break;
+    }
+    return 1;
+}
