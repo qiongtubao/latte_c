@@ -18,15 +18,13 @@ dictType jsonDictTyep  = {
 value* jsonMapCreate() {
     value* r = valueCreate();
     dict* d = dictCreate(&jsonDictTyep);
-    valueSetDict(r, d);
+    valueSetMap(r, d);
     return r;
 }
 
-bool isMap(value* v) {
-    return v != NULL && v->type == MAPTYPES;
-}
+
 int jsonMapPutValue(value* root, sds key, value* v) {
-    if (!isMap(root)) return 0;
+    if (!valueIsMap(root)) return 0;
     dictEntry* node = dictFind(root->value.map_value, key);
     if (node != NULL) {
         value* old_v = (value*)dictGetVal(node);
@@ -40,35 +38,35 @@ int jsonMapPutValue(value* root, sds key, value* v) {
 
 
 int jsonMapPutSds(value* root, sds key, sds sv) {
-    if (!isMap(root)) return 0;
+    if (!valueIsMap(root)) return 0;
     value* v = valueCreate();
     valueSetSds(v, sv);
     return jsonMapPutValue(root, key, v);
 }
 
 int jsonMapPutInt64(value* root, sds key, int64_t ll) {
-    if (!isMap(root)) return 0;
+    if (!valueIsMap(root)) return 0;
     value* v = valueCreate();
     valueSetInt64(v, ll);
     return jsonMapPutValue(root, key, v);
 }
 
 int jsonMapPutBool(value* root, sds key, bool b) {
-    if (!isMap(root)) return 0;
+    if (!valueIsMap(root)) return 0;
     value* v = valueCreate();
     valueSetBool(v, b);
     return jsonMapPutValue(root, key, v);
 }
 
 int jsonMapPutLongDouble(value* root, sds key, long double ld) {
-    if (!isMap(root)) return 0;
+    if (!valueIsMap(root)) return 0;
     value* v = valueCreate();
     valueSetLongDouble(v, ld);
     return jsonMapPutValue(root, key, v);
 }
 
 value* jsonMapGet(value* root, char* key) {
-    latte_assert(isMap(root), "json is not map!!!");
+    latte_assert(valueIsMap(root), "json is not map!!!");
     dictEntry* entry = dictFind(root->value.map_value, key);
     if (entry == NULL) return NULL;
     return dictGetVal(entry);
@@ -83,55 +81,53 @@ value* jsonListCreate() {
     return r;
 }
 
-bool isList(value* v) {
-    return v != NULL && v->type == LISTTYPS;
-}
+
 
 void valueListResize(value* root, int size) {
-    if (!isList(root)) return;
-    vectorResize(root->value.list_value, size);
+    if (!valueIsArray(root)) return;
+    vectorResize(valueGetArray(root), size);
 }
 
 
 
 int jsonListPutSds(value* root, sds element) {
-    if (!isList(root)) return 0;
+    if (!valueIsArray(root)) return 0;
     value* v = valueCreate();
     valueSetSds(v, element);
-    vectorPush(root->value.list_value, v);
+    vectorPush(valueGetArray(root), v);
     return 1;
 }
 
 int jsonListPutBool(value* root, bool element) {
-    if (!isList(root)) return 0;
+    if (!valueIsArray(root)) return 0;
     value* v = valueCreate();
     valueSetBool(v, element);
-    return vectorPush(root->value.list_value, v);
+    return vectorPush(valueGetArray(root), v);
 }
 
 
 int jsonListPutInt64(value* root, int64_t element) {
-    if (!isList(root)) return 0;
+    if (!valueIsArray(root)) return 0;
     value* v = valueCreate();
     valueSetInt64(v, element);
-    return vectorPush(root->value.list_value, v);
+    return vectorPush(valueGetArray(root), v);
 }
 
 int jsonListPutLongDouble(value* root, long double element) {
-    if (!isList(root)) return 0;
+    if (!valueIsArray(root)) return 0;
     value* v = valueCreate();
     valueSetLongDouble(v, element);
-    return vectorPush(root->value.list_value, v);
+    return vectorPush(valueGetArray(root), v);
 }
 
 int jsonListPutValue(value* root, value* element) {
-    if (!isList(root)) return 0;
-    return vectorPush(root->value.list_value, element);
+    if (!valueIsArray(root)) return 0;
+    return vectorPush(valueGetArray(root), element);
 }
 
 int jsonListShrink(value* root, int max) {
-    if (!isList(root)) return 0;
-    return vectorShrink(root->value.list_value, max);
+    if (!valueIsArray(root)) return 0;
+    return vectorShrink(valueGetArray(root), max);
 }
 
 static void json_tokener_reset_level(struct jsonTokener *tok, int depth)
@@ -1255,7 +1251,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                             else
                             {
                                 // current = json_object_new_uint64(numuint64);
-                                valueSetUint64(current, numuint64);
+                                valueSetUInt64(current, numuint64);
                             }
                             setTokenerCurrent(tok, current);
                         }
@@ -1575,17 +1571,19 @@ sds sdsEncode(sds v) {
 
 sds jsonEncode(value* v) {
     switch(v->type) {
-        case SDSS:
+        case VALUE_SDS:
             return sdsEncode(v->value.sds_value);
-        case INTS:
-            return ll2sds(v->value.ll_value);
-        case DOUBLES:
+        case VALUE_INT:
+            return ll2sds(v->value.i64_value);
+        case VALUE_UINT:
+            return ull2sds(v->value.u64_value);
+        case VALUE_DOUBLE:
             return ld2sds(v->value.ld_value, 0);
-        case BOOLEANS:
+        case VALUE_BOOLEAN:
             return v->value.bool_value == true? sdsnew("true"): sdsnew("false");
-        case LISTTYPS: {
+        case VALUE_ARRAY: {
             sds result = sdsnew("[");
-            Iterator* itor = vectorGetIterator(v->value.list_value);
+            Iterator* itor = vectorGetIterator(valueGetArray(v));
             int frist = 1;
             while(iteratorHasNext(itor)) {
                 value* v = iteratorNext(itor);
@@ -1601,9 +1599,9 @@ sds jsonEncode(value* v) {
             iteratorRelease(itor);
             return sdscatfmt(result, "]");
         }
-        case MAPTYPES: {
+        case VALUE_MAP: {
             sds result = sdsnew("{");
-            dictIterator* itor = dictGetIterator(v->value.list_value);
+            dictIterator* itor = dictGetIterator(valueGetMap(v));
             int frist = 1;
             dictEntry* entry = NULL;
             while(NULL != (entry = dictNext(itor))) {
