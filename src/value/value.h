@@ -50,7 +50,12 @@ void valueSetBool(value* v, bool b);
 void valueSetArray(value* v, vector* ve);
 void valueSetDict(value* v, dict* d);
 
-#define valueIsArray(v) (v->type == LISTTYPS)
-#define valueIsMap(v) (v->type == MAPTYPES)
+#define valueIsInt64(v) (v != NULL && v->type == INTS)
+#define valueIsUInt64(v) (v != NULL && v->type == UINTS)
+#define valueIsLongDouble(v) (v!= NULL && v->type == DOUBLES)
+#define valueIsBool(v) (v != NULL && v->type == BOOLEANS)
+#define valueIsSds(v)  (v != NULL && v->type == SDSS)
+#define valueIsArray(v) (v != NULL && v->type == LISTTYPS)
+#define valueIsMap(v) (v != NULL &&  v->type == MAPTYPES)
 
 #endif
