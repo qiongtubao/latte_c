@@ -39,6 +39,19 @@ int test_type() {
     
     return 1;
 }
+
+int test_binary() {
+    value* v = valueCreate();
+    valueSetUInt64(v, ULLONG_MAX);
+    sds result = valueGetBinary(v);
+    
+    value* v1 = valueCreate();
+    valueSetBinary(v1, VALUE_UINT, result, sdslen(result));
+    assert(valueIsUInt64(v1));
+    assert(valueGetUInt64(v1) == valueGetUInt64(v));
+    return 1;
+}
+
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -48,6 +61,8 @@ int test_api(void) {
             test_value() == 1);
         test_cond("about type function",
             test_type() == 1);
+        test_cond("about binary function",
+            test_binary() == 1);
     } test_report()
     return 1;
 }
