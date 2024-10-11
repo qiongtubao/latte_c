@@ -114,7 +114,7 @@ int test_encode() {
 }
 
 value* getMapTestValue(value* root) {
-    assert(root->type == MAPTYPES);
+    assert(valueIsMap(root));
     dictEntry* entry = dictFind(root->value.map_value, "test");
     assert(entry != NULL);
     return dictGetVal(entry);
@@ -125,8 +125,8 @@ int test_decode_int() {
     assert(root1 != NULL);
     value* test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(test->type == INTS);
-    assert(test->value.ll_value == 12345);
+    assert(valueIsInt64(test));
+    assert(valueGetInt64(test) == 12345);
     valueRelease(root1);
     root1 = NULL;
 
@@ -134,8 +134,8 @@ int test_decode_int() {
     assert(root1 != NULL);
     test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(test->type == UINTS);
-    assert(test->value.ull_value == 9223372036854775809ULL);
+    assert(valueIsUInt64(test));
+    assert(valueGetUInt64(test) == 9223372036854775809ULL);
     valueRelease(root1);
     root1 = NULL;
 
@@ -143,7 +143,7 @@ int test_decode_int() {
     assert(root1 != NULL);
     test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(test->type == DOUBLES);
+    assert(valueIsLongDouble(test));
     assert(test->value.ld_value - 1.2345 < 0.0001);
     valueRelease(root1);
     root1 = NULL;
@@ -154,7 +154,7 @@ int test_decode_object() {
     value* root1 = NULL;
     assert(1 == jsonDecode(sdsnew("{}"), &root1));
     assert(root1 != NULL);
-    assert(root1->type == MAPTYPES);
+    assert(valueIsMap(root1));
     assert(dictSize(root1->value.map_value) == 0);
     valueRelease(root1);
     root1 = NULL;
@@ -167,7 +167,7 @@ int test_decode_bool() {
     assert(root1 != NULL);
     value* test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(test->type == BOOLEANS);
+    assert(valueIsBool(test));
     assert(test->value.bool_value == true);
     valueRelease(root1);
     root1 = NULL;
@@ -176,7 +176,7 @@ int test_decode_bool() {
     assert(root1 != NULL);
     test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(test->type == BOOLEANS);
+    assert(valueIsBool(test));
     assert(test->value.bool_value == false);
     valueRelease(root1);
     root1 = NULL;
@@ -190,15 +190,15 @@ int test_decode_list() {
     value* root1 = NULL;
     assert(1 == jsonDecode(sdsnew("[]"), &root1));
     assert(root1 != NULL);
-    assert(root1->type == LISTTYPS);
-    assert(vectorSize(root1->value.list_value) == 0);
+    assert(valueIsArray(root1));
+    assert(vectorSize(valueGetArray(root1)) == 0);
     valueRelease(root1);
 
 
     assert(1 == jsonDecode(sdsnew("[{}]"), &root1));
     assert(root1 != NULL);
-    assert(root1->type == LISTTYPS);
-    assert(vectorSize(root1->value.list_value) == 1);
+    assert(valueIsArray(root1) == 1);
+    assert(vectorSize(valueGetArray(root1)) == 1);
     
     valueRelease(root1);
     root1 = NULL;
