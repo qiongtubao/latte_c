@@ -4,34 +4,34 @@
 
 value* valueCreate() {
     value* v = zmalloc(sizeof(value));
-    v->type = UNDEFINED;
-    v->value.ll_value = 0;
+    v->type = VALUE_UNDEFINED;
     return v;
 }
 
 void valueClean(value* v) {
     switch (v->type) {
-        case SDSS:
+        case VALUE_SDS:
             sdsfree(v->value.sds_value);
             v->value.sds_value = NULL;
             break;
-        case LISTTYPS: {
-            Iterator* it = vectorGetIterator(v->value.list_value);
+        case VALUE_ARRAY: {
+            Iterator* it = vectorGetIterator(v->value.array_value);
             while(iteratorHasNext(it)) {
                 value* cv = iteratorNext(it);
                 valueRelease(cv);
             }
             iteratorRelease(it);
-            vectorRelease(v->value.list_value);
-            v->value.list_value = NULL;
+            vectorRelease(v->value.array_value);
+            v->value.array_value = NULL;
         }
             break;
-        case MAPTYPES:
+        case VALUE_MAP:
             dictRelease(v->value.map_value);
             v->value.map_value = NULL;
         default:
         break;
     }
+    v->type = VALUE_UNDEFINED;
 }
 void valueRelease(value* v) {
     valueClean(v);
@@ -40,73 +40,73 @@ void valueRelease(value* v) {
 
 void valueSetSds(value* v, sds s) {
     valueClean(v);
-    v->type = SDSS;
+    v->type = VALUE_SDS;
     v->value.sds_value = s;
 }
 
 void valueSetInt64(value* v, int64_t l) {
     valueClean(v);
-    v->type = INTS;
-    v->value.ll_value = l;
+    v->type = VALUE_INT;
+    v->value.i64_value = l;
 }
 
-void valueSetUint64(value* v, uint64_t l) {
+void valueSetUInt64(value* v, uint64_t l) {
     valueClean(v);
-    v->type = UINTS;
-    v->value.ll_value = l;
+    v->type = VALUE_UINT;
+    v->value.u64_value = l;
 }
 
 void valueSetLongDouble(value* v, long double d) {
     valueClean(v);
-    v->type = DOUBLES;
+    v->type = VALUE_DOUBLE;
     v->value.ld_value = d;
 }
 void valueSetBool(value* v, bool b) {
     valueClean(v);
-    v->type = BOOLEANS;
+    v->type = VALUE_BOOLEAN;
     v->value.bool_value = b;
 }
 void valueSetArray(value* v, vector* ve) {
     valueClean(v);
-    v->type = LISTTYPS;
-    v->value.list_value = ve;
+    v->type = VALUE_ARRAY;
+    v->value.array_value = ve;
 }
-void valueSetDict(value* v, dict* d) {
+void valueSetMap(value* v, dict* d) {
     valueClean(v);
-    v->type = MAPTYPES;
+    v->type = VALUE_MAP;
     v->value.map_value = d;
 }
 
 
 sds valueGetSds(value* v) {
-    latte_assert(v->type == SDSS, "value is not sds");
+    latte_assert(valueIsSds(v), "value is not sds");
     return v->value.sds_value;
 }
 
 int64_t valueGetInt64(value* v) {
-    latte_assert(v->type == INTS, "value is not int64");
-    return v->value.ll_value;
+    latte_assert(valueIsInt64(v), "value is not int64\n");
+    return v->value.i64_value;
 }
 
-uint64_t valueGetUint64(value* v) {
-    latte_assert(v->type == UINTS, "value is not uint64");
-    return v->value.ull_value;
+uint64_t valueGetUInt64(value* v) {
+    latte_assert(valueIsUInt64(v), "value is not uint64");
+    return v->value.i64_value;
 }
 
 long double valueGetLongDouble(value* v) {
-    latte_assert(v->type == DOUBLES, "value is not long double");
+    latte_assert(valueIsLongDouble(v), "value is not long double");
     return v->value.ld_value;
 }
 bool valueGetBool(value* v) {
-    latte_assert(v->type == BOOLEANS, "value is not boolean");
+    latte_assert(valueIsBool(v), "value is not boolean");
     return v->value.bool_value;
 }
 vector* valueGetArray(value* v) {
-    latte_assert(v->type == LISTTYPS, "value is not int64");
-    return v->value.list_value;
+    latte_assert(valueIsArray(v), "value is not array");
+    return v->value.array_value;
 }
-dict* valueGetDict(value* v) {
-    latte_assert(v->type == MAPTYPES, "value is not int64");
+dict* valueGetMap(value* v) {
+    latte_assert(valueIsMap(v), "value is not map");
     return v->value.map_value;
 }
 

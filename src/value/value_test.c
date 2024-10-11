@@ -6,8 +6,8 @@ int test_value() {
     value* v = valueCreate();
     valueSetInt64(v, 1000L);
     assert(1000L == valueGetInt64(v));
-    valueSetUint64(v, 30000ULL);
-    assert(30000ULL == valueGetUint64(v));
+    valueSetUInt64(v, 30000ULL);
+    assert(30000ULL == valueGetUInt64(v));
     valueSetBool(v, true);
     assert(true == valueGetBool(v));
     valueSetLongDouble(v, 1.11);
@@ -19,8 +19,8 @@ int test_value() {
         
     };
     dict* d = dictCreate(&t);
-    valueSetDict(v, d);
-    assert(d == valueGetDict(v));
+    valueSetMap(v, d);
+    assert(d == valueGetMap(v));
 
     vector* ve = vectorCreate();
     valueSetArray(v, ve);
@@ -44,7 +44,7 @@ int test_api(void) {
         #ifdef LATTE_TEST
             // ..... private
         #endif
-        test_cond("about tree function", 
+        test_cond("about value function", 
             test_value() == 1);
         test_cond("about type function",
             test_type() == 1);
