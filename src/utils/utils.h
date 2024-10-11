@@ -7,6 +7,8 @@
 #include "sds/sds.h"
 
 #define MAX_LONG_DOUBLE_CHARS 5*1024
+// ULLONG_MAX 9223372036854775807LL * 2 + 1  => 20位
+#define MAX_ULL_CHARS 21
 
 #ifdef __GNUC__
 #  define likely(x)   __builtin_expect(!!(x), 1)
@@ -40,6 +42,7 @@ int sds2ll(sds s, long long* value);
 // int string2ll(const char *s, size_t slen, long long *value);
 int string2ull(const char *s, unsigned long long *value);
 int ull2string(char *s, size_t len, unsigned long long value);
+sds ull2sds(unsigned long long value);
 // int string2l(const char *s, size_t slen, long *value);
 int string2ld(const char *s, size_t slen, long double *dp);
 int sds2ld(sds s, long double* dp);

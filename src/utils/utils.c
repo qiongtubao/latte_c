@@ -178,9 +178,10 @@ int ll2string(char *dst, size_t dstlen, long long svalue) {
 }
 
 sds ll2sds(long long ll) {
-    char buffer[22];
-    int len = ll2string(buffer, 22, ll);
-    return sdsnewlen(buffer, len);
+    sds buffer = sdsnewlen("", MAX_ULL_CHARS);
+    int len = ll2string(buffer, MAX_ULL_CHARS, ll);
+    sdssetlen(buffer, len);
+    return buffer;
 }
 
 long long ustime(void) {
@@ -363,9 +364,10 @@ int ld2string(char *buf, size_t len, long double value, ld2string_mode mode) {
 }
 
 sds ld2sds(long double value, ld2string_mode mode) {
-    char buffer[MAX_LONG_DOUBLE_CHARS];
+    sds buffer = sdsnewlen("", MAX_LONG_DOUBLE_CHARS);
     int len = ld2string(buffer, MAX_LONG_DOUBLE_CHARS, value, mode);
-    return sdsnewlen(buffer, len);
+    sdssetlen(buffer, len);
+    return buffer;
 }
 
 
@@ -452,6 +454,12 @@ int ull2string(char* s, size_t len, unsigned long long v) {
     return l;
 }
 
+sds ull2sds(unsigned long long ull) {
+    sds buffer = sdsnewlen("", MAX_ULL_CHARS);
+    int len = ull2string(buffer, MAX_ULL_CHARS, ull);
+    sdssetlen(buffer, len);
+    return buffer;
+}
 
 
 void latte_assert(int condition, const char *message, ...) {
