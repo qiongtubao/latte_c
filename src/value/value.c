@@ -2,13 +2,13 @@
 #include "iterator/iterator.h"
 #include "utils/utils.h"
 #include "log/log.h"
-value* valueCreate() {
-    value* v = zmalloc(sizeof(value));
+value_t* value_new() {
+    value_t* v = zmalloc(sizeof(value_t));
     v->type = VALUE_UNDEFINED;
     return v;
 }
 
-void valueClean(value* v) {
+void valueClean(value_t* v) {
     switch (v->type) {
         case VALUE_SDS:
             sdsfree(v->value.sds_value);
@@ -17,8 +17,8 @@ void valueClean(value* v) {
         case VALUE_ARRAY: {
             Iterator* it = vectorGetIterator(v->value.array_value);
             while(iteratorHasNext(it)) {
-                value* cv = iteratorNext(it);
-                valueRelease(cv);
+                value_t* cv = iteratorNext(it);
+                value_delete(cv);
             }
             iteratorRelease(it);
             vectorRelease(v->value.array_value);
@@ -33,84 +33,84 @@ void valueClean(value* v) {
     }
     v->type = VALUE_UNDEFINED;
 }
-void valueRelease(value* v) {
+void value_delete(value_t* v) {
     valueClean(v);
     zfree(v);
 }
 
-void valueSetSds(value* v, sds s) {
+void value_set_sds(value_t* v, sds s) {
     valueClean(v);
     v->type = VALUE_SDS;
     v->value.sds_value = s;
 }
 
-void valueSetInt64(value* v, int64_t l) {
+void value_set_int64(value_t* v, int64_t l) {
     valueClean(v);
     v->type = VALUE_INT;
     v->value.i64_value = l;
 }
 
-void valueSetUInt64(value* v, uint64_t l) {
+void value_set_uint64(value_t* v, uint64_t l) {
     valueClean(v);
     v->type = VALUE_UINT;
     v->value.u64_value = l;
 }
 
-void valueSetLongDouble(value* v, long double d) {
+void value_set_longdouble(value_t* v, long double d) {
     valueClean(v);
     v->type = VALUE_DOUBLE;
     v->value.ld_value = d;
 }
-void valueSetBool(value* v, bool b) {
+void value_set_bool(value_t* v, bool b) {
     valueClean(v);
     v->type = VALUE_BOOLEAN;
     v->value.bool_value = b;
 }
-void valueSetArray(value* v, vector* ve) {
+void value_set_array(value_t* v, vector* ve) {
     valueClean(v);
     v->type = VALUE_ARRAY;
     v->value.array_value = ve;
 }
-void valueSetMap(value* v, dict* d) {
+void value_set_map(value_t* v, dict* d) {
     valueClean(v);
     v->type = VALUE_MAP;
     v->value.map_value = d;
 }
 
 
-sds valueGetSds(value* v) {
-    latte_assert(valueIsSds(v), "value is not sds");
+sds value_get_sds(value_t* v) {
+    latte_assert(value_is_sds(v), "value is not sds");
     return v->value.sds_value;
 }
 
-int64_t valueGetInt64(value* v) {
-    latte_assert(valueIsInt64(v), "value is not int64\n");
+int64_t value_get_int64(value_t* v) {
+    latte_assert(value_is_int64(v), "value is not int64\n");
     return v->value.i64_value;
 }
 
-uint64_t valueGetUInt64(value* v) {
-    latte_assert(valueIsUInt64(v), "value is not uint64");
+uint64_t value_get_uint64(value_t* v) {
+    latte_assert(value_is_uint64(v), "value is not uint64");
     return v->value.i64_value;
 }
 
-long double valueGetLongDouble(value* v) {
-    latte_assert(valueIsLongDouble(v), "value is not long double");
+long double value_get_longdouble(value_t* v) {
+    latte_assert(value_is_longdouble(v), "value is not long double");
     return v->value.ld_value;
 }
-bool valueGetBool(value* v) {
-    latte_assert(valueIsBool(v), "value is not boolean");
+bool value_get_bool(value_t* v) {
+    latte_assert(value_is_bool(v), "value is not boolean");
     return v->value.bool_value;
 }
-vector* valueGetArray(value* v) {
-    latte_assert(valueIsArray(v), "value is not array");
+vector* value_get_array(value_t* v) {
+    latte_assert(value_is_array(v), "value is not array");
     return v->value.array_value;
 }
-dict* valueGetMap(value* v) {
-    latte_assert(valueIsMap(v), "value is not map");
+dict* value_get_map(value_t* v) {
+    latte_assert(value_is_map(v), "value is not map");
     return v->value.map_value;
 }
 
-sds valueGetBinary(value* v) {
+sds value_get_binary(value_t* v) {
     switch (v->type)
     {
     case VALUE_SDS:
@@ -126,7 +126,7 @@ sds valueGetBinary(value* v) {
     case VALUE_BOOLEAN:
         return sdsnewlen((const char*)&v->value.bool_value, sizeof(int));
     default:
-        LATTE_LIB_LOG(LOG_ERROR, "[valueGetBinary] unsupport data type: %d", v->type);
+        LATTE_LIB_LOG(LOG_ERROR, "[value_get_binary] unsupport data type: %d", v->type);
         break;
     }
 
@@ -137,26 +137,26 @@ sds valueGetBinary(value* v) {
  *   1 success
  *   0 fail
  */
-int valueSetBinary(value* v, valueType type, char* data, int len) {
+int value_set_binary(value_t* v, value_type_e type, char* data, int len) {
     switch (type)
     {
     case VALUE_SDS:
-        valueSetSds(v, sdsnewlen(data, len));
+        value_set_sds(v, sdsnewlen(data, len));
         break;
     case VALUE_INT:
-        valueSetInt64(v, *(int64_t*)data);
+        value_set_int64(v, *(int64_t*)data);
         break;
     case VALUE_UINT:
-        valueSetUInt64(v, *(uint64_t*)data);
+        value_set_uint64(v, *(uint64_t*)data);
         break;
     case VALUE_DOUBLE:
-        valueSetLongDouble(v, *(long double*)data);
+        value_set_longdouble(v, *(long double*)data);
         break;
     case VALUE_BOOLEAN:
-        valueSetBool(v, *(int *)data != 0);
+        value_set_bool(v, *(int *)data != 0);
         break;
     default:
-        LATTE_LIB_LOG(LOG_ERROR, "[valueSetBinary] unsupport or unknown data type: %d", type);
+        LATTE_LIB_LOG(LOG_ERROR, "[value_set_binary] unsupport or unknown data type: %d", type);
         return 0;
         break;
     }

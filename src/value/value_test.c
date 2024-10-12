@@ -3,29 +3,29 @@
 #include <unistd.h>
 #include "value.h"
 int test_value() {
-    value* v = valueCreate();
-    valueSetInt64(v, 1000L);
-    assert(1000L == valueGetInt64(v));
-    valueSetUInt64(v, 30000ULL);
-    assert(30000ULL == valueGetUInt64(v));
-    valueSetBool(v, true);
-    assert(true == valueGetBool(v));
-    valueSetLongDouble(v, 1.11);
-    assert(1.11 == valueGetLongDouble(v));
+    value_t* v = value_new();
+    value_set_int64(v, 1000L);
+    assert(1000L == value_get_int64(v));
+    value_set_uint64(v, 30000ULL);
+    assert(30000ULL == value_get_uint64(v));
+    value_set_bool(v, true);
+    assert(true == value_get_bool(v));
+    value_set_longdouble(v, 1.11);
+    assert(1.11 == value_get_longdouble(v));
    
-    valueSetSds(v, sdsnew("hello"));
-    assert(strcmp("hello", valueGetSds(v)) == 0);
+    value_set_sds(v, sdsnew("hello"));
+    assert(strcmp("hello", value_get_sds(v)) == 0);
     dictType t = {
         
     };
     dict* d = dictCreate(&t);
-    valueSetMap(v, d);
-    assert(d == valueGetMap(v));
+    value_set_map(v, d);
+    assert(d == value_get_map(v));
 
     vector* ve = vectorCreate();
-    valueSetArray(v, ve);
-    assert(ve == valueGetArray(v));
-    valueRelease(v);
+    value_set_array(v, ve);
+    assert(ve == value_get_array(v));
+    value_delete(v);
     return 1;
 }
 
@@ -41,14 +41,14 @@ int test_type() {
 }
 
 int test_binary() {
-    value* v = valueCreate();
-    valueSetUInt64(v, ULLONG_MAX);
-    sds result = valueGetBinary(v);
+    value_t* v = value_new();
+    value_set_uint64(v, ULLONG_MAX);
+    sds result = value_get_binary(v);
     
-    value* v1 = valueCreate();
-    valueSetBinary(v1, VALUE_UINT, result, sdslen(result));
-    assert(valueIsUInt64(v1));
-    assert(valueGetUInt64(v1) == valueGetUInt64(v));
+    value_t* v1 = value_new();
+    value_set_binary(v1, VALUE_UINT, result, sdslen(result));
+    assert(value_is_uint64(v1));
+    assert(value_get_uint64(v1) == value_get_uint64(v));
     return 1;
 }
 
