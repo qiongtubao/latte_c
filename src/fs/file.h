@@ -36,7 +36,7 @@ Error* writableFileCreate(sds_t filename,
 void writableFileRelease(WritableFile* file);
 Error* writableFileAppendSds(WritableFile* file, sds_t data);
 Error* writableFileAppend(WritableFile* file, char* buf, size_t len);
-Error* writableFileAppendSlice(WritableFile* file, Slice* data);
+Error* writableFileAppendSlice(WritableFile* file, slice_t* data);
 Error* writableFileFlush(WritableFile* file);
 Error* writableFileSync(WritableFile* file);
 Error* writableFileClose(WritableFile* file);
@@ -47,7 +47,7 @@ Error* writableFileClose(WritableFile* file);
 //创建顺序读文件
 Error* sequentialFileCreate(sds_t filename, SequentialFile** fd);
 //顺序读（读取文件）
-Error* sequentialFileRead(SequentialFile* file,size_t n, Slice* slice);
+Error* sequentialFileRead(SequentialFile* file,size_t n, slice_t* slice);
 
 Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* slice);
 //顺序读（跳过字节）

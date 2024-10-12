@@ -131,7 +131,7 @@ Error* writableFileClose(WritableFile* file) {
     return posixWritableFileClose(file);
 }
 
-Error* writableFileAppendSlice(WritableFile* file, Slice* data) {
+Error* writableFileAppendSlice(WritableFile* file, slice_t* data) {
     return writableFileAppend(file, data->p, data->len);
 }
 
@@ -156,7 +156,7 @@ Error* sequentialFileCreate(sds_t filename, SequentialFile** file) {
 // 如果遇到错误，则返回非 OK 状态。
 //
 // 需要：外部同步(不是线程安全的访问方式)
-Error* sequentialFileRead(SequentialFile* file,size_t n, Slice* result) {
+Error* sequentialFileRead(SequentialFile* file,size_t n, slice_t* result) {
     return posixSequentialFileRead(file, n, result);
 }
 
@@ -172,7 +172,7 @@ void sequentialFileRelease(SequentialFile* file) {
 }
 
 Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* data) {
-    Slice slice = {
+    slice_t slice = {
         .p = sds_empty_len(n),
         .len = 0
     };

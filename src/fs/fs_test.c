@@ -132,7 +132,7 @@ int test_env_write_read() {
     error = sequentialFileCreate(file, &sf);
     
     assert(isOk(error));
-    Slice slice = {
+    slice_t slice = {
         .p = sds_empty_len(100),
         .len = 0
     };

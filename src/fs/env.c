@@ -75,7 +75,7 @@ void envWritableFileRelease(Env* env, WritableFile* file) {
 
 //
 Error* envDoWriteSdsToFile(Env* env, sds_t fname,
-                                Slice* data , bool should_sync) {
+                                slice_t* data , bool should_sync) {
   WritableFile* file = NULL;
   Error* error = envWritableFileCreate(env, fname, &file);
   if (!isOk(error)) {
@@ -97,7 +97,7 @@ Error* envDoWriteSdsToFile(Env* env, sds_t fname,
 
 Error* envWriteSdsToFileSync(Env* env, 
                              sds_t fname, sds_t data) {
-    Slice slice = {
+    slice_t slice = {
        .p = data,
        .len = sds_len(data) 
     };
@@ -118,12 +118,12 @@ Error* envReadFileToSds(Env* env, sds_t fname, sds* data) {
     static const int kBufferSize = 8192;
     sds_t result = sds_empty_len(kBufferSize);
     // sds_set_len(result, 0);
-    Slice buffer = {
+    slice_t buffer = {
         .p = sds_new_len(NULL, kBufferSize),
         .len = 0
     };
     while (true) {
-        Slice fragment;
+        slice_t fragment;
         error = sequentialFileRead(file, kBufferSize, &buffer);
         if (!isOk(error)) {
             break;

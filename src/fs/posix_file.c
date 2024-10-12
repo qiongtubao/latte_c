@@ -222,7 +222,7 @@ Error* posixSequentialFileCreate(sds_t filename, PosixSequentialFile** file) {
     return &Ok;
 }
 
-Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, Slice* slice) {
+Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, slice_t* slice) {
   Error* error = &Ok;
   while (true) {
     //read适合顺序读

@@ -2,7 +2,7 @@
 
 #include <string.h>
 // 32位定长数据编码
-void encodeFixed32(char* dst, uint32_t value) {
+void encode_fixed32(char* dst, uint32_t value) {
     uint8_t* const buffer = (uint8_t*)dst;
     buffer[0] = value;
     buffer[1] = (value >> 8);
@@ -10,7 +10,7 @@ void encodeFixed32(char* dst, uint32_t value) {
     buffer[3] = (value >> 24);
 }
 
-uint32_t decodeFixed32(const char* ptr) {
+uint32_t decode_fixed32(const char* ptr) {
     const uint8_t* buffer = (uint8_t*)(ptr);
 
     return ((uint32_t)(buffer[0])) |
@@ -20,13 +20,13 @@ uint32_t decodeFixed32(const char* ptr) {
 }
 
 
-sds_t sdsAppendFixed32(sds_t result, uint32_t value) {
+sds_t sds_append_fixed32(sds_t result, uint32_t value) {
     char buf[sizeof(value)];
-    encodeFixed32(buf, value);
+    encode_fixed32(buf, value);
     return sds_cat(result, buf);
 }
 //64位定长数据编码
-void encodeFixed64(char* dst, uint64_t value) {
+void encode_fixed64(char* dst, uint64_t value) {
     uint8_t* const buffer = (uint8_t*)(dst);
     buffer[0] = (uint8_t)(value);
     buffer[1] = (uint8_t)(value >> 8);
@@ -38,7 +38,7 @@ void encodeFixed64(char* dst, uint64_t value) {
     buffer[7] = (uint8_t)(value >> 56);
 }
 
-uint64_t decodeFixed64(char* ptr) {
+uint64_t decode_fixed64(char* ptr) {
     const uint8_t* buffer = (uint8_t*)ptr;
     return (uint64_t)(buffer[0]) |
         (((uint64_t)buffer[1]) << 8) |
@@ -50,13 +50,13 @@ uint64_t decodeFixed64(char* ptr) {
         (((uint64_t)buffer[7]) << 56);
 }
 
-sds_t sdsAppendFixed64(sds_t result, uint64_t value) {
+sds_t sds_append_fixed64(sds_t result, uint64_t value) {
     char buf[sizeof(value)];
-    encodeFixed64(buf, value);
+    encode_fixed64(buf, value);
     return sds_cat(result, buf);
 }
 
-int encodeVarint32(char* dst, uint32_t v) {
+int encode_var_int32(char* dst, uint32_t v) {
     uint8_t* ptr = (uint8_t*)dst;
     static const int B = 128;
     if (v < (1 << 7)) {
@@ -82,14 +82,14 @@ int encodeVarint32(char* dst, uint32_t v) {
   }
   return  ((char*)ptr) - dst;
 }
-sds_t sdsAppendVarint32(sds_t result, uint32_t v) {
+sds_t sds_append_var_int32(sds_t result, uint32_t v) {
     char buf[5];
-    int len = encodeVarint32(buf , v);
+    int len = encode_var_int32(buf , v);
     return sds_cat_len(result, buf, len);
 }
 
-int encodeVarint64(char* dst, uint64_t v) {
-    static const int B = 128;
+int encode_var_int64(char* dst, uint64_t v) {
+    static const uint32_t B = 128;
     uint8_t* ptr = (uint8_t*)(dst);
     while(v >= B) {
         *(ptr++) = v | B;
@@ -98,7 +98,7 @@ int encodeVarint64(char* dst, uint64_t v) {
     *(ptr++) = (uint8_t)(v);
     return ((char*)ptr) - dst;
 }
-int varintLength(uint64_t v) {
+int var_int_length(uint64_t v) {
     int len = 1;
     while (v >= 128) {
         v >>= 7;
@@ -107,13 +107,13 @@ int varintLength(uint64_t v) {
     return len;
 }
 
-sds_t sdsAppendVarint64(sds_t result, uint64_t v) {
+sds_t sds_append_var_int64(sds_t result, uint64_t v) {
     char buf[10];
-    int len = encodeVarint64(buf , v);
+    int len = encode_var_int64(buf , v);
     return sds_cat_len(result, buf, len);
 }
 
-char* GetVarint32PtrFallback(const char* p, const char* limit,
+char* get_var_int32_ptr_fallback(const char* p, const char* limit,
                                    uint32_t* value) {
     uint32_t result = 0;
     for (uint32_t shift = 0; shift <= 28 && p < limit; shift += 7) {
@@ -125,12 +125,12 @@ char* GetVarint32PtrFallback(const char* p, const char* limit,
         } else {
         result |= (byte << shift);
         *value = result;
-        return (const char*)(p);
+        return (char*)(p);
         }
     }
     return NULL;
 }
-char* getVarint32Ptr(char* p, char* limit, uint32_t* v) {
+char* get_var_int32_ptr(char* p, char* limit, uint32_t* v) {
     if (p < limit) {
         uint32_t result = *((const uint8_t*)(p));
         if ((result & 128) == 0) {
@@ -138,14 +138,14 @@ char* getVarint32Ptr(char* p, char* limit, uint32_t* v) {
             return p + 1;
         }
     }
-    return GetVarint32PtrFallback(p, limit, v);
+    return get_var_int32_ptr_fallback(p, limit, v);
 }
 
 //可变长度，返回结束时长度
-bool getVarint32(Slice* slice, uint32_t* v) {
-    const char* p = slice->p;
-    const char* limit = p + slice->len;
-    const char* q = getVarint32Ptr(p, limit, v);
+bool get_var_int32(slice_t* slice, uint32_t* v) {
+    char* p = slice->p;
+    char* limit = p + slice->len;
+    char* q = get_var_int32_ptr(p, limit, v);
     if (q == NULL) {
         return false;
     } else {
@@ -155,10 +155,10 @@ bool getVarint32(Slice* slice, uint32_t* v) {
     }
 }
 
-const char* getVarint64Ptr(const char* p, const char* limit, uint64_t* value) {
+char* get_var_int64_ptr(const char* p, const char* limit, uint64_t* value) {
   uint64_t result = 0;
   for (uint32_t shift = 0; shift <= 63 && p < limit; shift += 7) {
-    uint64_t byte = *((const uint8_t*)(p));
+    uint64_t byte = *((uint8_t*)(p));
     p++;
     if (byte & 128) {
       // More bytes are present
@@ -166,18 +166,18 @@ const char* getVarint64Ptr(const char* p, const char* limit, uint64_t* value) {
     } else {
       result |= (byte << shift);
       *value = result;
-      return (const char*)(p);
+      return (char*)(p);
     }
   }
   return NULL;
 }
 
 //字符串长度
-bool getVarint64(Slice* slice, uint64_t* value) {
+bool get_var_int64(slice_t* slice, uint64_t* value) {
   const char* p = slice->p;
   const char* limit = p + slice->len;
   //动态的64bit   limit会返回最后的位置
-  const char* q = getVarint64Ptr(p, limit, value);
+  char* q = get_var_int64_ptr(p, limit, value);
   if (q == NULL) {
     return false;
   } else {
@@ -187,18 +187,18 @@ bool getVarint64(Slice* slice, uint64_t* value) {
   }
 }
 
-sds_t sdsAppendLengthPrefixedSlice(sds_t dst, Slice* slice) {
-    dst = sdsAppendVarint32(dst, slice->len);
+sds_t sds_append_length_prefixed_slice(sds_t dst, slice_t* slice) {
+    dst = sds_append_var_int32(dst, slice->len);
     return sds_cat_len(dst, slice->p, slice->len);
 }
 
 //这里不复制数据
-bool getLengthPrefixedSlice(Slice* input , Slice* result) {
+bool get_length_prefixed_slice(slice_t* input , slice_t* result) {
   uint32_t len;
-  if (getVarint32(input, &len) && input->len >= len) {
+  if (get_var_int32(input, &len) && input->len >= (int)len) {
     result->p = input->p;
     result->len = len;
-    SliceRemovePrefix(input, len);
+    slice_remove_prefix(input, len);
     return true;
   } else {
     return false;
@@ -206,41 +206,41 @@ bool getLengthPrefixedSlice(Slice* input , Slice* result) {
 }
 
 //
-void SliceRemovePrefix(Slice* slice, size_t len) {
+void slice_remove_prefix(slice_t* slice, size_t len) {
   slice->p = slice->p + len;
   slice->len = slice->len - len;
 }
 
-sds_t SliceToSds(Slice* slice) {
+sds_t slice_to_sds(slice_t* slice) {
   return sds_new_len(slice->p, slice->len);
 }
 
-char SliceOperator(Slice* slice, size_t n) {
+char slice_operator(slice_t* slice, size_t n) {
   return slice->p[n];
 }
 
-bool SliceIsEmpty(Slice* slice) {
+bool slice_is_empty(slice_t* slice) {
   return slice->len == 0;
 }
 
-size_t SliceSize(Slice* slice) {
+size_t slice_size(slice_t* slice) {
   return slice->len;
 }
-char* SliceData(Slice* slice) {
+char* slice_data(slice_t* slice) {
   return slice->p;
 }
 
-void SliceClear(Slice* slice) {
+void slice_clear(slice_t* slice) {
   slice->p = "";
   slice->len = 0;
 }
 
-void SliceInitSds(Slice* slice, sds_t result) {
+void slice_init_from_sds(slice_t* slice, sds_t result) {
   slice->p = result;
   slice->len = sds_len(result);
 }
 
-int SliceCompare(Slice* a, Slice* b) {
+int slice_compare(slice_t* a, slice_t* b) {
   const size_t min_len = (a->len < b->len) ? a->len : b->len;
   int r = memcmp(a->p, b->p, min_len);
   if (r == 0) {
@@ -252,6 +252,6 @@ int SliceCompare(Slice* a, Slice* b) {
   return r;
 }
 
-bool SliceStartsWith(Slice* slice, Slice* x) {
+bool slice_starts_with(slice_t* slice, slice_t* x) {
   return ((slice->len >= x->len) && (memcmp(slice->p, x->p, x->len) == 0));
 }

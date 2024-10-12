@@ -233,7 +233,7 @@ const uint32_t kStrideExtensionTable3[256] = {
 
 
 uint32_t ReadUint32LE(const uint8_t* buffer) {
-  return decodeFixed32((const char*)(buffer));
+  return decode_fixed32((const char*)(buffer));
 }
 
 uint32_t acceleratedCRC32C(uint32_t crc, char* buf, int size) {
