@@ -15,20 +15,20 @@ dictType jsonDictTyep  = {
     NULL,
     NULL
 };
-value* jsonMapCreate() {
-    value* r = valueCreate();
+json_t* json_map_new() {
+    json_t* r = value_new();
     dict* d = dictCreate(&jsonDictTyep);
-    valueSetMap(r, d);
+    value_set_map(r, d);
     return r;
 }
 
 
-int jsonMapPutValue(value* root, sds key, value* v) {
-    if (!valueIsMap(root)) return 0;
+int json_map_put_value(json_t* root, sds key, json_t* v) {
+    if (!value_is_map(root)) return 0;
     dictEntry* node = dictFind(root->value.map_value, key);
     if (node != NULL) {
-        value* old_v = (value*)dictGetVal(node);
-        valueRelease(old_v);
+        json_t* old_v = (json_t*)dictGetVal(node);
+        value_delete(old_v);
         dictSetVal(root->value.map_value, node, v);
         return 1;
     } else {
@@ -37,36 +37,36 @@ int jsonMapPutValue(value* root, sds key, value* v) {
 }
 
 
-int jsonMapPutSds(value* root, sds key, sds sv) {
-    if (!valueIsMap(root)) return 0;
-    value* v = valueCreate();
-    valueSetSds(v, sv);
-    return jsonMapPutValue(root, key, v);
+int json_map_put_sds(json_t* root, sds key, sds sv) {
+    if (!value_is_map(root)) return 0;
+    json_t* v = value_new();
+    value_set_sds(v, sv);
+    return json_map_put_value(root, key, v);
 }
 
-int jsonMapPutInt64(value* root, sds key, int64_t ll) {
-    if (!valueIsMap(root)) return 0;
-    value* v = valueCreate();
-    valueSetInt64(v, ll);
-    return jsonMapPutValue(root, key, v);
+int json_map_put_int64(json_t* root, sds key, int64_t ll) {
+    if (!value_is_map(root)) return 0;
+    json_t* v = value_new();
+    value_set_int64(v, ll);
+    return json_map_put_value(root, key, v);
 }
 
-int jsonMapPutBool(value* root, sds key, bool b) {
-    if (!valueIsMap(root)) return 0;
-    value* v = valueCreate();
-    valueSetBool(v, b);
-    return jsonMapPutValue(root, key, v);
+int json_map_put_bool(json_t* root, sds key, bool b) {
+    if (!value_is_map(root)) return 0;
+    json_t* v = value_new();
+    value_set_bool(v, b);
+    return json_map_put_value(root, key, v);
 }
 
-int jsonMapPutLongDouble(value* root, sds key, long double ld) {
-    if (!valueIsMap(root)) return 0;
-    value* v = valueCreate();
-    valueSetLongDouble(v, ld);
-    return jsonMapPutValue(root, key, v);
+int json_map_put_longdouble(json_t* root, sds key, long double ld) {
+    if (!value_is_map(root)) return 0;
+    json_t* v = value_new();
+    value_set_longdouble(v, ld);
+    return json_map_put_value(root, key, v);
 }
 
-value* jsonMapGet(value* root, char* key) {
-    latte_assert(valueIsMap(root), "json is not map!!!");
+json_t* json_map_get_value(json_t* root, char* key) {
+    latte_assert(value_is_map(root), "json is not map!!!");
     dictEntry* entry = dictFind(root->value.map_value, key);
     if (entry == NULL) return NULL;
     return dictGetVal(entry);
@@ -74,65 +74,65 @@ value* jsonMapGet(value* root, char* key) {
 
 // list 
 
-value* jsonListCreate() {
-    value* r = valueCreate();
+json_t* json_array_new() {
+    json_t* r = value_new();
     vector* d = vectorCreate();
-    valueSetArray(r, d);
+    value_set_array(r, d);
     return r;
 }
 
 
 
-void valueListResize(value* root, int size) {
-    if (!valueIsArray(root)) return;
-    vectorResize(valueGetArray(root), size);
+void json_array_resize(json_t* root, int size) {
+    if (!value_is_array(root)) return;
+    vectorResize(value_get_array(root), size);
 }
 
 
 
-int jsonListPutSds(value* root, sds element) {
-    if (!valueIsArray(root)) return 0;
-    value* v = valueCreate();
-    valueSetSds(v, element);
-    vectorPush(valueGetArray(root), v);
+int json_array_put_sds(json_t* root, sds element) {
+    if (!value_is_array(root)) return 0;
+    json_t* v = value_new();
+    value_set_sds(v, element);
+    vectorPush(value_get_array(root), v);
     return 1;
 }
 
-int jsonListPutBool(value* root, bool element) {
-    if (!valueIsArray(root)) return 0;
-    value* v = valueCreate();
-    valueSetBool(v, element);
-    return vectorPush(valueGetArray(root), v);
+int json_array_put_bool(json_t* root, bool element) {
+    if (!value_is_array(root)) return 0;
+    json_t* v = value_new();
+    value_set_bool(v, element);
+    return vectorPush(value_get_array(root), v);
 }
 
 
-int jsonListPutInt64(value* root, int64_t element) {
-    if (!valueIsArray(root)) return 0;
-    value* v = valueCreate();
-    valueSetInt64(v, element);
-    return vectorPush(valueGetArray(root), v);
+int json_array_put_int64(json_t* root, int64_t element) {
+    if (!value_is_array(root)) return 0;
+    json_t* v = value_new();
+    value_set_int64(v, element);
+    return vectorPush(value_get_array(root), v);
 }
 
-int jsonListPutLongDouble(value* root, long double element) {
-    if (!valueIsArray(root)) return 0;
-    value* v = valueCreate();
-    valueSetLongDouble(v, element);
-    return vectorPush(valueGetArray(root), v);
+int json_array_put_longdouble(json_t* root, long double element) {
+    if (!value_is_array(root)) return 0;
+    json_t* v = value_new();
+    value_set_longdouble(v, element);
+    return vectorPush(value_get_array(root), v);
 }
 
-int jsonListPutValue(value* root, value* element) {
-    if (!valueIsArray(root)) return 0;
-    return vectorPush(valueGetArray(root), element);
+int json_array_put_value(json_t* root, json_t* element) {
+    if (!value_is_array(root)) return 0;
+    return vectorPush(value_get_array(root), element);
 }
 
-int jsonListShrink(value* root, int max) {
-    if (!valueIsArray(root)) return 0;
-    return vectorShrink(valueGetArray(root), max);
+int json_array_shrink(json_t* root, int max) {
+    if (!value_is_array(root)) return 0;
+    return vectorShrink(value_get_array(root), max);
 }
 
-static void json_tokener_reset_level(struct jsonTokener *tok, int depth)
+static void json_tokener_reset_level(struct json_tokener_t *tok, int depth)
 {
-    jsonTokenerSrec* srec = vectorGet(tok->stack, depth);
+    json_tokener_srec_t* srec = vectorGet(tok->stack, depth);
     srec->state = json_tokener_state_eatws;
 	// tok->stack[depth].state = json_tokener_state_eatws;
     srec->saved_state = json_tokener_state_start;
@@ -144,7 +144,7 @@ static void json_tokener_reset_level(struct jsonTokener *tok, int depth)
 	srec->obj_field_name = NULL;
 }
 
-void jsonTokenerReset(jsonTokener* tok) {
+void jsonTokenerReset(json_tokener_t* tok) {
     int i;
     if (!tok) return;
     for (i = tok->depth; i >= 0; i--)
@@ -175,8 +175,8 @@ static const char *json_tokener_errors[] = {
 	"buffer size overflow",
 	"out of memory"
 };
-printbuf* printbufCreate() {
-    printbuf* buf = zmalloc(sizeof(printbuf));
+json_printbuf_t* json_printbuf_new() {
+    json_printbuf_t* buf = zmalloc(sizeof(json_printbuf_t));
     if (buf == NULL) return NULL;
     buf->size = 32;
     buf->bpos = 0;
@@ -187,7 +187,7 @@ printbuf* printbufCreate() {
     buf->buf[0] = '\0';
     return buf;
 }
-void printbufRelease(printbuf* buf) {
+void json_printbuf_delete(json_printbuf_t* buf) {
     zfree(buf->buf);
     zfree(buf);
 }
@@ -198,15 +198,15 @@ void printbufRelease(printbuf* buf) {
  *  0 不处理
  *  1 处理成功
 */
-jsonTokenerSrec* jsonTokenerSrecCreate() {
-    jsonTokenerSrec* srec = zmalloc(sizeof(jsonTokenerSrec));
+json_tokener_srec_t* jsonTokenerSrecCreate() {
+    json_tokener_srec_t* srec = zmalloc(sizeof(json_tokener_srec_t));
     return srec;
 }
 int expandTokenerStack(vector* v, int size) {
     if (size < v->count) return 0;
     vectorResize(v, size);
     while(v->count < size) {
-        jsonTokenerSrec* srec = jsonTokenerSrecCreate();
+        json_tokener_srec_t* srec = jsonTokenerSrecCreate();
         if (srec == NULL) return -1;
         vectorPush(v, srec);
     }
@@ -215,8 +215,8 @@ int expandTokenerStack(vector* v, int size) {
 
 
 
-jsonTokener* jsonTokenerCreateSize(int max_depth) {
-    jsonTokener* tokener = zmalloc(sizeof(jsonTokener));
+json_tokener_t* json_tokener_newSize(int max_depth) {
+    json_tokener_t* tokener = zmalloc(sizeof(json_tokener_t));
     if (!tokener) {
         return NULL;
     }
@@ -224,23 +224,23 @@ jsonTokener* jsonTokenerCreateSize(int max_depth) {
     tokener->stack = vectorCreate();
     if (!tokener->stack) {
         zfree(tokener);
-        LATTE_LIB_LOG(LOG_DEBUG, "[jsonTokenerCreate] vectorCreate fail");
+        LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_new] vectorCreate fail");
         return NULL;
     }
 
     if (expandTokenerStack(tokener->stack, max_depth) < 0) {
         vectorRelease(tokener->stack);
         zfree(tokener);
-        LATTE_LIB_LOG(LOG_DEBUG, "[jsonTokenerCreate] expandTokenerStack szie=32 fail");
+        LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_new] expandTokenerStack szie=32 fail");
         return NULL;
     }
     tokener->max_depth = max_depth;
 
-    tokener->pb = printbufCreate();
+    tokener->pb = json_printbuf_new();
     if (!tokener->pb) {
         vectorRelease(tokener->stack);
         zfree(tokener);
-        LATTE_LIB_LOG(LOG_DEBUG, "[jsonTokenerCreate] printbufCreate fail");
+        LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_new] json_printbuf_new fail");
         return NULL;
     } 
     
@@ -248,10 +248,10 @@ jsonTokener* jsonTokenerCreateSize(int max_depth) {
     return tokener;
 }
 
-jsonTokener* jsonTokenerCreate() {
-    return jsonTokenerCreateSize(32);
+json_tokener_t* json_tokener_new() {
+    return json_tokener_newSize(32);
 }
-void jsonTokenerRelease(jsonTokener* tokener) {
+void json_tokener_delete(json_tokener_t* tokener) {
     vectorRelease(tokener->stack);
     zfree(tokener);
 }
@@ -284,42 +284,42 @@ static int json_tokener_validate_utf8(const char c, unsigned int *nBytes)
 	return 1;
 }
 
-jsonTokenerState getTokenerState(jsonTokener* tok) {
-    jsonTokenerSrec* srec = vectorGet(tok->stack, tok->depth);
+json_tokener_state_e json_tokener_get_state(json_tokener_t* tok) {
+    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
     return srec->state;
 }
 
-void setTokenerState(jsonTokener* tok, jsonTokenerState state) {
-    jsonTokenerSrec* srec = vectorGet(tok->stack, tok->depth);
+void json_tokener_set_state(json_tokener_t* tok, json_tokener_state_e state) {
+    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
     srec->state = state;
 }
-jsonTokenerState getTokenerSavedState(jsonTokener* tok) {
-    jsonTokenerSrec* srec = vectorGet(tok->stack, tok->depth);
+json_tokener_state_e json_tokener_get_saved_state(json_tokener_t* tok) {
+    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
     return srec->saved_state;
 }
 
-void setTokenerSavedState(jsonTokener* tok, jsonTokenerState state) {
-    jsonTokenerSrec* srec = vectorGet(tok->stack, tok->depth);
+void json_tokener_set_saved_state(json_tokener_t* tok, json_tokener_state_e state) {
+    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
     srec->saved_state = state;
 }
 
-value* getTokenerCurrent(jsonTokener* tok) {
-    jsonTokenerSrec* srec = vectorGet(tok->stack, tok->depth);
+json_t* json_tokener_get_current(json_tokener_t* tok) {
+    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
     return srec->current;
 }
 
-void setTokenerCurrent(jsonTokener* tok, value* value) {
-    jsonTokenerSrec* srec = vectorGet(tok->stack, tok->depth);
+void json_tokener_set_current(json_tokener_t* tok, json_t* value) {
+    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
     srec->current = value;
 }
 
-sds getTokenerFieldName(jsonTokener* tok) {
-    jsonTokenerSrec* srec = vectorGet(tok->stack, tok->depth);
+sds json_tokener_get_fieldname(json_tokener_t* tok) {
+    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
     return srec->obj_field_name;
 }
 
-void setTokenerFieldName(jsonTokener* tok, sds* value) {
-    jsonTokenerSrec* srec = vectorGet(tok->stack, tok->depth);
+void json_tokener_set_fieldname(json_tokener_t* tok, sds* value) {
+    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
     srec->obj_field_name = value;
 }
 // #define state tok->stack[tok->depth].state
@@ -356,8 +356,8 @@ static inline int is_hex_char(char c)
  */
 #define PEEK_CHAR(dest, tok)                                                 \
 	(((tok)->char_offset == len)                                         \
-	     ? (((tok)->depth == 0 && getTokenerState(tok) == json_tokener_state_eatws &&   \
-	         getTokenerSavedState(tok) == json_tokener_state_finish)                   \
+	     ? (((tok)->depth == 0 && json_tokener_get_state(tok) == json_tokener_state_eatws &&   \
+	         json_tokener_get_saved_state(tok) == json_tokener_state_finish)                   \
 	            ? (((tok)->err = json_tokener_success), 0)               \
 	            : (((tok)->err = json_tokener_continue), 0))             \
 	     : (((tok->flags & JSON_TOKENER_VALIDATE_UTF8) &&                \
@@ -376,7 +376,7 @@ static inline int is_hex_char(char c)
  * Note: this does not check the available space!  The caller
  *  is responsible for performing those calculations.
  */
-static int printbuf_extend(struct printbuf *p, int min_size)
+static int json_printbuf_extend(struct json_printbuf_t *p, int min_size)
 {
 	char *t;
 	int new_size;
@@ -397,7 +397,7 @@ static int printbuf_extend(struct printbuf *p, int min_size)
 			new_size = min_size + 8;
 	}
 #ifdef PRINTBUF_DEBUG
-	LATTE_LIB_LOG(LOG_DEBUG,"printbuf_extend: realloc "
+	LATTE_LIB_LOG(LOG_DEBUG,"json_printbuf_extend: realloc "
 	         "bpos=%d min_size=%d old_size=%d new_size=%d\n",
 	         p->bpos, min_size, p->size, new_size);
 #endif /* PRINTBUF_DEBUG */
@@ -408,7 +408,7 @@ static int printbuf_extend(struct printbuf *p, int min_size)
 	return 0;
 }
 
-int printbuf_memappend(struct printbuf *p, const char *buf, int size)
+int json_printbuf_memappend(struct json_printbuf_t *p, const char *buf, int size)
 {
 	/* Prevent signed integer overflows with large buffers. */
 	if (size < 0 || size > INT_MAX - p->bpos - 1)
@@ -418,7 +418,7 @@ int printbuf_memappend(struct printbuf *p, const char *buf, int size)
 	}
 	if (p->size <= p->bpos + size + 1)
 	{
-		if (printbuf_extend(p, p->bpos + size + 1) < 0)
+		if (json_printbuf_extend(p, p->bpos + size + 1) < 0)
 			return -1;
 	}
 	memcpy(p->buf + p->bpos, buf, size);
@@ -426,20 +426,20 @@ int printbuf_memappend(struct printbuf *p, const char *buf, int size)
 	p->buf[p->bpos] = '\0';
 	return size;
 }
-/* printbuf_memappend_checked(p, s, l) macro:
+/* json_printbuf_memappend_checked(p, s, l) macro:
  *   Add string s of length l to printbuffer p.
  *   If operation fails abort parse operation with memory error.
  */
-#define printbuf_memappend_checked(p, s, l)                   \
+#define json_printbuf_memappend_checked(p, s, l)                   \
 	do {                                                  \
-		if (printbuf_memappend((p), (s), (l)) < 0)    \
+		if (json_printbuf_memappend((p), (s), (l)) < 0)    \
 		{                                             \
 			tok->err = json_tokener_error_memory; \
 			goto out;                             \
 		}                                             \
 	} while (0)
 
-void printbuf_reset(struct printbuf *p)
+void printbuf_reset(struct json_printbuf_t *p)
 {
 	p->buf[0] = '\0';
 	p->bpos = 0;
@@ -477,9 +477,9 @@ static unsigned char utf8_replacement_char[3] = {0xEF, 0xBF, 0xBD};
 
 #define printbuf_length(p) ((p)->bpos)
 
-int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
-    LATTE_LIB_LOG(LOG_INFO, "jsonDecodeVerBose func");
-    value* obj = NULL;
+int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok) {
+    
+    json_t* obj = NULL;
     char c = '\1';
 	unsigned int nBytes = 0;
 	unsigned int *nBytesp = &nBytes;
@@ -496,10 +496,10 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
 		tok->err = json_tokener_error_size;
 		return 0;
 	}
-
+    LATTE_LIB_LOG(LOG_DEBUG, "[sds_to_json_verbose] parse start");
     while (PEEK_CHAR(c, tok)) {
         redo_char:
-            switch (getTokenerState(tok)) 
+            switch (json_tokener_get_state(tok)) 
             {
                 case json_tokener_state_eatws: //去空格  以及判断是否开始注释
                 { 
@@ -513,12 +513,12 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     if (c == '/' && !(tok->flags & JSON_TOKENER_STRICT))
                     {
                         printbuf_reset(tok->pb);
-                        printbuf_memappend_checked(tok->pb, &c, 1);
-                        setTokenerState(tok, json_tokener_state_comment_start); //注释
+                        json_printbuf_memappend_checked(tok->pb, &c, 1);
+                        json_tokener_set_state(tok, json_tokener_state_comment_start); //注释
                     } 
                     else 
                     {
-                        setTokenerState(tok, getTokenerSavedState(tok));
+                        json_tokener_set_state(tok, json_tokener_get_saved_state(tok));
                         goto redo_char;
                     }
                 }
@@ -530,34 +530,34 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     {
                     case '{': //map
                         LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_start] map start '{' ");
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                         //标记状态map
-                        setTokenerSavedState(tok, json_tokener_state_object_field_start);
-                        setTokenerCurrent(tok, jsonMapCreate());
-                        if (getTokenerCurrent(tok) == NULL) { //申请内存失败
+                        json_tokener_set_saved_state(tok, json_tokener_state_object_field_start);
+                        json_tokener_set_current(tok, json_map_new());
+                        if (json_tokener_get_current(tok) == NULL) { //申请内存失败
                             tok->err = json_tokener_error_memory;
                             goto out;
                         }
                         break;
                     case '[':
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                         //标记状态list
-                        setTokenerSavedState(tok, json_tokener_state_array);
-                        setTokenerCurrent(tok, jsonListCreate());
-                        if (getTokenerCurrent(tok) == NULL) { //申请内存失败
+                        json_tokener_set_saved_state(tok, json_tokener_state_array);
+                        json_tokener_set_current(tok, json_array_new());
+                        if (json_tokener_get_current(tok) == NULL) { //申请内存失败
                             tok->err = json_tokener_error_memory;
                             goto out;
                         }
                         break;
                     case 'I':
                     case 'i': //inf 
-                        setTokenerState(tok, json_tokener_state_inf);
+                        json_tokener_set_state(tok, json_tokener_state_inf);
                         printbuf_reset(tok->pb);
                         tok->st_pos = 0;
                         goto redo_char;
                     case 'N':
                     case 'n': //null or nan
-                        setTokenerState(tok, json_tokener_state_null);
+                        json_tokener_set_state(tok, json_tokener_state_null);
                         printbuf_reset(tok->pb);
 				        tok->st_pos = 0;
                         goto redo_char;
@@ -567,7 +567,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                             goto out;
                         }
                     case '"':
-                        setTokenerState(tok, json_tokener_state_string);
+                        json_tokener_set_state(tok, json_tokener_state_string);
                         printbuf_reset(tok->pb);
 				        tok->quote_char = c;
                         break;
@@ -575,7 +575,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     case 't':
                     case 'F':
                     case 'f':
-                        setTokenerState(tok, json_tokener_state_boolean); //解析true or false
+                        json_tokener_set_state(tok, json_tokener_state_boolean); //解析true or false
                         printbuf_reset(tok->pb);
                         tok->st_pos = 0;
                         goto redo_char;
@@ -591,7 +591,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     case '9':
                     case '-':   
                         LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_start] parse number");
-                        setTokenerState(tok, json_tokener_state_number); //解析数字
+                        json_tokener_set_state(tok, json_tokener_state_number); //解析数字
                         printbuf_reset(tok->pb);
                         tok->is_double = 0;
                         goto redo_char;
@@ -605,7 +605,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
 
                     LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_finish] start %d", tok->depth);
                     if (tok->depth == 0) goto out;
-                    obj = getTokenerCurrent(tok);
+                    obj = json_tokener_get_current(tok);
                     json_tokener_reset_level(tok, tok->depth);
                     tok->depth--;
                     goto redo_char;
@@ -647,7 +647,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                 {
                     int size;
                     int size_nan;
-                    printbuf_memappend_checked(tok->pb, &c, 1);
+                    json_printbuf_memappend_checked(tok->pb, &c, 1);
                     size = latte_min(tok->st_pos + 1, json_null_str_len);
                     size_nan = latte_min(tok->st_pos + 1, json_nan_str_len);
                     if ((!(tok->flags & JSON_TOKENER_STRICT) &&
@@ -656,9 +656,9 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     {
                         if (tok->st_pos == json_null_str_len)
                         {
-                            setTokenerCurrent(tok, NULL);
-                            setTokenerSavedState(tok, json_tokener_state_finish);
-                            setTokenerState(tok, json_tokener_state_eatws);
+                            json_tokener_set_current(tok, NULL);
+                            json_tokener_set_saved_state(tok, json_tokener_state_finish);
+                            json_tokener_set_state(tok, json_tokener_state_eatws);
                             goto redo_char;
                         }
                     }
@@ -669,19 +669,19 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         if (tok->st_pos == json_nan_str_len)
                         {
                             // current = json_object_new_double(NAN);
-                            value* current = valueCreate();
+                            json_t* current = value_new();
                             
                             if (current == NULL)
                             {
                                 tok->err = json_tokener_error_memory;
                                 goto out;
                             }
-                            valueSetLongDouble(current, NAN);
-                            setTokenerCurrent(tok, current);
-                            setTokenerSavedState(tok, json_tokener_state_finish);
+                            value_set_longdouble(current, NAN);
+                            json_tokener_set_current(tok, current);
+                            json_tokener_set_saved_state(tok, json_tokener_state_finish);
                             // saved_state = json_tokener_state_finish;
                             // state = json_tokener_state_eatws;
-                            setTokenerState(tok, json_tokener_state_eatws);
+                            json_tokener_set_state(tok, json_tokener_state_eatws);
                             goto redo_char;
                         }
                     }
@@ -697,18 +697,18 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                 {
                     if (c == '*')
                     {
-                        setTokenerState(tok, json_tokener_state_comment);
+                        json_tokener_set_state(tok, json_tokener_state_comment);
                     }
                     else if (c == '/')
                     {
-                        setTokenerState(tok, json_tokener_state_comment_eol);
+                        json_tokener_set_state(tok, json_tokener_state_comment_eol);
                     }
                     else
                     {
                         tok->err = json_tokener_error_parse_comment;
                         goto out;
                     }
-                    printbuf_memappend_checked(tok->pb, &c, 1);
+                    json_printbuf_memappend_checked(tok->pb, &c, 1);
                 }
                     break;
                 case json_tokener_state_comment: //解析注释
@@ -719,13 +719,13 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     {
                         if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok))
                         {
-                            printbuf_memappend_checked(tok->pb, case_start,
+                            json_printbuf_memappend_checked(tok->pb, case_start,
                                                     str - case_start);
                             goto out;
                         }
                     }
-                    printbuf_memappend_checked(tok->pb, case_start, 1 + str - case_start);
-                    setTokenerState(tok, json_tokener_state_comment_end);
+                    json_printbuf_memappend_checked(tok->pb, case_start, 1 + str - case_start);
+                    json_tokener_set_state(tok, json_tokener_state_comment_end);
                 }
                     break;
 
@@ -737,30 +737,30 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     {
                         if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok))
                         {
-                            printbuf_memappend_checked(tok->pb, case_start,
+                            json_printbuf_memappend_checked(tok->pb, case_start,
                                                     str - case_start);
                             goto out;
                         }
                     }
-                    printbuf_memappend_checked(tok->pb, case_start, str - case_start);
+                    json_printbuf_memappend_checked(tok->pb, case_start, str - case_start);
                     LATTE_LIB_LOG(LOG_DEBUG,"json_tokener_comment: %s\n", tok->pb->buf);
                     // state = json_tokener_state_eatws;
-                    setTokenerState(tok, json_tokener_state_eatws);
+                    json_tokener_set_state(tok, json_tokener_state_eatws);
                 }
                     break;
 
                 case json_tokener_state_comment_end: //注释结束
                 {
-                    printbuf_memappend_checked(tok->pb, &c, 1);
+                    json_printbuf_memappend_checked(tok->pb, &c, 1);
                     if (c == '/')
                     {
                         LATTE_LIB_LOG(LOG_DEBUG,"json_tokener_comment: %s\n", tok->pb->buf);
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                         // state = json_tokener_state_eatws;
                     }
                     else
                     {
-                        setTokenerState(tok, json_tokener_state_comment);
+                        json_tokener_set_state(tok, json_tokener_state_comment);
                         // state = json_tokener_state_comment;
                     }
                 }
@@ -774,10 +774,10 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     {
                         if (c == tok->quote_char)  // ' or "
                         {
-                            printbuf_memappend_checked(tok->pb, case_start,
+                            json_printbuf_memappend_checked(tok->pb, case_start,
                                                     str - case_start);
-                            value* current = valueCreate();
-                            valueSetSds(current, sdsnewlen(tok->pb->buf, tok->pb->bpos));
+                            json_t* current = value_new();
+                            value_set_sds(current, sdsnewlen(tok->pb->buf, tok->pb->bpos));
                             // current =
                             //     json_object_new_string_len(tok->pb->buf, tok->pb->bpos);
                             if (current == NULL)
@@ -787,19 +787,19 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                             }
                             
                             // saved_state = json_tokener_state_finish;
-                            setTokenerSavedState(tok, json_tokener_state_finish);
+                            json_tokener_set_saved_state(tok, json_tokener_state_finish);
                             // state = json_tokener_state_eatws;
-                            setTokenerState(tok, json_tokener_state_eatws);
+                            json_tokener_set_state(tok, json_tokener_state_eatws);
                             break;
                         }
                         else if (c == '\\')
                         {
-                            printbuf_memappend_checked(tok->pb, case_start,
+                            json_printbuf_memappend_checked(tok->pb, case_start,
                                                     str - case_start);
                             // saved_state = json_tokener_state_string;
-                            setTokenerSavedState(tok, json_tokener_state_string);
+                            json_tokener_set_saved_state(tok, json_tokener_state_string);
                             // state = json_tokener_state_string_escape;
-                            setTokenerState(tok, json_tokener_state_string_escape);
+                            json_tokener_set_state(tok, json_tokener_state_string_escape);
                             break;
                         }
                         else if ((tok->flags & JSON_TOKENER_STRICT) && c <= 0x1f)
@@ -810,7 +810,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         }
                         if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok))
                         {
-                            printbuf_memappend_checked(tok->pb, case_start,
+                            json_printbuf_memappend_checked(tok->pb, case_start,
                                                     str - case_start);
                             goto out;
                         }
@@ -825,9 +825,9 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         case '"':
                         case '\\':
                         case '/':
-                            printbuf_memappend_checked(tok->pb, &c, 1);
+                            json_printbuf_memappend_checked(tok->pb, &c, 1);
                             // state = saved_state;
-                            setTokenerState(tok, getTokenerSavedState(tok));
+                            json_tokener_set_state(tok, json_tokener_get_saved_state(tok));
                             break;
                         case 'b':
                         case 'n':
@@ -835,22 +835,22 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         case 't':
                         case 'f':
                             if (c == 'b')
-                                printbuf_memappend_checked(tok->pb, "\b", 1);
+                                json_printbuf_memappend_checked(tok->pb, "\b", 1);
                             else if (c == 'n')
-                                printbuf_memappend_checked(tok->pb, "\n", 1);
+                                json_printbuf_memappend_checked(tok->pb, "\n", 1);
                             else if (c == 'r')
-                                printbuf_memappend_checked(tok->pb, "\r", 1);
+                                json_printbuf_memappend_checked(tok->pb, "\r", 1);
                             else if (c == 't')
-                                printbuf_memappend_checked(tok->pb, "\t", 1);
+                                json_printbuf_memappend_checked(tok->pb, "\t", 1);
                             else if (c == 'f')
-                                printbuf_memappend_checked(tok->pb, "\f", 1);
+                                json_printbuf_memappend_checked(tok->pb, "\f", 1);
                             // state = saved_state;
-                            setTokenerState(tok, getTokenerSavedState(tok));
+                            json_tokener_set_state(tok, json_tokener_get_saved_state(tok));
                             break;
                         case 'u':
                             tok->ucs_char = 0;
                             tok->st_pos = 0;
-                            setTokenerState(tok, json_tokener_state_escape_unicode);
+                            json_tokener_set_state(tok, json_tokener_state_escape_unicode);
                             break;
                         default: 
                             tok->err = json_tokener_error_parse_string; goto out;
@@ -902,7 +902,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                             /* High surrogate was not followed by a low surrogate
                             * Replace the high and process the rest normally
                             */
-                            printbuf_memappend_checked(tok->pb,
+                            json_printbuf_memappend_checked(tok->pb,
                                                     (char *)utf8_replacement_char, 3);
                         }
                         tok->high_surrogate = 0;
@@ -911,14 +911,14 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     {
                         unsigned char unescaped_utf[1];
                         unescaped_utf[0] = tok->ucs_char;
-                        printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 1);
+                        json_printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 1);
                     }
                     else if (tok->ucs_char < 0x800)
                     {
                         unsigned char unescaped_utf[2];
                         unescaped_utf[0] = 0xc0 | (tok->ucs_char >> 6);
                         unescaped_utf[1] = 0x80 | (tok->ucs_char & 0x3f);
-                        printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 2);
+                        json_printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 2);
                     }
                     else if (IS_HIGH_SURROGATE(tok->ucs_char))
                     {
@@ -939,13 +939,13 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         tok->high_surrogate = tok->ucs_char;
                         tok->ucs_char = 0;
                         // state = json_tokener_state_escape_unicode_need_escape;
-                        setTokenerState(tok, json_tokener_state_escape_unicode_need_escape);
+                        json_tokener_set_state(tok, json_tokener_state_escape_unicode_need_escape);
                         break;
                     }
                     else if (IS_LOW_SURROGATE(tok->ucs_char))
                     {
                         /* Got a low surrogate not preceded by a high */
-                        printbuf_memappend_checked(tok->pb, (char *)utf8_replacement_char, 3);
+                        json_printbuf_memappend_checked(tok->pb, (char *)utf8_replacement_char, 3);
                     }
                     else if (tok->ucs_char < 0x10000)
                     {
@@ -953,7 +953,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         unescaped_utf[0] = 0xe0 | (tok->ucs_char >> 12);
                         unescaped_utf[1] = 0x80 | ((tok->ucs_char >> 6) & 0x3f);
                         unescaped_utf[2] = 0x80 | (tok->ucs_char & 0x3f);
-                        printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 3);
+                        json_printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 3);
                     }
                     else if (tok->ucs_char < 0x110000)
                     {
@@ -962,15 +962,15 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         unescaped_utf[1] = 0x80 | ((tok->ucs_char >> 12) & 0x3f);
                         unescaped_utf[2] = 0x80 | ((tok->ucs_char >> 6) & 0x3f);
                         unescaped_utf[3] = 0x80 | (tok->ucs_char & 0x3f);
-                        printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 4);
+                        json_printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 4);
                     }
                     else
                     {
                         /* Don't know what we got--insert the replacement char */
-                        printbuf_memappend_checked(tok->pb, (char *)utf8_replacement_char, 3);
+                        json_printbuf_memappend_checked(tok->pb, (char *)utf8_replacement_char, 3);
                     }
                     // state = saved_state; // i.e. _state_string or _state_object_field
-                    setTokenerState(tok, getTokenerSavedState(tok));
+                    json_tokener_set_state(tok, json_tokener_get_saved_state(tok));
                 }
                     break;
                 
@@ -984,16 +984,16 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         * it.  Put a replacement char in for the high surrogate
                         * and pop back up to _state_string or _state_object_field.
                         */
-                        printbuf_memappend_checked(tok->pb, (char *)utf8_replacement_char, 3);
+                        json_printbuf_memappend_checked(tok->pb, (char *)utf8_replacement_char, 3);
                         tok->high_surrogate = 0;
                         tok->ucs_char = 0;
                         tok->st_pos = 0;
                         // state = saved_state;
-                        setTokenerState(tok, getTokenerSavedState(tok));
+                        json_tokener_set_state(tok, json_tokener_get_saved_state(tok));
                         goto redo_char;
                     }
                     // state = json_tokener_state_escape_unicode_need_u;
-                    setTokenerState(tok, json_tokener_state_escape_unicode_need_u);
+                    json_tokener_set_state(tok, json_tokener_state_escape_unicode_need_u);
                 }
                     break;
                 case json_tokener_state_escape_unicode_need_u:
@@ -1006,45 +1006,45 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         * Put a replacement char in for the high surrogate
                         * and handle the escape sequence normally.
                         */
-                        printbuf_memappend_checked(tok->pb, (char *)utf8_replacement_char, 3);
+                        json_printbuf_memappend_checked(tok->pb, (char *)utf8_replacement_char, 3);
                         tok->high_surrogate = 0;
                         tok->ucs_char = 0;
                         tok->st_pos = 0;
                         // state = json_tokener_state_string_escape;
-                        setTokenerState(tok, json_tokener_state_string_escape);
+                        json_tokener_set_state(tok, json_tokener_state_string_escape);
                         goto redo_char;
                     }
                     // state = json_tokener_state_escape_unicode;
-                    setTokenerState(tok, json_tokener_state_escape_unicode);
+                    json_tokener_set_state(tok, json_tokener_state_escape_unicode);
                 }
                     break;
 
                 case json_tokener_state_boolean: //解析true or false
                 {
                     int size1, size2;
-                    printbuf_memappend_checked(tok->pb, &c, 1);
+                    json_printbuf_memappend_checked(tok->pb, &c, 1);
                     size1 = latte_min(tok->st_pos + 1, json_true_str_len);
                     size2 = latte_min(tok->st_pos + 1, json_false_str_len);
-                    LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_boolean] parse(%s)", tok->pb->buf);
                     if ((!(tok->flags & JSON_TOKENER_STRICT) &&
                         strncasecmp(json_true_str, tok->pb->buf, size1) == 0) ||
                         (strncmp(json_true_str, tok->pb->buf, size1) == 0))
                     {
                         if (tok->st_pos == json_true_str_len)
                         {
-                            value* current = valueCreate();
+                            json_t* current = value_new();
                             // current = json_object_new_boolean(1);
                             if (current == NULL)
                             {
                                 tok->err = json_tokener_error_memory;
                                 goto out;
                             }
-                            valueSetBool(current, true);
-                            setTokenerCurrent(tok, current);
+                            LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_boolean] parse(%s)", tok->pb->buf);
+                            value_set_bool(current, true);
+                            json_tokener_set_current(tok, current);
                             // saved_state = json_tokener_state_finish;
-                            setTokenerSavedState(tok, json_tokener_state_finish);
+                            json_tokener_set_saved_state(tok, json_tokener_state_finish);
                             // state = json_tokener_state_eatws;
-                            setTokenerState(tok, json_tokener_state_eatws);
+                            json_tokener_set_state(tok, json_tokener_state_eatws);
                             goto redo_char;
                         }
                     }
@@ -1055,24 +1055,26 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         if (tok->st_pos == json_false_str_len)
                         {
                             // current = json_object_new_boolean(0);
-                            value* current = valueCreate();
+                            json_t* current = value_new();
                             if (current == NULL)
                             {
                                 tok->err = json_tokener_error_memory;
                                 goto out;
                             }
-                            valueSetBool(current, false);
-                            setTokenerCurrent(tok, current);
+                            LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_boolean] parse(%s)", tok->pb->buf);
+                            value_set_bool(current, false);
+                            json_tokener_set_current(tok, current);
                             // saved_state = json_tokener_state_finish;
-                            setTokenerSavedState(tok, json_tokener_state_finish);
+                            json_tokener_set_saved_state(tok, json_tokener_state_finish);
                             // state = json_tokener_state_eatws;
-                            setTokenerState(tok, json_tokener_state_eatws);
+                            json_tokener_set_state(tok, json_tokener_state_eatws);
                             goto redo_char;
                         }
                     }
                     else
                     {
                         tok->err = json_tokener_error_parse_boolean;
+                        LATTE_LIB_LOG(LOG_ERROR, "[json_tokener_state_boolean] parse bool fail:(%s)", tok->pb->buf);
                         goto out;
                     }
                     tok->st_pos++;
@@ -1145,7 +1147,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
 
                         if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok))
                         {
-                            printbuf_memappend_checked(tok->pb, case_start, case_len);
+                            json_printbuf_memappend_checked(tok->pb, case_start, case_len);
                             goto out;
                         }
                     }
@@ -1166,13 +1168,13 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         goto out;
                     }
                     if (case_len > 0)
-                        printbuf_memappend_checked(tok->pb, case_start, case_len);
+                        json_printbuf_memappend_checked(tok->pb, case_start, case_len);
 
                     // Check for -Infinity
                     if (tok->pb->buf[0] == '-' && case_len <= 1 && (c == 'i' || c == 'I')) //inf
                     {
                         // state = json_tokener_state_inf;
-                        setTokenerState(tok, json_tokener_state_inf);
+                        json_tokener_set_state(tok, json_tokener_state_inf);
                         tok->st_pos = 0;
                         goto redo_char;
                     }
@@ -1210,14 +1212,14 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                             }
 
                             // current = json_object_new_int64(num64);
-                            value* current = valueCreate();
+                            json_t* current = value_new();
                             if (current == NULL)
                             {
                                 tok->err = json_tokener_error_memory;
                                 goto out;
                             }
-                            valueSetInt64(current, num64);
-                            setTokenerCurrent(tok, current);
+                            value_set_int64(current, num64);
+                            json_tokener_set_current(tok, current);
 
                         }
                         else if (!tok->is_double && tok->pb->buf[0] != '-' &&
@@ -1236,7 +1238,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                                 LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_number] parse number error : buf[0] == 0 %s", tok->pb->buf);
                                 goto out;
                             }
-                            value* current = valueCreate();
+                            json_t* current = value_new();
                             if (current == NULL)
                             {
                                 tok->err = json_tokener_error_memory;
@@ -1246,28 +1248,28 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                             {
                                 num64 = (int64_t)numuint64;
                                 // current = json_object_new_int64(num64);
-                                valueSetInt64(current, num64);
+                                value_set_int64(current, num64);
                             }
                             else
                             {
                                 // current = json_object_new_uint64(numuint64);
-                                valueSetUInt64(current, numuint64);
+                                value_set_uint64(current, numuint64);
                             }
-                            setTokenerCurrent(tok, current);
+                            json_tokener_set_current(tok, current);
                         }
                         else if (tok->is_double &&
                                 string2ld(
                                     tok->pb->buf, printbuf_length(tok->pb), &numd) == 1)
                         {
                             // current = json_object_new_double_s(numd, tok->pb->buf);
-                            value* current = valueCreate();    
+                            json_t* current = value_new();    
                             if (current == NULL)
                             {
                                 tok->err = json_tokener_error_memory;
                                 goto out;
                             }
-                            valueSetLongDouble(current, numd);
-                            setTokenerCurrent(tok, current);
+                            value_set_longdouble(current, numd);
+                            json_tokener_set_current(tok, current);
                         }
                         else
                         {
@@ -1276,9 +1278,9 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                             goto out;
                         }
                         // saved_state = json_tokener_state_finish;
-                        setTokenerSavedState(tok, json_tokener_state_finish);
+                        json_tokener_set_saved_state(tok, json_tokener_state_finish);
                         // state = json_tokener_state_eatws;
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                         goto redo_char;
                     }
                     break;
@@ -1289,18 +1291,18 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     if (c == ']')
                     {
                         // Minimize memory usage; assume parsed objs are unlikely to be changed
-                        jsonListShrink(getTokenerCurrent(tok), 0);
+                        json_array_shrink(json_tokener_get_current(tok), 0);
 
-                        if (getTokenerState(tok) == json_tokener_state_array_after_sep &&
+                        if (json_tokener_get_state(tok) == json_tokener_state_array_after_sep &&
                             (tok->flags & JSON_TOKENER_STRICT))
                         {
                             tok->err = json_tokener_error_parse_unexpected;
                             goto out;
                         }
                         // saved_state = json_tokener_state_finish;
-                        setTokenerSavedState(tok, json_tokener_state_finish);
+                        json_tokener_set_saved_state(tok, json_tokener_state_finish);
                         // state = json_tokener_state_eatws;
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                     }
                     else
                     {
@@ -1311,7 +1313,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                             goto out;
                         }
                         // state = json_tokener_state_array_add;
-                        setTokenerState(tok, json_tokener_state_array_add);
+                        json_tokener_set_state(tok, json_tokener_state_array_add);
                         tok->depth++;
                         json_tokener_reset_level(tok, tok->depth); //清理数据
                         goto redo_char;
@@ -1320,15 +1322,15 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     break;
                 case json_tokener_state_array_add:
                 {
-                    if (jsonListPutValue(getTokenerCurrent(tok), obj) != 0)
+                    if (json_array_put_value(json_tokener_get_current(tok), obj) != 0)
                     {
                         tok->err = json_tokener_error_memory;
                         goto out;
                     }
                     // saved_state = json_tokener_state_array_sep;
-                    setTokenerSavedState(tok, json_tokener_state_array_sep);
+                    json_tokener_set_saved_state(tok, json_tokener_state_array_sep);
                     // state = json_tokener_state_eatws;
-                    setTokenerState(tok, json_tokener_state_eatws);
+                    json_tokener_set_state(tok, json_tokener_state_eatws);
                     goto redo_char;
                 }    
                     break; //无效
@@ -1337,19 +1339,19 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     if (c == ']')
                     {
                         // Minimize memory usage; assume parsed objs are unlikely to be changed
-                        jsonListShrink(getTokenerCurrent(tok), 0);
+                        json_array_shrink(json_tokener_get_current(tok), 0);
 
                         // saved_state = json_tokener_state_finish;
-                        setTokenerSavedState(tok, json_tokener_state_finish);
+                        json_tokener_set_saved_state(tok, json_tokener_state_finish);
                         // state = json_tokener_state_eatws;
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                     }
                     else if (c == ',')
                     {
                         // saved_state = json_tokener_state_array_after_sep;
-                        setTokenerSavedState(tok, json_tokener_state_array_after_sep);
+                        json_tokener_set_saved_state(tok, json_tokener_state_array_after_sep);
                         // state = json_tokener_state_eatws;
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                     }
                     else
                     {
@@ -1364,23 +1366,23 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     if (c == '}') //object 结束
                     {
                          LATTE_LIB_LOG(LOG_DEBUG, "[field_start or after_sep] map end '}' ");
-                        if (getTokenerState(tok) == json_tokener_state_object_field_start_after_sep &&
+                        if (json_tokener_get_state(tok) == json_tokener_state_object_field_start_after_sep &&
                             (tok->flags & JSON_TOKENER_STRICT))
                         {
                             tok->err = json_tokener_error_parse_unexpected;
                             goto out;
                         }
                         // saved_state = json_tokener_state_finish;
-                        setTokenerSavedState(tok, json_tokener_state_finish);
+                        json_tokener_set_saved_state(tok, json_tokener_state_finish);
                         // state = json_tokener_state_eatws;
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                     }
                     else if (c == '"' || c == '\'')
                     {
                         tok->quote_char = c;
                         printbuf_reset(tok->pb);
                         // state = json_tokener_state_object_field;
-                        setTokenerState(tok, json_tokener_state_object_field);
+                        json_tokener_set_state(tok, json_tokener_state_object_field);
                     }
                     else
                     {
@@ -1398,33 +1400,33 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     {
                         if (c == tok->quote_char)
                         {
-                            printbuf_memappend_checked(tok->pb, case_start,
+                            json_printbuf_memappend_checked(tok->pb, case_start,
                                                     str - case_start);
-                            setTokenerFieldName(tok, sdsnew(tok->pb->buf));
-                            if (getTokenerFieldName(tok) == NULL)
+                            json_tokener_set_fieldname(tok, sdsnew(tok->pb->buf));
+                            if (json_tokener_get_fieldname(tok) == NULL)
                             {
                                 tok->err = json_tokener_error_memory;
                                 goto out;
                             }
                             // saved_state = json_tokener_state_object_field_end;
-                            setTokenerSavedState(tok, json_tokener_state_object_field_end);
+                            json_tokener_set_saved_state(tok, json_tokener_state_object_field_end);
                             // state = json_tokener_state_eatws;
-                            setTokenerState(tok, json_tokener_state_eatws);
+                            json_tokener_set_state(tok, json_tokener_state_eatws);
                             break;
                         }
                         else if (c == '\\')
                         {
-                            printbuf_memappend_checked(tok->pb, case_start,
+                            json_printbuf_memappend_checked(tok->pb, case_start,
                                                     str - case_start);
                             // saved_state = json_tokener_state_object_field;
-                            setTokenerSavedState(tok, json_tokener_state_object_field);
+                            json_tokener_set_saved_state(tok, json_tokener_state_object_field);
                             // state = json_tokener_state_string_escape;
-                            setTokenerState(tok, json_tokener_state_string_escape);
+                            json_tokener_set_state(tok, json_tokener_state_string_escape);
                             break;
                         }
                         if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok))
                         {
-                            printbuf_memappend_checked(tok->pb, case_start,
+                            json_printbuf_memappend_checked(tok->pb, case_start,
                                                     str - case_start);
                             goto out;
                         }
@@ -1437,9 +1439,9 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     {
                         LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_object_field_end] parse :");
                         // saved_state = json_tokener_state_object_value;
-                        setTokenerSavedState(tok, json_tokener_state_object_value);
+                        json_tokener_set_saved_state(tok, json_tokener_state_object_value);
                         // state = json_tokener_state_eatws;
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                     }
                     else
                     {
@@ -1457,7 +1459,7 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                         goto out;
                     }
                     // state = json_tokener_state_object_value_add;
-                    setTokenerState(tok, json_tokener_state_object_value_add);
+                    json_tokener_set_state(tok, json_tokener_state_object_value_add);
                     tok->depth++;
                     json_tokener_reset_level(tok, tok->depth);
                     goto redo_char;
@@ -1465,18 +1467,18 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     break;
                 case json_tokener_state_object_value_add:
                 {
-                    if (jsonMapPutValue(getTokenerCurrent(tok), getTokenerFieldName(tok), obj) != 0)
+                    if (json_map_put_value(json_tokener_get_current(tok), json_tokener_get_fieldname(tok), obj) != 0)
                     {
                         tok->err = json_tokener_error_memory;
                         goto out;
                     }
                     // free(obj_field_name);
                     // obj_field_name = NULL;
-                    setTokenerFieldName(tok, NULL);
+                    json_tokener_set_fieldname(tok, NULL);
                     // saved_state = json_tokener_state_object_sep;
-                    setTokenerSavedState(tok, json_tokener_state_object_sep);
+                    json_tokener_set_saved_state(tok, json_tokener_state_object_sep);
                     // state = json_tokener_state_eatws;
-                    setTokenerState(tok, json_tokener_state_eatws);
+                    json_tokener_set_state(tok, json_tokener_state_eatws);
                     goto redo_char;
                 }
                     break;
@@ -1486,16 +1488,16 @@ int jsonDecodeVerBose(char* str, int len, value** result, jsonTokener* tok) {
                     if (c == '}')
                     {
                         // saved_state = json_tokener_state_finish;
-                        setTokenerSavedState(tok, json_tokener_state_finish);
+                        json_tokener_set_saved_state(tok, json_tokener_state_finish);
                         // state = json_tokener_state_eatws;
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                     }
                     else if (c == ',') //还有下个属性
                     {
                         // saved_state = json_tokener_state_object_field_start_after_sep;
-                        setTokenerSavedState(tok, json_tokener_state_object_field_start_after_sep);
+                        json_tokener_set_saved_state(tok, json_tokener_state_object_field_start_after_sep);
                         // state = json_tokener_state_eatws;
-                        setTokenerState(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_eatws);
                     }
                     else
                     {
@@ -1514,7 +1516,7 @@ out:
 	{
 		tok->err = json_tokener_error_parse_utf8_string;
 	}
-	if (c && (getTokenerState(tok) == json_tokener_state_finish) && (tok->depth == 0) &&
+	if (c && (json_tokener_get_state(tok) == json_tokener_state_finish) && (tok->depth == 0) &&
 	    (tok->flags & (JSON_TOKENER_STRICT | JSON_TOKENER_ALLOW_TRAILING_CHARS)) ==
 	        JSON_TOKENER_STRICT)
 	{
@@ -1524,7 +1526,7 @@ out:
 	if (!c)
 	{
 		/* We hit an eof char (0) */
-		if (getTokenerState(tok) != json_tokener_state_finish && getTokenerSavedState(tok) != json_tokener_state_finish)
+		if (json_tokener_get_state(tok) != json_tokener_state_finish && json_tokener_get_saved_state(tok) != json_tokener_state_finish)
 			tok->err = json_tokener_error_parse_eof;
 	}
 
@@ -1538,7 +1540,7 @@ out:
 
 	if (tok->err == json_tokener_success)
 	{
-		value *ret = getTokenerCurrent(tok);
+		json_t *ret = json_tokener_get_current(tok);
 		int ii;
 
 		/* Partially reset, so we parse additional objects on subsequent calls. */
@@ -1554,25 +1556,24 @@ out:
 	return 0;
 }
 
-int jsonDecode(sds str, value** result) {
-    LATTE_LIB_LOG(LOG_INFO, "jsonDecode func");
-    jsonTokener* tok = jsonTokenerCreate();
-    int v = jsonDecodeVerBose(str, sdslen(str), result, tok);
-    jsonTokenerRelease(tok);
-    return v;
+int sds_to_json(sds str, json_t** result) {
+    json_tokener_t* tok = json_tokener_new();
+    int rc = sds_to_json_verbose(str, sdslen(str), result, tok);
+    json_tokener_delete(tok);
+    return rc;
 }
 
 // encode
 
-sds sdsEncode(sds v) {
+sds sds_to_string(sds v) {
     return sdscatfmt(sdsempty(), "\"%s\"", v);
 }
 
 
-sds jsonEncode(value* v) {
+sds json_to_sds(json_t* v) {
     switch(v->type) {
         case VALUE_SDS:
-            return sdsEncode(v->value.sds_value);
+            return sds_to_string(v->value.sds_value);
         case VALUE_INT:
             return ll2sds(v->value.i64_value);
         case VALUE_UINT:
@@ -1583,11 +1584,11 @@ sds jsonEncode(value* v) {
             return v->value.bool_value == true? sdsnew("true"): sdsnew("false");
         case VALUE_ARRAY: {
             sds result = sdsnew("[");
-            Iterator* itor = vectorGetIterator(valueGetArray(v));
+            Iterator* itor = vectorGetIterator(value_get_array(v));
             int frist = 1;
             while(iteratorHasNext(itor)) {
-                value* v = iteratorNext(itor);
-                sds r = jsonEncode(v);
+                json_t* v = iteratorNext(itor);
+                sds r = json_to_sds(v);
                 if (frist) {
                     result = sdscatfmt(result, "%s", r);
                     frist = 0;
@@ -1601,13 +1602,13 @@ sds jsonEncode(value* v) {
         }
         case VALUE_MAP: {
             sds result = sdsnew("{");
-            dictIterator* itor = dictGetIterator(valueGetMap(v));
+            dictIterator* itor = dictGetIterator(value_get_map(v));
             int frist = 1;
             dictEntry* entry = NULL;
             while(NULL != (entry = dictNext(itor))) {
-                sds k = sdsEncode(dictGetEntryKey(entry));
-                value* v = (value*)dictGetEntryVal(entry);
-                sds r = jsonEncode(v);
+                sds k = sds_to_string(dictGetEntryKey(entry));
+                json_t* v = (json_t*)dictGetEntryVal(entry);
+                sds r = json_to_sds(v);
                 if (frist) {
                     result = sdscatfmt(result, "%s:%s", k , r);
                     frist = 0;

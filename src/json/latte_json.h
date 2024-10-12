@@ -5,6 +5,8 @@
 #include "vector/vector.h"
 #include "value/value.h"
 
+
+#define json_t value_t
 /**
  * Be strict when parsing JSON input.  Use caution with
  * this flag as what is considered valid may become more
@@ -30,43 +32,43 @@
  */
 #define JSON_TOKENER_ALLOW_TRAILING_CHARS 0x02
 
-value* jsonMapCreate();
-int jsonMapPutValue(value* root, sds key, value* v);
-int jsonMapPutSds(value* root, sds key, sds sv);
-int jsonMapPutInt64(value* root, sds key, int64_t sv);
-int jsonMapPutBool(value* root, sds key, bool v);
-int jsonMapPutLongDouble(value* root, sds key, long double v);
-value* jsonMapGet(value* root, char* key);
+json_t* json_map_new();
+int json_map_put_value(json_t* root, sds key, json_t* v);
+int json_map_put_sds(json_t* root, sds key, sds sv);
+int json_map_put_int64(json_t* root, sds key, int64_t sv);
+int json_map_put_bool(json_t* root, sds key, bool v);
+int json_map_put_longdouble(json_t* root, sds key, long double v);
+json_t* json_map_get_value(json_t* root, char* key);
 
-#define jsonMapGetSds(root, key)  valueGetSds(jsonMapGet(root, key))
-#define jsonMapGetInt64(root, key)  valueGetInt64(jsonMapGet(root, key))
-#define jsonMapGetBool(root, key)  valueGetBool(jsonMapGet(root, key))
-#define jsonMapGetLongDouble(root, key)  valueGetLongDouble(jsonMapGet(root, key))
+#define json_map_get_sds(root, key)  value_get_sds(json_map_get_value(root, key))
+#define json_map_get_int64(root, key)  value_get_int64(json_map_get_value(root, key))
+#define json_map_get_bool(root, key)  value_get_bool(json_map_get_value(root, key))
+#define json_map_get_longdouble(root, key)  value_get_longdouble(json_map_get_value(root, key))
 
-value* jsonListCreate();
-int jsonListPutSds(value* v, sds element);
-int jsonListPutBool(value* root, bool element);
-int jsonListPutInt64(value* root, int64_t element);
-int jsonListPutLongDouble(value* root, long double element);
-int jsonListPutValue(value* root, value* element);
-int jsonListShrink(value* root, int max);
-
-
-void valueListResize(value* root, int size);
+json_t* json_array_new();
+int json_array_put_sds(json_t* v, sds element);
+int json_array_put_bool(json_t* root, bool element);
+int json_array_put_int64(json_t* root, int64_t element);
+int json_array_put_longdouble(json_t* root, long double element);
+int json_array_put_value(json_t* root, json_t* element);
+int json_array_shrink(json_t* root, int max);
 
 
+void json_array_resize(json_t* root, int size);
 
-sds jsonEncode(value* v);
+
+
+sds json_to_sds(json_t* v);
 
 //decode string 
-typedef struct printbuf
+typedef struct json_printbuf_t
 {
 	char *buf;
 	int bpos;
 	int size;
-} printbuf;
-printbuf* printbufCreate();
-void printbufRelease(printbuf* buf);
+} json_printbuf_t;
+json_printbuf_t* json_printbuf_new();
+void json_printbuf_delete(json_printbuf_t* buf);
 
 /**
  * Cause json_tokener_parse_ex() to validate that input is UTF8.
@@ -79,7 +81,7 @@ void printbufRelease(printbuf* buf);
  * @see json_tokener_set_flags()
  */
 #define JSON_TOKENER_VALIDATE_UTF8 0x10
-typedef enum jsonTokenerError {
+typedef enum json_tokener_error_e {
     json_tokener_success,
 	json_tokener_continue,
 	json_tokener_error_depth,
@@ -97,12 +99,12 @@ typedef enum jsonTokenerError {
 	json_tokener_error_parse_utf8_string,
 	json_tokener_error_size,   /* A string longer than INT32_MAX was passed as input */
 	json_tokener_error_memory  /* Failed to allocate memory */
-} jsonTokenerError;
+} json_tokener_error_e;
 
 /**
  * @deprecated Don't use this outside of json_tokener.c, it will be made private in a future release.
  */
-typedef enum jsonTokenerState
+typedef enum json_tokener_state_e
 {
 	json_tokener_state_eatws,
 	json_tokener_state_start,
@@ -131,27 +133,27 @@ typedef enum jsonTokenerState
 	json_tokener_state_array_after_sep,
 	json_tokener_state_object_field_start_after_sep,
 	json_tokener_state_inf
-} jsonTokenerState;
+} json_tokener_state_e;
 
 /**
  * @deprecated Don't use this outside of json_tokener.c, it will be made private in a future release.
  */
-typedef struct jsonTokenerSrec
+typedef struct json_tokener_srec_t
 {
-	enum jsonTokenerState state, saved_state;
+	enum json_tokener_state_e state, saved_state;
 	struct value *obj;
 	struct value *current;
 	sds obj_field_name;
-} jsonTokenerSrec;
-jsonTokenerSrec* jsonTokenerSrecCreate();
+} json_tokener_srec_t;
+json_tokener_srec_t* jsonTokenerSrecCreate();
 
 
-typedef struct jsonTokener {
+typedef struct json_tokener_t {
     /**
 	 * @deprecated Do not access any of these fields outside of json_tokener.c
 	 */
 	char *str;
-	struct printbuf *pb;
+	struct json_printbuf_t *pb;
 	int max_depth, depth, is_double, st_pos;
 	/**
 	 * @deprecated See json_tokener_get_parse_end() instead.
@@ -160,15 +162,15 @@ typedef struct jsonTokener {
 	/**
 	 * @deprecated See json_tokener_get_error() instead.
 	 */
-	jsonTokenerError err;
+	json_tokener_error_e err;
 	unsigned int ucs_char, high_surrogate;
 	char quote_char;
 	vector* stack;
 	int flags;
-} jsonTokener;
+} json_tokener_t;
 
-jsonTokener* jsonTokenerCreate();
-void jsonTokenerRelease(jsonTokener* tokener);
-int jsonDecode(sds str, value** result);
+json_tokener_t* json_tokener_new();
+void json_tokener_delete(json_tokener_t* tokener);
+int sds_to_json(sds str, json_t** result);
 
 #endif
