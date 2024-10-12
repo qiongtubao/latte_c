@@ -86,23 +86,23 @@
 int test_encode() {
     
 
-    value* root = jsonMapCreate();
-    jsonMapPutSds(root, sdsnew("name"), sdsnew("John Doe"));
-    jsonMapPutInt64(root, sdsnew("age"), 30);
-    jsonMapPutBool(root, "is_student", true);
-    jsonMapPutLongDouble(root, "memory", 3.1435926);
-    value* vec = jsonListCreate();
-    // valueListResize(vec, 5);
-    jsonListPutSds(vec, sdsnew("readubg"));
-    jsonMapPutValue(root, sdsnew("hobbies"), vec);
-    value* list =jsonMapGet(root, "hobbies");
+    value_t* root = json_map_new();
+    json_map_put_sds(root, sdsnew("name"), sdsnew("John Doe"));
+    json_map_put_int64(root, sdsnew("age"), 30);
+    json_map_put_bool(root, "is_student", true);
+    json_map_put_longdouble(root, "memory", 3.1435926);
+    value_t* vec = json_array_new();
+    // json_array_resize(vec, 5);
+    json_array_put_sds(vec, sdsnew("readubg"));
+    json_map_put_value(root, sdsnew("hobbies"), vec);
+    value_t* list =json_map_get_value(root, "hobbies");
     assert(list == vec);
 
-    jsonListPutInt64(list, 100);
-    jsonListPutLongDouble(list, 1.23456);
-    jsonListPutBool(list, false);
+    json_array_put_int64(list, 100);
+    json_array_put_longdouble(list, 1.23456);
+    json_array_put_bool(list, false);
 
-    sds result = jsonEncode(root);
+    sds result = json_to_sds(root);
     printf("json: %s\n", result);
 
     
@@ -113,72 +113,72 @@ int test_encode() {
 
 }
 
-value* getMapTestValue(value* root) {
-    assert(valueIsMap(root));
+value_t* getMapTestValue(value_t* root) {
+    assert(value_is_map(root));
     dictEntry* entry = dictFind(root->value.map_value, "test");
     assert(entry != NULL);
     return dictGetVal(entry);
 }
 int test_decode_int() {
-    value* root1 = NULL;
-    assert(1 == jsonDecode(sdsnew("{\"test\":12345}"), &root1));
+    value_t* root1 = NULL;
+    assert(1 == sds_to_json(sdsnew("{\"test\":12345}"), &root1));
     assert(root1 != NULL);
-    value* test = getMapTestValue(root1);
+    value_t* test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(valueIsInt64(test));
-    assert(valueGetInt64(test) == 12345);
-    valueRelease(root1);
+    assert(value_is_int64(test));
+    assert(value_get_int64(test) == 12345);
+    value_delete(root1);
     root1 = NULL;
 
-    assert(1 == jsonDecode(sdsnew("{\"test\":9223372036854775809, \"test1\":12345}"), &root1));
+    assert(1 == sds_to_json(sdsnew("{\"test\":9223372036854775809, \"test1\":12345}"), &root1));
     assert(root1 != NULL);
     test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(valueIsUInt64(test));
-    assert(valueGetUInt64(test) == 9223372036854775809ULL);
-    valueRelease(root1);
+    assert(value_is_uint64(test));
+    assert(value_get_uint64(test) == 9223372036854775809ULL);
+    value_delete(root1);
     root1 = NULL;
 
-    assert(1 == jsonDecode(sdsnew("{\"test\":1.2345, \"test1\":12345}"), &root1));
+    assert(1 == sds_to_json(sdsnew("{\"test\":1.2345, \"test1\":12345}"), &root1));
     assert(root1 != NULL);
     test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(valueIsLongDouble(test));
+    assert(value_is_longdouble(test));
     assert(test->value.ld_value - 1.2345 < 0.0001);
-    valueRelease(root1);
+    value_delete(root1);
     root1 = NULL;
     return 1;
 }
 
 int test_decode_object() {
-    value* root1 = NULL;
-    assert(1 == jsonDecode(sdsnew("{}"), &root1));
+    value_t* root1 = NULL;
+    assert(1 == sds_to_json(sdsnew("{}"), &root1));
     assert(root1 != NULL);
-    assert(valueIsMap(root1));
+    assert(value_is_map(root1));
     assert(dictSize(root1->value.map_value) == 0);
-    valueRelease(root1);
+    value_delete(root1);
     root1 = NULL;
     return 1;
 }
 
 int test_decode_bool() {
-    value* root1 = NULL;
-    assert(1 == jsonDecode(sdsnew("{\"test\":true}"), &root1));
+    value_t* root1 = NULL;
+    assert(1 == sds_to_json(sdsnew("{\"test\":true}"), &root1));
     assert(root1 != NULL);
-    value* test = getMapTestValue(root1);
+    value_t* test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(valueIsBool(test));
+    assert(value_is_bool(test));
     assert(test->value.bool_value == true);
-    valueRelease(root1);
+    value_delete(root1);
     root1 = NULL;
 
-    assert(1 == jsonDecode(sdsnew("{\"test\":false}"), &root1));
+    assert(1 == sds_to_json(sdsnew("{\"test\":false}"), &root1));
     assert(root1 != NULL);
     test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(valueIsBool(test));
+    assert(value_is_bool(test));
     assert(test->value.bool_value == false);
-    valueRelease(root1);
+    value_delete(root1);
     root1 = NULL;
 
     return 1;
@@ -187,20 +187,20 @@ int test_decode_bool() {
 
 
 int test_decode_list() {
-    value* root1 = NULL;
-    assert(1 == jsonDecode(sdsnew("[]"), &root1));
+    value_t* root1 = NULL;
+    assert(1 == sds_to_json(sdsnew("[]"), &root1));
     assert(root1 != NULL);
-    assert(valueIsArray(root1));
-    assert(vectorSize(valueGetArray(root1)) == 0);
-    valueRelease(root1);
+    assert(value_is_array(root1));
+    assert(vectorSize(value_get_array(root1)) == 0);
+    value_delete(root1);
 
 
-    assert(1 == jsonDecode(sdsnew("[{}]"), &root1));
+    assert(1 == sds_to_json(sdsnew("[{}]"), &root1));
     assert(root1 != NULL);
-    assert(valueIsArray(root1) == 1);
-    assert(vectorSize(valueGetArray(root1)) == 1);
+    assert(value_is_array(root1) == 1);
+    assert(vectorSize(value_get_array(root1)) == 1);
     
-    valueRelease(root1);
+    value_delete(root1);
     root1 = NULL;
     return 1;
 }
