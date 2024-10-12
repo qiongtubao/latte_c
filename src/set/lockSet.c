@@ -8,16 +8,16 @@ lockSet* lockSetCreate(set* s) {
 
 int lockSetInit(lockSet* lockset, set* s) {
     lockset->set = s;
-    return mutexInit(&lockset->mutex);
+    return latte_mutex_init(&lockset->mutex);
 }
 
 void lockSetDestroy(lockSet* lockset) {
-    mutexLock(&lockset->mutex);
+    latte_mutex_lock(&lockset->mutex);
     set* s = lockset->set;
     lockset->set = NULL;
-    mutexUnlock(&lockset->mutex);
+    latte_mutex_unlock(&lockset->mutex);
     setRelease(s);
-    mutexDestroy(&lockset->mutex);
+    latte_mutex_destroy(&lockset->mutex);
 }
 void lockSetRelease(lockSet* lockset) {
     lockSetDestroy(lockset);
@@ -25,29 +25,29 @@ void lockSetRelease(lockSet* lockset) {
 }
 
 bool lockSetAdd(lockSet* set, void* element) {
-    mutexLock(&set->mutex);
+    latte_mutex_lock(&set->mutex);
     bool result = setAdd(set->set, element);
-    mutexUnlock(&set->mutex);
+    latte_mutex_unlock(&set->mutex);
     return result;
 }
 
 bool lockSetRemove(lockSet* set, void* element) {
-    mutexLock(&set->mutex);
+    latte_mutex_lock(&set->mutex);
     bool result = setRemove(set->set, element);
-    mutexUnlock(&set->mutex);
+    latte_mutex_unlock(&set->mutex);
     return result;
 }
 
 bool lockSetContains(lockSet* set, void* element) {
-    mutexLock(&set->mutex);
+    latte_mutex_lock(&set->mutex);
     bool result = setContains(set->set, element);
-    mutexUnlock(&set->mutex);
+    latte_mutex_unlock(&set->mutex);
     return result;
 }
 
 size_t lockSetSize(lockSet* set) {
-    mutexLock(&set->mutex);
+    latte_mutex_lock(&set->mutex);
     size_t result = setSize(set->set);
-    mutexUnlock(&set->mutex);
+    latte_mutex_unlock(&set->mutex);
     return result; 
 }

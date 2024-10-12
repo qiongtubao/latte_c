@@ -10,7 +10,7 @@
 
 typedef struct lockSet {
     set* set;
-    latte_mutex mutex;
+    latte_mutex_t mutex;
 } lockSet;
 
 lockSet* lockSetCreate(set* dt);

@@ -8,7 +8,7 @@ typedef struct pthread_task
 {
     int timers;
     int global_count;
-    latte_mutex* mutex;
+    latte_mutex_t* mutex;
 } pthread_task;
 
 // 线程执行的函数
@@ -16,16 +16,16 @@ void* increment_counter(void* arg) {
     pthread_task* task = (pthread_task*)arg; // 获取线程需要执行的次数
     for(int i = 0; i < task->timers; ++i) {
         // 加锁
-        mutexLock(task->mutex);
+        latte_mutex_lock(task->mutex);
         task->global_count++;
         // 解锁
-        mutexUnlock(task->mutex);
+        latte_mutex_unlock(task->mutex);
         usleep(10); // 模拟一些工作时间，非必须
     }
     return NULL;
 }
 
-int test_mutex_(latte_mutex* mutex, void *(*__start_routine)(void *)) {
+int test_mutex_(latte_mutex_t* mutex, void *(*__start_routine)(void *)) {
     // 创建两个线程
     pthread_t thread1, thread2;
     pthread_task task;
@@ -45,33 +45,33 @@ int test_mutex_(latte_mutex* mutex, void *(*__start_routine)(void *)) {
     return 1;
 }
 int test_mutex() {
-    latte_mutex mutex;
-    assert(mutexInit(&mutex) == 0);
+    latte_mutex_t mutex;
+    assert(latte_mutex_init(&mutex) == 0);
     test_mutex_(&mutex, increment_counter);
-    mutexDestroy(&mutex);
+    latte_mutex_destroy(&mutex);
     return 1;
 }
 
 int test_mutex_new() {
-    latte_mutex* mutex = mutexCreate();
+    latte_mutex_t* mutex = latte_mutex_new();
     test_mutex_(mutex, increment_counter);
-    mutexRelease(mutex); 
+    latte_mutex_delete(mutex); 
     return 1;
 }
 
-int test_muext_recuresive2(latte_mutex* mutex) {
-    mutexLock(mutex);
+int test_muext_recuresive2(latte_mutex_t* mutex) {
+    latte_mutex_lock(mutex);
     sleep(1);
-    mutexUnlock(mutex);
+    latte_mutex_unlock(mutex);
     return 1;
 }
 
 int test_mutex_recuresive() {
-    latte_mutex* mutex = mutextRecursiveCreate();
-    mutexLock(mutex);
+    latte_mutex_t* mutex = latte_recursive_mutex_new();
+    latte_mutex_lock(mutex);
     test_muext_recuresive2(mutex);
-    mutexUnlock(mutex);
-    mutexRelease(mutex);
+    latte_mutex_unlock(mutex);
+    latte_mutex_delete(mutex);
     return 1;
 }
 
@@ -80,20 +80,20 @@ void* increment_counter_recursive(void* arg) {
     pthread_task* task = (pthread_task*)arg; // 获取线程需要执行的次数
     for(int i = 0; i < task->timers; ++i) {
         // 加锁
-        mutexLock(task->mutex);
-        mutexLock(task->mutex);
+        latte_mutex_lock(task->mutex);
+        latte_mutex_lock(task->mutex);
         task->global_count++;
         // 解锁
-        mutexUnlock(task->mutex);
-        mutexUnlock(task->mutex);
+        latte_mutex_unlock(task->mutex);
+        latte_mutex_unlock(task->mutex);
         usleep(10); // 模拟一些工作时间，非必须
     }
     return NULL;
 }
 int test_mutex_recursive_new() {
-    latte_mutex* mutex = mutextRecursiveCreate();
+    latte_mutex_t* mutex = latte_recursive_mutex_new();
     test_mutex_(mutex, increment_counter_recursive);
-    mutexRelease(mutex); 
+    latte_mutex_delete(mutex); 
     return 1;
 }
 
