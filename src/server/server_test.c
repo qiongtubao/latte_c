@@ -53,7 +53,7 @@ void *server_thread(void *arg) {
 }
 
 int test_server() {
-    initLogger();
+    log_init();
     log_add_stdout("latte_c", LOG_DEBUG);
     pthread_t server_thread_id;
 

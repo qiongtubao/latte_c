@@ -123,7 +123,7 @@ int test_bplus_tree() {
 }
 
 int test_api(void) {
-    initLogger();
+    log_init();
     assert(log_add_stdout(LATTE_LIB, LOG_DEBUG) == 1);
     {
         #ifdef LATTE_TEST

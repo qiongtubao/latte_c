@@ -59,7 +59,7 @@ int test_api(void) {
         #ifdef LATTE_TEST
             // ..... private
         #endif
-        initLogger();
+        log_init();
         assert(log_add_stdout("test", LOG_DEBUG) == 1);
         assert(log_add_file("test", "./test.log", LOG_INFO) == 1);
         test_cond("log test", 
