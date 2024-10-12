@@ -6,29 +6,29 @@
 /**
  *  非线程安全的
  */
-typedef struct vector {
+typedef struct vector_t {
     void **data;
     size_t capacity;
     size_t count;
-} vector;
-vector* vectorCreate();
-void vectorRelease(vector* v);
-void vectorResize(vector* v, size_t new_capacity);
-int vectorPush(vector* v, void* element);
-void* vectorPop(vector* v);
-// size_t vectorSize(vector* v);
-#define vectorSize(v) v->count
+} vector_t;
+vector_t* vector_new();
+void vector_delete(vector_t* v);
+void vector_resize(vector_t* v, size_t new_capacity);
+int vector_push(vector_t* v, void* element);
+void* vector_pop(vector_t* v);
+// size_t vector_size(vector_t* v);
+#define vector_size(v) v->count
 
-void* vectorGet(const vector* v, size_t index);
-void vectorSet(vector* v, size_t index, void* element);
-int vectorShrink(vector* v, int empty_slots);
-typedef int comparator_t(void* v1, void* v2);
-void vectorSort(vector* v, comparator_t c);
+void* vector_get(const vector_t* v, size_t index);
+void vector_set(vector_t* v, size_t index, void* element);
+int vector_shrink(vector_t* v, int empty_slots);
+typedef int comparator_func(void* v1, void* v2);
+void vector_sort(vector_t* v, comparator_func c);
 
-#define vectorLast(v) vectorGet(v, v->count - 1)
-#define vectorFrist(v) vectorGet(v , 0)
+#define vector_get_last(v) vector_get(v, v->count - 1)
+#define vector_get_frist(v) vector_get(v , 0)
 
-Iterator* vectorGetIterator(vector* v);
+Iterator* vector_get_iterator(vector_t* v);
 
 
 #endif

@@ -8,8 +8,8 @@
 #  define SIZE_T_MAX	SIZE_MAX
 #endif
 
-vector* vectorCreate() {
-    vector* v = zmalloc(sizeof(vector));
+vector_t* vector_new() {
+    vector_t* v = zmalloc(sizeof(vector_t));
     if (v == NULL) {
         LATTE_LIB_LOG(LOG_ERROR, "malloc vector fail");
         return NULL;
@@ -19,12 +19,12 @@ vector* vectorCreate() {
     v->count = 0;
     return v;
 }
-void vectorRelease(vector* v) {
+void vector_delete(vector_t* v) {
     zfree(v->data);
     zfree(v);
 }
 
-int vectorExpandInternal(vector* v, size_t max) {
+int vector_expand_internal(vector_t* v, size_t max) {
     void *t;
     size_t new_size;
 
@@ -41,24 +41,24 @@ int vectorExpandInternal(vector* v, size_t max) {
     }
     if (new_size > (~((size_t)0))/ sizeof(void*))
         return -1;
-    if (!(t = realloc(v->data, new_size * sizeof(void*))))
+    if (!(t = zrealloc(v->data, new_size * sizeof(void*))))
         return -1;
     v->data = t;
     v->capacity = new_size;
     return 0;
 }
 
-int vectorShrink(vector* v, int empty_slots) {
+int vector_shrink(vector_t* v, int empty_slots) {
     
     void* t;
     size_t new_size;
     
-    if (empty_slots >= SIZE_T_MAX / sizeof(void *) - v->count);
+    if ((unsigned long)empty_slots >= (SIZE_T_MAX / sizeof(void *) - v->count))
         return -1;
     new_size = v->count + empty_slots;
     if ( new_size == v->count )  return 0;
     if (new_size > v->count) 
-        return vectorExpandInternal(v, new_size);
+        return vector_expand_internal(v, new_size);
     
     if (new_size == 0) 
         new_size = 1;
@@ -70,7 +70,7 @@ int vectorShrink(vector* v, int empty_slots) {
     return 0;
 }
 
-void vectorResize(vector* v, size_t new_capacity) {
+void vector_resize(vector_t* v, size_t new_capacity) {
     void** new_data =zrealloc(v->data, new_capacity* sizeof(void*));
     if (new_data == NULL) {
         LATTE_LIB_LOG(LOG_ERROR, "zrealloc vector fail");
@@ -79,15 +79,15 @@ void vectorResize(vector* v, size_t new_capacity) {
     v->data = new_data;
     v->capacity = new_capacity;
 }
-int vectorPush(vector* v, void* element) {
+int vector_push(vector_t* v, void* element) {
     if (v->count == v->capacity) {
         size_t new_capacity = v->capacity == 0 ? 1 : v->capacity * 2;
-        vectorResize(v, new_capacity);
+        vector_resize(v, new_capacity);
     }
     v->data[v->count++] = element;
     return 0;
 }
-void* vectorPop(vector* v) {
+void* vector_pop(vector_t* v) {
     if (v->count == 0) {
         return NULL;
     }
@@ -96,17 +96,17 @@ void* vectorPop(vector* v) {
     return element;
 }
 
-// size_t vectorSize(vector* v) {
+// size_t vector_size(vector_t* v) {
 //     return v->count;
 // }
 
-void* vectorGet(const vector* v, size_t index) {
+void* vector_get(const vector_t* v, size_t index) {
     if (index >= v->count) {
         return NULL;
     }
     return v->data[index];
 }
-void vectorSet(vector* v, size_t index, void* element) {
+void vector_set(vector_t* v, size_t index, void* element) {
     if (index >= v->count) {
         return;
     }
@@ -115,37 +115,37 @@ void vectorSet(vector* v, size_t index, void* element) {
 
 
 //====== iterator ======
-typedef struct vectorIteratorData {
-    vector* v;
+typedef struct vector_iterator_t {
+    vector_t* v;
     size_t index;
-} vectorIteratorData;
-bool vectorIteratorhasNext(Iterator* iterator) {
-    vectorIteratorData* data = (vectorIteratorData*)(iterator->data);
+} vector_iterator_t;
+bool vector_iterator_has_next(Iterator* iterator) {
+    vector_iterator_t* data = (vector_iterator_t*)(iterator->data);
     return data->index < data->v->count;
 }
 
-void* vectorIteratorNext(Iterator* iterator) {
-    vectorIteratorData* data = (vectorIteratorData*)(iterator->data);
-    return vectorGet(data->v, data->index++);
+void* vector_iterator_next(Iterator* iterator) {
+    vector_iterator_t* data = (vector_iterator_t*)(iterator->data);
+    return vector_get(data->v, data->index++);
 }
 
-void vectorIteratorRelease(Iterator* iterator) {
+void vector_iterator_delete(Iterator* iterator) {
     zfree(iterator->data);
     zfree(iterator);
 }
 IteratorType vector_iterator_type = {
-    .hasNext = vectorIteratorhasNext,
-    .next = vectorIteratorNext,
-    .release = vectorIteratorRelease
+    .hasNext = vector_iterator_has_next,
+    .next = vector_iterator_next,
+    .release = vector_iterator_delete
 };
 
 
 /**
  * TODO 暂时没实现倒序遍历
  */
-Iterator* vectorGetIterator(vector* v) {
+Iterator* vector_get_iterator(vector_t* v) {
     Iterator* iterator = zmalloc(sizeof(Iterator));
-    vectorIteratorData* data = zmalloc(sizeof(vectorIteratorData));
+    vector_iterator_t* data = zmalloc(sizeof(vector_iterator_t));
     data->index = 0;
     data->v = v;
     iterator->data = data;
@@ -159,7 +159,7 @@ void swap(void** a, void** b) {
     *b = c;
 }
 // 分区函数
-int partition(void* arr[], int low, int high, comparator_t c) {
+int partition(void* arr[], int low, int high, comparator_func c) {
     void* pivot = arr[high]; // 选择最后一个元素作为基准
     int i = (low - 1); // i指向小于pivot的元素的最后一个位置
 
@@ -174,7 +174,7 @@ int partition(void* arr[], int low, int high, comparator_t c) {
     return (i + 1);
 }
 // 快速排序函数
-void quickSort(void* array[], int low, int hight, comparator_t c) {
+void quickSort(void* array[], int low, int hight, comparator_func c) {
     if (low < hight) {
         // pi 是分区后的基准元素索引
         int pi = partition(array, low, hight, c);
@@ -183,6 +183,6 @@ void quickSort(void* array[], int low, int hight, comparator_t c) {
         quickSort(array, pi + 1, hight, c);
     }
 }
-void vectorSort(vector* v, comparator_t c) {
+void vector_sort(vector_t* v, comparator_func c) {
     quickSort(v->data, 0, v->count - 1, c);
 }

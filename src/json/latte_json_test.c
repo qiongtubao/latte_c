@@ -191,14 +191,14 @@ int test_decode_list() {
     assert(1 == sds_to_json(sdsnew("[]"), &root1));
     assert(root1 != NULL);
     assert(value_is_array(root1));
-    assert(vectorSize(value_get_array(root1)) == 0);
+    assert(vector_size(value_get_array(root1)) == 0);
     value_delete(root1);
 
 
     assert(1 == sds_to_json(sdsnew("[{}]"), &root1));
     assert(root1 != NULL);
     assert(value_is_array(root1) == 1);
-    assert(vectorSize(value_get_array(root1)) == 1);
+    assert(vector_size(value_get_array(root1)) == 1);
     
     value_delete(root1);
     root1 = NULL;
