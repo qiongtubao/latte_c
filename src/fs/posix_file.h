@@ -32,7 +32,7 @@ typedef struct PosixSequentialFile {
     int fd;
 } PosixSequentialFile;
 Error* posixSequentialFileCreate(sds_t filename, PosixSequentialFile** fd);
-Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, Slice* result);
+Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, slice_t* result);
 Error* posixSequentialFileSkip(PosixSequentialFile* file,uint64_t n);
 void posixSequentialFileRelease(PosixSequentialFile* file);
 #endif
