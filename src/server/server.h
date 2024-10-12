@@ -70,7 +70,7 @@ typedef int *(*ExecHandler)(struct latteClient* client);
 typedef struct latteClient {
     uint64_t id;
     connection *conn;
-    sds querybuf;    /* 我们用来累积客户端查询的缓冲区 */
+    sds_t querybuf;    /* 我们用来累积客户端查询的缓冲区 */
     size_t qb_pos;
     size_t querybuf_peak;   /* 最近（100毫秒或更长时间）查询缓冲区大小的峰值 */
     ExecFunc exec;

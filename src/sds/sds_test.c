@@ -4,11 +4,11 @@
 #include "sds.h"
 #include "sds_plugins.h"
 
-int test_sdsnew(void) {
+int test_sds_new(void) {
     //type 5
-    sds s = sdsnew("foo");
+    sds_t s = sds_new("foo");
     assert(strcmp(s, "foo") == 0);
-    sdsfree(s);
+    sds_free(s);
     return 1;
 }
 
@@ -17,23 +17,23 @@ int assert_random_sds(size_t len, int try) {
     for(size_t i = 0; i < len; i++) {
         buf[i] = 'a';
     }
-    sds s;
+    sds_t s;
     if (try) {
-        s = sdstrynewlen(buf ,len);
+        s = sds_try_new_len(buf ,len);
         assert(s != NULL);
     } else {
-        s = sdsnewlen(buf, len);
+        s = sds_new_len(buf, len);
     }
     
     assert(strncmp(s, buf, len) == 0);
-    sdsfree(s);
+    sds_free(s);
     zfree(buf);
     return 1;
 }
 
-int test_sdsnewlen(void) {
+int test_sds_new_len(void) {
     //null
-    sds value = sdsnewlen(NULL, 100);
+    sds_t value = sds_new_len(NULL, 100);
     assert(value != NULL);
     //type 5
     assert(assert_random_sds((1 << 5) - 1, 0) == 1);
@@ -49,13 +49,13 @@ int test_sdsnewlen(void) {
     //type64
     assert(assert_random_sds((1ll << 32), 0) == 1);
     
-    sdsfree(value);
+    sds_free(value);
     return 1;
 }
 
-int test_sdstrynewlen() {
+int test_sds_try_new_len() {
     //null
-    sds value = sdstrynewlen(NULL, 100);
+    sds_t value = sds_try_new_len(NULL, 100);
     assert(value != NULL);
     //type 5
     assert(assert_random_sds((1 << 5) - 1, 1) == 1);
@@ -71,69 +71,69 @@ int test_sdstrynewlen() {
     //type64
     assert(assert_random_sds((1ll << 32), 1) == 1);
 
-    sdsfree(value);
+    sds_free(value);
     return 1;
 }
 
 int test_resize() {
-    sds x ;
+    sds_t x ;
     /* Test sdsresize - extend */
-    x = sdsnew("1234567890123456789012345678901234567890");
-    x = sdsResize(x, 200, 1);
-    test_cond("sdsrezie() expand len", sdslen(x) == 40);
+    x = sds_new("1234567890123456789012345678901234567890");
+    x = sds_resize(x, 200, 1);
+    test_cond("sdsrezie() expand len", sds_len(x) == 40);
     test_cond("sdsrezie() expand strlen", strlen(x) == 40);
-    test_cond("sdsrezie() expand alloc", sdsalloc(x) == 200);
+    test_cond("sdsrezie() expand alloc", sds_alloc(x) == 200);
     /* Test sdsresize - trim free D1 */
-    x = sdsResize(x, 80, 1);
-    test_cond("sdsrezie() shrink len", sdslen(x) == 40);
+    x = sds_resize(x, 80, 1);
+    test_cond("sdsrezie() shrink len", sds_len(x) == 40);
     test_cond("sdsrezie() shrink strlen", strlen(x) == 40);
-    test_cond("sdsrezie() shrink alloc", sdsalloc(x) == 80);
+    test_cond("sdsrezie() shrink alloc", sds_alloc(x) == 80);
     /* Test sdsresize - crop used space */
-    x = sdsResize(x, 30, 1);
-    test_cond("sdsrezie() crop len", sdslen(x) == 30);
+    x = sds_resize(x, 30, 1);
+    test_cond("sdsrezie() crop len", sds_len(x) == 30);
     test_cond("sdsrezie() crop strlen", strlen(x) == 30);
-    test_cond("sdsrezie() crop alloc", sdsalloc(x) == 30);
+    test_cond("sdsrezie() crop alloc", sds_alloc(x) == 30);
     /* Test sdsresize - extend to different class */
-    x = sdsResize(x, 400, 1);
-    test_cond("sdsrezie() expand len", sdslen(x) == 30);
+    x = sds_resize(x, 400, 1);
+    test_cond("sdsrezie() expand len", sds_len(x) == 30);
     test_cond("sdsrezie() expand strlen", strlen(x) == 30);
-    test_cond("sdsrezie() expand alloc", sdsalloc(x) == 400);
+    test_cond("sdsrezie() expand alloc", sds_alloc(x) == 400);
     /* Test sdsresize - shrink to different class */
-    x = sdsResize(x, 4, 1);
-    test_cond("sdsrezie() crop len", sdslen(x) == 4);
+    x = sds_resize(x, 4, 1);
+    test_cond("sdsrezie() crop len", sds_len(x) == 4);
     test_cond("sdsrezie() crop strlen", strlen(x) == 4);
-    test_cond("sdsrezie() crop alloc", sdsalloc(x) == 4);
-    sdsfree(x);
+    test_cond("sdsrezie() crop alloc", sds_alloc(x) == 4);
+    sds_free(x);
     return 1;
 }
 int test_findlastof() {
-    sds haystack = sdsnew("Hello world");
-    int index = sdsFindLastOf(haystack, "Hello");
-    test_cond("sds findlastof",index == 0);
-    sdsfree(haystack);
+    sds_t haystack = sds_new("Hello world");
+    int index = sds_find_lastof(haystack, "Hello");
+    test_cond("sds_t findlastof",index == 0);
+    sds_free(haystack);
 
-    haystack = sdsnew("This is a test string with test inside.");
-    index = sdsFindLastOf(haystack, "test");
+    haystack = sds_new("This is a test string with test inside.");
+    index = sds_find_lastof(haystack, "test");
     assert(index != C_NPOS);
     assert(index > 0);
-    sdsfree(haystack);
+    sds_free(haystack);
 
-    haystack = sdsnew("abcd/edf");
-    index = sdsFindLastOf(haystack, "xyz");
+    haystack = sds_new("abcd/edf");
+    index = sds_find_lastof(haystack, "xyz");
     assert(index == C_NPOS);
-    sdsfree(haystack);
+    sds_free(haystack);
 
-    haystack = sdsnew("/a/b/c/edf");
-    index = sdsFindLastOf(haystack, "/");
+    haystack = sds_new("/a/b/c/edf");
+    index = sds_find_lastof(haystack, "/");
     assert(index == 6);
-    sdsfree(haystack);
+    sds_free(haystack);
     return 1;
 }
 
 int test_startsWith() {
-    sds haystack = sdsnew("Hello, world!");
-    assert(sdsStartsWith(haystack, "Hello"));
-    sdsfree(haystack);
+    sds_t haystack = sds_new("Hello, world!");
+    assert(sds_starts_with(haystack, "Hello"));
+    sds_free(haystack);
     return 1;
 }
 
@@ -149,7 +149,7 @@ int test_fixed32() {
     uint32_t value1 = decodeFixed32(dst1);
     assert(0x12345678 == value1);
 
-    sds s = sdsempty();
+    sds_t s = sds_empty();
     s = sdsAppendFixed32(s, 0x12345678);
     assert(0x78 == s[0]);
     assert(0x56 == s[1]);
@@ -157,7 +157,7 @@ int test_fixed32() {
     assert(0x12 == s[3]);
     value1 = decodeFixed32(s);
     assert(0x12345678 == value1);
-    sdsfree(s);
+    sds_free(s);
     return 1;
 }
 
@@ -177,7 +177,7 @@ int test_fixed64() {
     uint64_t value1 = decodeFixed64(dst1);
     assert(0x123456789ABCDEF0ull == value1);
 
-    sds s = sdsempty(); 
+    sds_t s = sds_empty(); 
     s = sdsAppendFixed64(s, 0x123456789ABCDEF0ull);
     value1 = decodeFixed64(s);
     assert(0xFFFFFFF0 == s[0]);
@@ -189,7 +189,7 @@ int test_fixed64() {
     assert(0x34 == s[6]);
     assert(0x12 == s[7]);
     assert(0x123456789ABCDEF0ull == value1);
-    sdsfree(s);
+    sds_free(s);
     return 1;
 }
 
@@ -271,8 +271,8 @@ int test_appendLengthprefixedSlice() {
     Slice slice;
     slice.p = "hello";
     slice.len = 5;
-    sds result = sdsAppendLengthPrefixedSlice(sdsempty(), &slice);
-    assert(6 == sdslen(result));
+    sds_t result = sdsAppendLengthPrefixedSlice(sds_empty(), &slice);
+    assert(6 == sds_len(result));
     assert(0x00000005 == result[0]);
     assert('h' == result[1]);
     return 1;
@@ -286,10 +286,10 @@ int test_slice() {
     assert(!SliceIsEmpty(&a));
     assert(SliceData(&a) == a.p);
     assert(SliceSize(&a) == a.len);
-    sds r = SliceToSds(&a);
-    assert(sdslen(r) == 5);
+    sds_t r = SliceToSds(&a);
+    assert(sds_len(r) == 5);
     assert(strncmp(r, a.p, a.len) == 0);
-    sdsfree(r);
+    sds_free(r);
     SliceRemovePrefix(&a, 1);
     Slice b = {
         .p = "ello",
@@ -308,11 +308,11 @@ int test_slice() {
         .p = "hello",
         .len = 5
     };
-    sds result = sdsAppendLengthPrefixedSlice(sdsempty(), &d);
-    assert(sdslen(result) == 6);
+    sds_t result = sdsAppendLengthPrefixedSlice(sds_empty(), &d);
+    assert(sds_len(result) == 6);
     Slice input = {
         .p = result,
-        .len = sdslen(result),
+        .len = sds_len(result),
     };
     Slice output = {.p = NULL, .len = 0};
  
@@ -323,27 +323,27 @@ int test_slice() {
     return 1;
 }
 
-int test_sdscatfmt() {
-    sds d = sdsnew("test");
-    sds result = sdscatfmt(sdsempty(), "%S-%i-%I-%u-%U-%%", d, 1, 110LL, 11u, 11uLL);
-    assert(sdslen(result) == 18);
+int test_sds_cat_fmt() {
+    sds_t d = sds_new("test");
+    sds_t result = sds_cat_fmt(sds_empty(), "%S-%i-%I-%u-%U-%%", d, 1, 110LL, 11u, 11uLL);
+    assert(sds_len(result) == 18);
     assert(strncmp("test-1-110-11-11-%",result,18) == 0);
 
-    sds o = sdsReset(d, "a", 1);
-    assert(sdslen(o) == 1);
+    sds_t o = sds_reset(d, "a", 1);
+    assert(sds_len(o) == 1);
     assert(strncmp(o, "a", 1) == 0);
     // assert(d == o);
-    sdsfree(o);
-    sdsfree(result);
+    sds_free(o);
+    sds_free(result);
     return 1;
 }
 
 int test_memcpy() {
-    sds result = sdsnewlen("", 5);
-    assert(5 == sdslen(result));
+    sds_t result = sds_new_len("", 5);
+    assert(5 == sds_len(result));
     printf("result == %s\n", result);
     memcpy(result, "hello", 5);
-    assert(5 == sdslen(result));
+    assert(5 == sds_len(result));
     assert(strncmp(result, "hello", 5) == 0);
     return 1;
 }
@@ -353,17 +353,17 @@ int test_api(void) {
         #ifdef LATTE_TEST
             // ..... private
         #endif
-        test_cond("sdsnew function", 
-            test_sdsnew() == 1);
-        test_cond("sdsnewlen function",
-            test_sdsnewlen() == 1);
-        test_cond("sdstrynewlen function",
-            test_sdstrynewlen() == 1);
-        test_cond("sdsResize function",
+        test_cond("sds_new function", 
+            test_sds_new() == 1);
+        test_cond("sds_new_len function",
+            test_sds_new_len() == 1);
+        test_cond("sds_try_new_len function",
+            test_sds_try_new_len() == 1);
+        test_cond("sds_resize function",
             test_resize() == 1);
-        test_cond("sds find last of function",
+        test_cond("sds_t find last of function",
             test_findlastof() == 1);
-        test_cond("sds starts with function",
+        test_cond("sds_t starts with function",
             test_startsWith() == 1);
         test_cond("fixed32 function",
             test_fixed32() == 1);
@@ -375,8 +375,8 @@ int test_api(void) {
             test_varint64() == 1);
         test_cond("put length prefixed slice", 
             test_appendLengthprefixedSlice() == 1);
-        test_cond("sdscatfmt function",
-            test_sdscatfmt());
+        test_cond("sds_cat_fmt function",
+            test_sds_cat_fmt());
         test_cond("slice test",
             test_slice() == 1);
         test_cond("reset sds",

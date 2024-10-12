@@ -2,6 +2,10 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=async.o
 LIB_OBJ?=
 TEST_MAIN?=async_test
+MODULE?=async
+BUILD_INCLUDE?=async.h 
+LIB_MODULES?=zmalloc task dict sds
+
 
 include $(WORKSPACE)/mks/sys.mk
 include $(WORKSPACE)/mks/final.mk

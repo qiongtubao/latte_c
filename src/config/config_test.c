@@ -37,17 +37,17 @@ configRule array_sds_rule = {
 int test_configCreate() {
     config* c = createConfig();
     //sds
-    sds name = sdsnew("name");
+    sds_t name = sds_new("name");
     registerConfig(c, name, &name_rule);
     //long long
-    sds age = sdsnew("age");
+    sds_t age = sds_new("age");
     registerConfig(c, age, &age_rule);
 
     assert(dictSize(c->rules) == 2);
 
-    sds value = sdsnew("latte");
+    sds_t value = sds_new("latte");
     assert(configSetSds(c, "name", value) == 1);
-    sds r = configGetSds(c, "name");
+    sds_t r = configGetSds(c, "name");
     assert(r == value);
 
     assert(configGetLongLong(c, "age") == DEFAULT_AGE);
@@ -71,13 +71,13 @@ int mockConfigFile(char* file_name, char* file_context) {
 int test_loadConfigFromString() {
     config* c = createConfig();
     //sds
-    sds name = sdsnewlen("name", 4);
+    sds_t name = sds_new_len("name", 4);
     registerConfig(c, name, &name_rule);
     //long long
-    sds age = sdsnewlen("age", 3);
+    sds_t age = sds_new_len("age", 3);
     registerConfig(c, age, &age_rule);
 
-    sds bind = sdsnewlen("bind", 4);
+    sds_t bind = sds_new_len("bind", 4);
     registerConfig(c, bind, &array_sds_rule);
 
     char* configstr = "name a\r\nage 101";

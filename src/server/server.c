@@ -243,9 +243,9 @@ void readQueryFromClient(connection *conn) {
      * 从而提高性能。
      * 
      */
-    qblen = sdslen(c->querybuf);
+    qblen = sds_len(c->querybuf);
     if (c->querybuf_peak < qblen) c->querybuf_peak = qblen;
-    c->querybuf = sdsMakeRoomFor(c->querybuf, readlen);
+    c->querybuf = sds_make_room_for(c->querybuf, readlen);
     
     nread = connRead(c->conn, c->querybuf + qblen, readlen);
     if (nread == -1) {
@@ -260,10 +260,10 @@ void readQueryFromClient(connection *conn) {
         freeClientAsync(c);
         return;
     } 
-    sdsIncrLen(c->querybuf,nread);
+    sds_incr_len(c->querybuf,nread);
     if (c->exec(c)) {
         //清理掉c->querybuf
-        sdsrange(c->querybuf,c->qb_pos,-1);
+        sds_range(c->querybuf,c->qb_pos,-1);
         c->qb_pos = 0;
     }
 }
@@ -373,14 +373,14 @@ void freeInnerLatteServer(struct latteServer* server) {
 /**client **/
 void initInnerLatteClient(struct latteClient* client) {
     client->qb_pos = 0;
-    client->querybuf = sdsempty();
+    client->querybuf = sds_empty();
     client->querybuf_peak = 0;
     client->client_list_node = NULL;
 }
 
 void freeInnerLatteClient(struct latteClient* client) {
     if (client->querybuf != NULL) {
-        sdsfree(client->querybuf);
+        sds_free(client->querybuf);
         client->querybuf = NULL;
     }
 }

@@ -33,11 +33,11 @@
 #define JSON_TOKENER_ALLOW_TRAILING_CHARS 0x02
 
 json_t* json_map_new();
-int json_map_put_value(json_t* root, sds key, json_t* v);
-int json_map_put_sds(json_t* root, sds key, sds sv);
-int json_map_put_int64(json_t* root, sds key, int64_t sv);
-int json_map_put_bool(json_t* root, sds key, bool v);
-int json_map_put_longdouble(json_t* root, sds key, long double v);
+int json_map_put_value(json_t* root, sds_t key, json_t* v);
+int json_map_put_sds(json_t* root, sds_t key, sds_t sv);
+int json_map_put_int64(json_t* root, sds_t key, int64_t sv);
+int json_map_put_bool(json_t* root, sds_t key, bool v);
+int json_map_put_longdouble(json_t* root, sds_t key, long double v);
 json_t* json_map_get_value(json_t* root, char* key);
 
 #define json_map_get_sds(root, key)  value_get_sds(json_map_get_value(root, key))
@@ -46,7 +46,7 @@ json_t* json_map_get_value(json_t* root, char* key);
 #define json_map_get_longdouble(root, key)  value_get_longdouble(json_map_get_value(root, key))
 
 json_t* json_array_new();
-int json_array_put_sds(json_t* v, sds element);
+int json_array_put_sds(json_t* v, sds_t element);
 int json_array_put_bool(json_t* root, bool element);
 int json_array_put_int64(json_t* root, int64_t element);
 int json_array_put_longdouble(json_t* root, long double element);
@@ -58,7 +58,7 @@ void json_array_resize(json_t* root, int size);
 
 
 
-sds json_to_sds(json_t* v);
+sds_t json_to_sds(json_t* v);
 
 //decode string 
 typedef struct json_printbuf_t
@@ -143,7 +143,7 @@ typedef struct json_tokener_srec_t
 	enum json_tokener_state_enum state, saved_state;
 	struct value *obj;
 	struct value *current;
-	sds obj_field_name;
+	sds_t obj_field_name;
 } json_tokener_srec_t;
 json_tokener_srec_t* jsonTokenerSrecCreate();
 
@@ -171,6 +171,6 @@ typedef struct json_tokener_t {
 
 json_tokener_t* json_tokener_new();
 void json_tokener_delete(json_tokener_t* tokener);
-int sds_to_json(sds str, json_t** result);
+int sds_to_json(sds_t str, json_t** result);
 
 #endif

@@ -11,8 +11,8 @@
 
 typedef struct PosixWritableFile {
     int fd;
-    sds filename;
-    sds dirname;
+    sds_t filename;
+    sds_t dirname;
     size_t pos;
     bool is_manifest;
     char buffer[kWritableFileBufferSize];
@@ -28,10 +28,10 @@ Error* posixWritableFileClose(PosixWritableFile* file);
 
 //============ PosixSequentialFile ============ 
 typedef struct PosixSequentialFile {
-    sds filename;
+    sds_t filename;
     int fd;
 } PosixSequentialFile;
-Error* posixSequentialFileCreate(sds filename, PosixSequentialFile** fd);
+Error* posixSequentialFileCreate(sds_t filename, PosixSequentialFile** fd);
 Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, Slice* result);
 Error* posixSequentialFileSkip(PosixSequentialFile* file,uint64_t n);
 void posixSequentialFileRelease(PosixSequentialFile* file);

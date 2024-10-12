@@ -20,7 +20,7 @@ typedef enum value_type_enum {
 typedef struct {
     value_type_enum type;
     union {
-        sds sds_value;
+        sds_t sds_value;
         int64_t i64_value;
         uint64_t  u64_value;
         long double ld_value;
@@ -34,7 +34,7 @@ value_t* value_new();
 void value_delete(value_t* v);
 
 
-sds value_get_sds(value_t* v);
+sds_t value_get_sds(value_t* v);
 int64_t value_get_int64(value_t* v);
 uint64_t value_get_uint64(value_t* v);
 long double value_get_longdouble(value_t* v);
@@ -42,9 +42,9 @@ bool value_get_bool(value_t* v);
 vector_t* value_get_array(value_t* v);
 dict* value_get_map(value_t* v);
 
-sds value_get_binary(value_t* v);
+sds_t value_get_binary(value_t* v);
 
-void value_set_sds(value_t* v, sds s);
+void value_set_sds(value_t* v, sds_t s);
 void value_set_int64(value_t* v, int64_t l);
 void value_set_uint64(value_t* v, uint64_t ull);
 void value_set_longdouble(value_t* v, long double d);

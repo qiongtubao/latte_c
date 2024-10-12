@@ -85,7 +85,7 @@ static struct logger_factory_t {
 void log_init();
 
 
-
+void log_log(char* tag, int level, char *file, const char* function, int line, char *fmt, ...);
 // enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 
 #define log_trace(tag, ...) log_log(tag, LOG_TRACE, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
@@ -104,7 +104,7 @@ int log_add_callback(char* tag, log_func fn, void *udata, int level);
 int log_add_file(char* tag, char *fp, int level);
 int log_add_stdout(char* tag, int level);
 
-void log_log(char* tag, int level, char *file, const char* function, int line, char *fmt, ...);
+
 
 #define LATTE_LIB "latte_lib" 
 #define LATTE_LIB_LOG(level, ...) log_log(LATTE_LIB, level, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__) 

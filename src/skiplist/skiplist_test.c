@@ -2,7 +2,7 @@
 #include "../test/testhelp.h"
 #include "../test/testassert.h"
 #include "skiplist.h"
-int doubleComparator(sds a_ele, void* a_, sds b_ele, void* b_) {
+int doubleComparator(sds_t a_ele, void* a_, sds_t b_ele, void* b_) {
     double a = *(double*)a_; 
     double b = *(double*)b_;
     if (a < b) {
@@ -17,7 +17,7 @@ int doubleComparator(sds a_ele, void* a_, sds b_ele, void* b_) {
         } else if (b_ele == NULL) {
             return 1;
         } else {
-            return sdscmp(a_ele, b_ele);
+            return sds_cmp(a_ele, b_ele);
         }
     }
 
@@ -35,7 +35,7 @@ int test_skiplistNew() {
 
 int test_skiplistInsert() {
     skiplist* sl = skipListNew(&doubleComparator);
-    sds a = sdsnew("a");
+    sds_t a = sds_new("a");
     double a_score  = 1.0;
     skipListInsert(sl, &a_score, a);
     assert(sl->length == 1);
@@ -87,7 +87,7 @@ int test_skiplistInsert() {
 
 
     // test 2 point 
-    sds b = sdsnew("b");
+    sds_t b = sds_new("b");
     double b_score  = 5.0;
     skipListInsert(sl, &b_score, b);
     assert(sl->length == 2);
@@ -180,9 +180,9 @@ int test_skiplistInsert() {
 
 int test_skiplistDel() {
     skiplist* sl = skipListNew(&doubleComparator);
-    sds a = sdsnew("a");
+    sds_t a = sds_new("a");
     double a_score  = 1.0;
-    sds b = sdsnew("b");
+    sds_t b = sds_new("b");
     double b_score  = 5.0;
     skipListInsert(sl, &a_score, a);
     assert(sl->length == 1);

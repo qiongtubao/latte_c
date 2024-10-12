@@ -26,7 +26,7 @@ json_t* json_map_new() {
 }
 
 
-int json_map_put_value(json_t* root, sds key, json_t* v) {
+int json_map_put_value(json_t* root, sds_t key, json_t* v) {
     if (!value_is_map(root)) return 0;
     dictEntry* node = dictFind(root->value.map_value, key);
     if (node != NULL) {
@@ -40,28 +40,28 @@ int json_map_put_value(json_t* root, sds key, json_t* v) {
 }
 
 
-int json_map_put_sds(json_t* root, sds key, sds sv) {
+int json_map_put_sds(json_t* root, sds_t key, sds_t sv) {
     if (!value_is_map(root)) return 0;
     json_t* v = value_new();
     value_set_sds(v, sv);
     return json_map_put_value(root, key, v);
 }
 
-int json_map_put_int64(json_t* root, sds key, int64_t ll) {
+int json_map_put_int64(json_t* root, sds_t key, int64_t ll) {
     if (!value_is_map(root)) return 0;
     json_t* v = value_new();
     value_set_int64(v, ll);
     return json_map_put_value(root, key, v);
 }
 
-int json_map_put_bool(json_t* root, sds key, bool b) {
+int json_map_put_bool(json_t* root, sds_t key, bool b) {
     if (!value_is_map(root)) return 0;
     json_t* v = value_new();
     value_set_bool(v, b);
     return json_map_put_value(root, key, v);
 }
 
-int json_map_put_longdouble(json_t* root, sds key, long double ld) {
+int json_map_put_longdouble(json_t* root, sds_t key, long double ld) {
     if (!value_is_map(root)) return 0;
     json_t* v = value_new();
     value_set_longdouble(v, ld);
@@ -93,7 +93,7 @@ void json_array_resize(json_t* root, int size) {
 
 
 
-int json_array_put_sds(json_t* root, sds element) {
+int json_array_put_sds(json_t* root, sds_t element) {
     if (!value_is_array(root)) return 0;
     json_t* v = value_new();
     value_set_sds(v, element);
@@ -143,7 +143,7 @@ static void json_tokener_reset_level(struct json_tokener_t *tok, int depth)
 	// json_object_put(tok->stack[depth].current);
 	// tok->stack[depth].current = NULL;
     srec->current = NULL;
-	sdsfree(srec->obj_field_name);
+	sds_free(srec->obj_field_name);
 	srec->obj_field_name = NULL;
 }
 
@@ -316,7 +316,7 @@ void json_tokener_set_current(json_tokener_t* tok, json_t* value) {
     srec->current = value;
 }
 
-sds json_tokener_get_fieldname(json_tokener_t* tok) {
+sds_t json_tokener_get_fieldname(json_tokener_t* tok) {
     json_tokener_srec_t* srec = vector_get(tok->stack, tok->depth);
     return srec->obj_field_name;
 }
@@ -780,7 +780,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                             json_printbuf_memappend_checked(tok->pb, case_start,
                                                     str - case_start);
                             json_t* current = value_new();
-                            value_set_sds(current, sdsnewlen(tok->pb->buf, tok->pb->bpos));
+                            value_set_sds(current, sds_new_len(tok->pb->buf, tok->pb->bpos));
                             // current =
                             //     json_object_new_string_len(tok->pb->buf, tok->pb->bpos);
                             if (current == NULL)
@@ -1405,7 +1405,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         {
                             json_printbuf_memappend_checked(tok->pb, case_start,
                                                     str - case_start);
-                            json_tokener_set_fieldname(tok, sdsnew(tok->pb->buf));
+                            json_tokener_set_fieldname(tok, sds_new(tok->pb->buf));
                             if (json_tokener_get_fieldname(tok) == NULL)
                             {
                                 tok->err = json_tokener_error_memory;
@@ -1559,21 +1559,21 @@ out:
 	return 0;
 }
 
-int sds_to_json(sds str, json_t** result) {
+int sds_to_json(sds_t str, json_t** result) {
     json_tokener_t* tok = json_tokener_new();
-    int rc = sds_to_json_verbose(str, sdslen(str), result, tok);
+    int rc = sds_to_json_verbose(str, sds_len(str), result, tok);
     json_tokener_delete(tok);
     return rc;
 }
 
 // encode
 
-sds sds_to_string(sds v) {
-    return sdscatfmt(sdsempty(), "\"%s\"", v);
+sds_t sds_to_string(sds_t v) {
+    return sds_cat_fmt(sds_empty(), "\"%s\"", v);
 }
 
 
-sds json_to_sds(json_t* v) {
+sds_t json_to_sds(json_t* v) {
     switch(v->type) {
         case VALUE_SDS:
             return sds_to_string(v->value.sds_value);
@@ -1584,48 +1584,48 @@ sds json_to_sds(json_t* v) {
         case VALUE_DOUBLE:
             return ld2sds(v->value.ld_value, 0);
         case VALUE_BOOLEAN:
-            return v->value.bool_value == true? sdsnew("true"): sdsnew("false");
+            return v->value.bool_value == true? sds_new("true"): sds_new("false");
         case VALUE_ARRAY: {
-            sds result = sdsnew("[");
+            sds_t result = sds_new("[");
             Iterator* itor = vector_get_iterator(value_get_array(v));
             int frist = 1;
             while(iteratorHasNext(itor)) {
                 json_t* v = iteratorNext(itor);
-                sds r = json_to_sds(v);
+                sds_t r = json_to_sds(v);
                 if (frist) {
-                    result = sdscatfmt(result, "%s", r);
+                    result = sds_cat_fmt(result, "%s", r);
                     frist = 0;
                 } else {
-                    result = sdscatfmt(result, ",%s", r);
+                    result = sds_cat_fmt(result, ",%s", r);
                 }
-                sdsfree(r);
+                sds_free(r);
             }
             iteratorRelease(itor);
-            return sdscatfmt(result, "]");
+            return sds_cat_fmt(result, "]");
         }
         case VALUE_MAP: {
-            sds result = sdsnew("{");
+            sds_t result = sds_new("{");
             dictIterator* itor = dictGetIterator(value_get_map(v));
             int frist = 1;
             dictEntry* entry = NULL;
             while(NULL != (entry = dictNext(itor))) {
-                sds k = sds_to_string(dictGetEntryKey(entry));
+                sds_t k = sds_to_string(dictGetEntryKey(entry));
                 json_t* v = (json_t*)dictGetEntryVal(entry);
-                sds r = json_to_sds(v);
+                sds_t r = json_to_sds(v);
                 if (frist) {
-                    result = sdscatfmt(result, "%s:%s", k , r);
+                    result = sds_cat_fmt(result, "%s:%s", k , r);
                     frist = 0;
                 } else {
-                    result = sdscatfmt(result, ",%s:%s",k,  r);
+                    result = sds_cat_fmt(result, ",%s:%s",k,  r);
                 }
-                sdsfree(k);
-                sdsfree(r);
+                sds_free(k);
+                sds_free(r);
             }
             dictReleaseIterator(itor);
-            return sdscatfmt(result, "}");
+            return sds_cat_fmt(result, "}");
         }
         break;
         default:
-            return sdsnew("null");
+            return sds_new("null");
     }
 }

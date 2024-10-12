@@ -3,11 +3,11 @@
 #include "../utils/atomic.h"
 #include "../sds/sds.h"
 
-typedef int (comparator)(sds a_ele, void* a, sds b_ele, void* b);
+typedef int (comparator)(sds_t a_ele, void* a, sds_t b_ele, void* b);
 typedef void (freeValue)(void* value);
 
 typedef struct skiplistNode {
-    sds ele;
+    sds_t ele;
     void* score;
     struct skiplistNode *backward;
     struct skiplistLevel {
@@ -37,15 +37,15 @@ typedef struct {
 //skiplist method
 struct skiplist* skipListNew(comparator comparator);
 void skipListFree(skiplist* sl, freeValue* free_fn);
-skiplistNode* skipListCreateNode(int level, void* value, sds ele);
+skiplistNode* skipListCreateNode(int level, void* value, sds_t ele);
 void* skipListFreeNode(skiplistNode* node);
 
 skiplistNode* skiplistFirstInRange(skiplist* sl, zrangespec* zs);
 skiplistNode* skiplistLastInRange(skiplist* sl, zrangespec* zs);
 
 // int skipListContains(skiplist* skiplist, void* key);
-skiplistNode* skipListInsert(skiplist* skiplist, void* value, sds ele);
-void* skipListDelete(skiplist* skiplist, void* val, sds ele, skiplistNode** node);
+skiplistNode* skipListInsert(skiplist* skiplist, void* value, sds_t ele);
+void* skipListDelete(skiplist* skiplist, void* val, sds_t ele, skiplistNode** node);
 // skiplistNode* skiplistFindGreaterOrEqual(const Key& key, Node** prev) const;
 // int skiplistEqual(skiplist* skiplist, void* a, void* b);
 // skiplistNode* skiplistFindLast(skiplist* skiplist);

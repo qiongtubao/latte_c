@@ -13,7 +13,7 @@ int isOk(Error* error) {
 Error* errorCreate(Code code, char* context, char* message, ...) {
     Error* error = (Error*)zmalloc(sizeof(Error));
     error->code = code;
-    error->state = sdscatprintf(sdsempty(),"%s: %s",context, message);;
+    error->state = sds_cat_printf(sds_empty(),"%s: %s",context, message);;
     return error;
 }
 
@@ -36,7 +36,7 @@ Error* errnoIoCreate(char* format, ...) {
 
 void errorRelease(Error* error) {
     if (error->state != NULL) {
-        sdsfree(error->state);
+        sds_free(error->state);
     }
     zfree(error);
 }

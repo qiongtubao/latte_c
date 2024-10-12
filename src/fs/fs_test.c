@@ -100,7 +100,7 @@ int test_create_dir() {
 
 int test_env_lockfile() {
     Env* env = envCreate();
-    sds filename = sdsnew("LOCK");
+    sds_t filename = sds_new("LOCK");
     FileLock* fileLock;
     Error* error = envLockFile(env, filename, &fileLock);
     assert(isOk(error));
@@ -113,12 +113,12 @@ int test_env_write_read() {
     recursive_rmdir("test_env_dir");
     Env* env = envCreate();
     Error* error = dirCreate("test_env_dir");
-    sds file = sdsnew("test_env_dir/write.log");
-    sds read = NULL;
+    sds_t file = sds_new("test_env_dir/write.log");
+    sds_t read = NULL;
     error = envReadFileToSds(env, file, &read);
     assert(error->code == CNotFound);
     assert(read == NULL);
-    sds data = sdsnew("test");
+    sds_t data = sds_new("test");
     error = envWriteSdsToFileSync(env, file, data);
     assert(isOk(error));
     error = envReadFileToSds(env, file, &read);
@@ -133,25 +133,25 @@ int test_env_write_read() {
     
     assert(isOk(error));
     Slice slice = {
-        .p = sdsemptylen(100),
+        .p = sds_empty_len(100),
         .len = 0
     };
-    sds result;
+    sds_t result;
     error = sequentialFileReadSds(sf, 100, &result);
     sequentialFileRelease(sf);
     assert(isOk(error));
-    assert(sdslen(result) == 4);
+    assert(sds_len(result) == 4);
     assert(strncmp("test", result, 4) == 0);
-    sdsfree(result);
+    sds_free(result);
     
     error = envSequentialFileCreate(env, file, &sf);
     assert(isOk(error));
     error = sequentialFileReadSds(sf, 100, &result);
     sequentialFileRelease(sf);
     assert(isOk(error));
-    assert(sdslen(result) == 4);
+    assert(sds_len(result) == 4);
     assert(strncmp("test", result, 4) == 0);
-    sdsfree(result);
+    sds_free(result);
 
     recursive_rmdir("test_env_dir");
     return 1;
@@ -190,9 +190,9 @@ int test_fs() {
     assert(strncmp(buf, "hello_world", 10) == 0);
 
     assert(lseek(fd, 0, SEEK_SET) != -1);
-    sds result = readall(fd);
+    sds_t result = readall(fd);
     assert(result != NULL);
-    assert(sdslen(result) == 11);
+    assert(sds_len(result) == 11);
     assert(strncmp(result, "hello_world", 11) == 0);
 
     recursive_rmdir("test_fs");
@@ -204,7 +204,7 @@ int test_dir() {
     Iterator* iter = dir_scan_file("./test_dir", ".*\\.txt$");
     int i = 0;
     while(iteratorHasNext(iter)) {
-        sds file = iteratorNext(iter);
+        sds_t file = iteratorNext(iter);
         i++;
     }
     //a.txt b.txt
@@ -213,8 +213,8 @@ int test_dir() {
 
     iter = dir_scan_file("./test_dir", ".*\\.t$");
     while(iteratorHasNext(iter)) {
-        sds file = iteratorNext(iter);
-        assert(sdscmp(file, "a.t"));
+        sds_t file = iteratorNext(iter);
+        assert(sds_cmp(file, "a.t"));
     }
     iteratorRelease(iter);
 

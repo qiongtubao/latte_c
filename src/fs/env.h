@@ -11,20 +11,20 @@ typedef struct Env {
 
 
 
-Error* envLockFile(Env* env, sds filename, FileLock** lock);
+Error* envLockFile(Env* env, sds_t filename, FileLock** lock);
 Error* envUnlockFile(Env* env,FileLock* lock);
 Env* envCreate();
 void envRelease(Env* env);
 void envWritableFileRelease(Env* env, WritableFile* file);
 
-Error* envWritableFileCreate(Env* env, sds filename, WritableFile** file);
-Error* envRemoveFile(Env* env, sds filename);
-Error* envRenameFile(Env* env, sds oldname, sds newname);
+Error* envWritableFileCreate(Env* env, sds_t filename, WritableFile** file);
+Error* envRemoveFile(Env* env, sds_t filename);
+Error* envRenameFile(Env* env, sds_t oldname, sds_t newname);
 
 Error* envWriteSdsToFileSync(Env* env, 
-                             sds fname, sds data);
+                             sds_t fname, sds_t data);
 
 
-Error* envSequentialFileCreate(Env* env, sds filename, SequentialFile** file);
-Error* envReadFileToSds(Env* env, sds fname, sds* data);
+Error* envSequentialFileCreate(Env* env, sds_t filename, SequentialFile** file);
+Error* envReadFileToSds(Env* env, sds_t fname, sds* data);
 #endif

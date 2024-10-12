@@ -55,5 +55,5 @@ void nextSeriesTask(asyncTask* current);
 void continueNextTask(asyncTask* task);
 
 asyncTask* createParallelTask();
-int addParallelTask(parallelTask* task, sds name, asyncTask* child);
+int addParallelTask(parallelTask* task, sds_t name, asyncTask* child);
  

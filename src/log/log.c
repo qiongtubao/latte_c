@@ -27,7 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-struct logger_t* getlogger_tByTag(char* tag) {
+struct logger_t* get_logger_by_tag(char* tag) {
   dictEntry* entry = dictFind(global_logger_factory.loggers, tag);
   if (entry == NULL) return NULL;
   return dictGetVal(entry);
@@ -38,8 +38,8 @@ struct logger_t* loggerCreate() {
   return logger; 
 }
 
-struct logger_t* getOrCreatelogger_tByTag(char* tag) {
-    struct logger_t* logger = getlogger_tByTag(tag);
+struct logger_t* get_or_new_logger_by_tag(char* tag) {
+    struct logger_t* logger = get_logger_by_tag(tag);
     if (logger == NULL) {
         logger = loggerCreate();
         dictAdd(global_logger_factory.loggers, tag, logger);
@@ -146,7 +146,7 @@ const char* log_level_string(int level) {
 
 
 void log_set_lock(char* tag, log_lock_func fn, void *udata) {
-  struct logger_t* logger = getlogger_tByTag(tag);
+  struct logger_t* logger = get_logger_by_tag(tag);
 //   assert(logger != NULL);
   logger->lock = fn;
   logger->udata = udata;
@@ -154,14 +154,14 @@ void log_set_lock(char* tag, log_lock_func fn, void *udata) {
 
 
 void log_set_level(char* tag, int level) {
-  struct logger_t* logger = getlogger_tByTag(tag);
+  struct logger_t* logger = get_logger_by_tag(tag);
 //   assert(logger != NULL);
   logger->level = level;
 }
 
 
 void log_set_quiet(char* tag, bool enable) {
-  struct logger_t* logger = getlogger_tByTag(tag);
+  struct logger_t* logger = get_logger_by_tag(tag);
 //   assert(logger != NULL);
   logger->quiet = enable;
 }
@@ -169,7 +169,7 @@ void log_set_quiet(char* tag, bool enable) {
 
 
 int log_add_callback(char* tag, log_func fn, void *udata, int level) {
-  struct logger_t* logger = getOrCreatelogger_tByTag(tag);
+  struct logger_t* logger = get_or_new_logger_by_tag(tag);
   for (int i = 0; i < MAX_CALLBACKS; i++) {
     if (!logger->callbacks[i].fn) {
       logger->callbacks[i] = (log_callback_t) { fn, udata, level };
@@ -181,7 +181,7 @@ int log_add_callback(char* tag, log_func fn, void *udata, int level) {
 
 
 int log_add_file(char* tag, char* file, int level) {
-  return log_add_callback(tag, file_callback, sdsnew(file), level);
+  return log_add_callback(tag, file_callback, sds_new(file), level);
 }
 
 int log_add_stdout(char* tag, int level) {
@@ -208,7 +208,7 @@ void log_log(char* tag, int level, char *file, const char* func, int line, char 
     .func = func,
   };
  
-  struct logger_t* logger = getlogger_tByTag(tag);
+  struct logger_t* logger = get_logger_by_tag(tag);
   if (logger == NULL) return;
   lock(logger);
 

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "dict.h"
-/* key sds */
+/* key sds_t*/
 uint64_t dictSdsHash(const void *key);
 int dictSdsKeyCompare(dict *privdata, const void *key1,
         const void *key2);

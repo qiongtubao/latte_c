@@ -104,15 +104,15 @@ static void readHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
 ssize_t writeConn(benchmarkContext *c, const char *buf, size_t buf_len){
     return 0;
 }
-static long long ustime(void) {
-    struct timeval tv;
-    long long ust;
+// static long long ustime(void) {
+//     struct timeval tv;
+//     long long ust;
 
-    gettimeofday(&tv, NULL);
-    ust = ((long long)tv.tv_sec)*1000000;
-    ust += tv.tv_usec;
-    return ust;
-}
+//     gettimeofday(&tv, NULL);
+//     ust = ((long long)tv.tv_sec)*1000000;
+//     ust += tv.tv_usec;
+//     return ust;
+// }
 
 static void writeHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     client c = privdata;
@@ -123,7 +123,7 @@ static void writeHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
         c->start = ustime();
         c->latency = -1;
     } 
-    const ssize_t buflen = sdslen(c->obuf);
+    const ssize_t buflen = sds_len(c->obuf);
     const ssize_t writeLen = buflen-c->written;
     if (writeLen > 0) {
         void *ptr = c->obuf+c->written;
@@ -150,7 +150,7 @@ static void writeHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
 }
 static client createClient(char *cmd, size_t len, client from, int thread_id) {
     client c = zmalloc(sizeof(struct _client));
-    c->obuf = sdsempty();
+    c->obuf = sds_empty();
     // if (config.hostsocket == NULL) {
         c->context = createContext(config.hostip, config.hostport);
     // }
@@ -164,7 +164,7 @@ static client createClient(char *cmd, size_t len, client from, int thread_id) {
         exit(1);
     }
     c->thread_id = thread_id;
-    c->obuf = sdsempty();
+    c->obuf = sds_empty();
     c->written = 0;
     aeEventLoop *el = NULL;
     if (thread_id < 0) el = config.el;

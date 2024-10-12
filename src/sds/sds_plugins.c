@@ -20,10 +20,10 @@ uint32_t decodeFixed32(const char* ptr) {
 }
 
 
-sds sdsAppendFixed32(sds result, uint32_t value) {
+sds_t sdsAppendFixed32(sds_t result, uint32_t value) {
     char buf[sizeof(value)];
     encodeFixed32(buf, value);
-    return sdscat(result, buf);
+    return sds_cat(result, buf);
 }
 //64位定长数据编码
 void encodeFixed64(char* dst, uint64_t value) {
@@ -50,10 +50,10 @@ uint64_t decodeFixed64(char* ptr) {
         (((uint64_t)buffer[7]) << 56);
 }
 
-sds sdsAppendFixed64(sds result, uint64_t value) {
+sds_t sdsAppendFixed64(sds_t result, uint64_t value) {
     char buf[sizeof(value)];
     encodeFixed64(buf, value);
-    return sdscat(result, buf);
+    return sds_cat(result, buf);
 }
 
 int encodeVarint32(char* dst, uint32_t v) {
@@ -82,10 +82,10 @@ int encodeVarint32(char* dst, uint32_t v) {
   }
   return  ((char*)ptr) - dst;
 }
-sds sdsAppendVarint32(sds result, uint32_t v) {
+sds_t sdsAppendVarint32(sds_t result, uint32_t v) {
     char buf[5];
     int len = encodeVarint32(buf , v);
-    return sdscatlen(result, buf, len);
+    return sds_cat_len(result, buf, len);
 }
 
 int encodeVarint64(char* dst, uint64_t v) {
@@ -107,10 +107,10 @@ int varintLength(uint64_t v) {
     return len;
 }
 
-sds sdsAppendVarint64(sds result, uint64_t v) {
+sds_t sdsAppendVarint64(sds_t result, uint64_t v) {
     char buf[10];
     int len = encodeVarint64(buf , v);
-    return sdscatlen(result, buf, len);
+    return sds_cat_len(result, buf, len);
 }
 
 char* GetVarint32PtrFallback(const char* p, const char* limit,
@@ -187,9 +187,9 @@ bool getVarint64(Slice* slice, uint64_t* value) {
   }
 }
 
-sds sdsAppendLengthPrefixedSlice(sds dst, Slice* slice) {
+sds_t sdsAppendLengthPrefixedSlice(sds_t dst, Slice* slice) {
     dst = sdsAppendVarint32(dst, slice->len);
-    return sdscatlen(dst, slice->p, slice->len);
+    return sds_cat_len(dst, slice->p, slice->len);
 }
 
 //这里不复制数据
@@ -211,8 +211,8 @@ void SliceRemovePrefix(Slice* slice, size_t len) {
   slice->len = slice->len - len;
 }
 
-sds SliceToSds(Slice* slice) {
-  return sdsnewlen(slice->p, slice->len);
+sds_t SliceToSds(Slice* slice) {
+  return sds_new_len(slice->p, slice->len);
 }
 
 char SliceOperator(Slice* slice, size_t n) {
@@ -235,9 +235,9 @@ void SliceClear(Slice* slice) {
   slice->len = 0;
 }
 
-void SliceInitSds(Slice* slice, sds result) {
+void SliceInitSds(Slice* slice, sds_t result) {
   slice->p = result;
-  slice->len = sdslen(result);
+  slice->len = sds_len(result);
 }
 
 int SliceCompare(Slice* a, Slice* b) {

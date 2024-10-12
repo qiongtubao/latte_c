@@ -1,12 +1,11 @@
 #include <sys/epoll.h>
-
 typedef struct aeApiState {
     int epfd;
     struct epoll_event *events;
 } aeApiState;
 
 static int aeApiCreate(aeEventLoop *eventLoop) {
-    log_debug("latte_c", "[aeApiCreate] ae use epoll");
+    LATTE_LIB_LOG(LOG_INFO, "[aeApiCreate] ae use epoll");
     aeApiState *state = zmalloc(sizeof(aeApiState));
 
     if (!state) return -1;

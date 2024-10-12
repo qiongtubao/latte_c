@@ -86,8 +86,8 @@ int string2ll(const char *s, size_t slen, long long *value) {
     return 1;
 }
 
-int sds2ll(sds value, long long * result) {
-    return string2ll(value, sdslen(value), result);
+int sds2ll(sds_t value, long long * result) {
+    return string2ll(value, sds_len(value), result);
 }
 
 /* Return the number of digits of 'v' when converted to string in radix 10.
@@ -177,10 +177,10 @@ int ll2string(char *dst, size_t dstlen, long long svalue) {
     return length;
 }
 
-sds ll2sds(long long ll) {
-    sds buffer = sdsnewlen("", MAX_ULL_CHARS);
+sds_t ll2sds(long long ll) {
+    sds_t buffer = sds_new_len("", MAX_ULL_CHARS);
     int len = ll2string(buffer, MAX_ULL_CHARS, ll);
-    sdssetlen(buffer, len);
+    sds_set_len(buffer, len);
     return buffer;
 }
 
@@ -252,8 +252,8 @@ int string2d(const char *s, size_t slen, double *dp) {
     return 1;
 }
 
-int sds2d(sds v, double *dp) {
-    return string2d(v, sdslen(v), dp);
+int sds2d(sds_t v, double *dp) {
+    return string2d(v, sds_len(v), dp);
 }
 
 /* Convert a double to a string representation. Returns the number of bytes
@@ -299,10 +299,10 @@ int d2string(char *buf, size_t len, double value) {
 }
 
  
-sds d2sds(double d) {
+sds_t d2sds(double d) {
     char s[MAX_LONG_DOUBLE_CHARS];
     int size = d2string(s, MAX_LONG_DOUBLE_CHARS, d);
-    return sdsnewlen(s, size);
+    return sds_new_len(s, size);
 }
 
 /* Create a string object from a long double.
@@ -363,10 +363,10 @@ int ld2string(char *buf, size_t len, long double value, ld2string_mode mode) {
     return l;
 }
 
-sds ld2sds(long double value, ld2string_mode mode) {
-    sds buffer = sdsnewlen("", MAX_LONG_DOUBLE_CHARS);
+sds_t ld2sds(long double value, ld2string_mode mode) {
+    sds_t buffer = sds_new_len("", MAX_LONG_DOUBLE_CHARS);
     int len = ld2string(buffer, MAX_LONG_DOUBLE_CHARS, value, mode);
-    sdssetlen(buffer, len);
+    sds_set_len(buffer, len);
     return buffer;
 }
 
@@ -401,8 +401,8 @@ int string2ld(const char *s, size_t slen, long double *dp) {
     return 1;
 }
 
-int sds2ld(sds s, long double *dp) {
-    return string2ld(s, sdslen(s), dp);
+int sds2ld(sds_t s, long double *dp) {
+    return string2ld(s, sds_len(s), dp);
 }
 
 /* Helper function to convert a string to an unsigned long long value.
@@ -454,10 +454,10 @@ int ull2string(char* s, size_t len, unsigned long long v) {
     return l;
 }
 
-sds ull2sds(unsigned long long ull) {
-    sds buffer = sdsnewlen("", MAX_ULL_CHARS);
+sds_t ull2sds(unsigned long long ull) {
+    sds_t buffer = sds_new_len("", MAX_ULL_CHARS);
     int len = ull2string(buffer, MAX_ULL_CHARS, ull);
-    sdssetlen(buffer, len);
+    sds_set_len(buffer, len);
     return buffer;
 }
 

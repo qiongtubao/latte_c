@@ -7,7 +7,7 @@
 static uint8_t dict_hash_function_seed[16];
 
 uint64_t dictSdsHash(const void *key) {
-    return dictGenHashFunction((unsigned char*)key, sdslen((char*)key));
+    return dictGenHashFunction((unsigned char*)key, sds_len((char*)key));
 }
 
 int dictSdsKeyCompare(dict *privdata, const void *key1,
@@ -16,8 +16,8 @@ int dictSdsKeyCompare(dict *privdata, const void *key1,
     int l1,l2;
     DICT_NOTUSED(privdata);
 
-    l1 = sdslen((sds)key1);
-    l2 = sdslen((sds)key2);
+    l1 = sds_len((sds)key1);
+    l2 = sds_len((sds)key2);
     if (l1 != l2) return 0;
     return memcmp(key1, key2, l1) == 0;
 }
@@ -25,14 +25,14 @@ int dictSdsKeyCompare(dict *privdata, const void *key1,
 void dictSdsDestructor(dict *privdata, void *val) {
     DICT_NOTUSED(privdata);
 
-    sdsfree(val);
+    sds_free(val);
 }
 
 
 #define UNUSED(x) (void)(x)
 void *dictSdsDup(dict *d, const void *key) {
     UNUSED(d);
-    return sdsdup((const sds) key);
+    return sds_dup((const sds) key);
 }
 
 

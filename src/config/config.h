@@ -7,7 +7,7 @@
 
 typedef struct configRule {
     int (*update)(struct configRule* rule, void* old_value, void *new_value);
-    sds (*writeConfigSds)(sds config, char* key,struct configRule* rule);
+    sds_t (*writeConfigSds)(sds_t config, char* key,struct configRule* rule);
     void (*releaseValue)(void* rule);
     int (*load)(struct configRule* rule, char** argv, int argc);
     void* value;
@@ -19,9 +19,9 @@ typedef struct config {
 struct config* createConfig();
 void releaseConfig(config* c);
 configRule* getConfigRule(config* c, char* key);
-int registerConfig(config* c, sds key, configRule* rule);
-sds configGetSds(config* c, char* key);
-int configSetSds(config* c, char* key, sds value);
+int registerConfig(config* c, sds_t key, configRule* rule);
+sds_t configGetSds(config* c, char* key);
+int configSetSds(config* c, char* key, sds_t value);
 int configGetInt(config* c, char* key);
 int configSetInt(config* c, char* key, int value);
 int configSetLongLong(config* c, char* key, long long value);
@@ -34,14 +34,14 @@ int loadConfigFromFile(config* c, char *filename);
 
 /* num attribute */
 int longLongUpdate(configRule* rule, void* old_value, void* new_value);
-sds longLongWriteConfigSds(sds config, char* key, configRule* rule);
+sds_t longLongWriteConfigSds(sds_t config, char* key, configRule* rule);
 void longLongReleaseValue(void* value);
 int longLongLoadConfig(configRule* rule, char** argv, int argc);
 
 
-/* sds attribute */
+/* sds_t attribute */
 int sdsUpdate(configRule* rule, void* old_value, void* new_value);
-sds sdsWriteConfigSds(sds config, char* key, configRule* rule);
+sds_t sdsWriteConfigSds(sds_t config, char* key, configRule* rule);
 void sdsReleaseValue(void* value);
 int sdsLoadConfig(configRule* rule, char** argv, int argc);
 
@@ -51,7 +51,7 @@ typedef struct arraySds {
 } arraySds;
 /* array attribute */
 int arraySdsUpdate(configRule* rule, void* old_value, void* new_value);
-sds arraySdsWriteConfigSds(sds config, char* key, configRule* rule);
+sds_t arraySdsWriteConfigSds(sds_t config, char* key, configRule* rule);
 int arraySdsLoadConfig(configRule* rule, char** argv, int argc);
 void arraySdsReleaseValue(void* value);
 struct arraySds* configGetArray(config* c, char* key);

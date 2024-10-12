@@ -17,9 +17,9 @@ typedef struct pthread_task
 void* increment_counter(void* arg) {
     pthread_task *t = (pthread_task*) arg;
     lockSet* set = t->lockset;
-    sds k1 = sdsnew("1");
-    sds k2 = sdsnew("2");
-    sds k3 = sdsnew("3");
+    sds_t k1 = sds_new("1");
+    sds_t k2 = sds_new("2");
+    sds_t k3 = sds_new("3");
 
     //栈不能太大 
     sds* keys = zmalloc(sizeof(sds) * t->timers);
@@ -27,7 +27,7 @@ void* increment_counter(void* arg) {
     for(int i  = 0; i < t->timers; i++) {
         char buf[10];
         int size = sprintf(buf, "%d", i);
-        sds k4 = sdsnewlen(buf, size);
+        sds_t k4 = sds_new_len(buf, size);
         keys[i] = k4;
        
         // 添加一些值
@@ -48,13 +48,13 @@ void* increment_counter(void* arg) {
     }
     // printf("keys after %p \n", keys);
     // printf("keys %d %p \n", 0, keys[0]);
-    sdsfree(k1);
-    sdsfree(k2);
-    sdsfree(k3);
+    sds_free(k1);
+    sds_free(k2);
+    sds_free(k3);
     for(int i  = 0; i < t->timers; i++) {
         // printf("keys %d %s \n", i, keys[i]);
         lockSetRemove(set, keys[i]);
-        sdsfree(keys[i]);
+        sds_free(keys[i]);
     }
     zfree(keys);
     pthread_exit(NULL);
@@ -98,11 +98,11 @@ int test_lockSet() {
     
     return 1;
 }
-typedef sds (* getKey)(void*);
+typedef sds_t (* getKey)(void*);
 int test_set_base(set* s1, getKey getNodeKey, int order) {
-    sds key = sdsnew("key");
-    sds key1 = sdsnew("key1");
-    sds key2 = sdsnew("key2");
+    sds_t key = sds_new("key");
+    sds_t key1 = sds_new("key1");
+    sds_t key2 = sds_new("key2");
 
     
     assert(setContains(s1, key) == 0);
@@ -122,33 +122,33 @@ int test_set_base(set* s1, getKey getNodeKey, int order) {
 
     Iterator* iterator = setGetIterator(s1);
     int i = 0;
-    sds keys[3] = {key, key1, key2};
+    sds_t keys[3] = {key, key1, key2};
     while (iteratorHasNext(iterator)) {
         void* node = iteratorNext(iterator);
         if (order) {
-            assert(sdscmp(getNodeKey(node), keys[i]) == 0);
+            assert(sds_cmp(getNodeKey(node), keys[i]) == 0);
         } else {
-            assert(sdscmp(getNodeKey(node), keys[0]) == 0 ||
-                sdscmp(getNodeKey(node), keys[1]) == 0 ||
-                sdscmp(getNodeKey(node), keys[2]) == 0 );
+            assert(sds_cmp(getNodeKey(node), keys[0]) == 0 ||
+                sds_cmp(getNodeKey(node), keys[1]) == 0 ||
+                sds_cmp(getNodeKey(node), keys[2]) == 0 );
         }
         i++;
     }
     assert(i == 3);
     iteratorRelease(iterator);
 
-    sdsfree(key);
-    sdsfree(key1);
-    sdsfree(key2);
+    sds_free(key);
+    sds_free(key1);
+    sds_free(key2);
     setRelease(s1);
     return 1;
 }
 
 int test_hash_api() {
     hashSet* set = hashSetCreate(&sdsHashSetDictType);
-    sds key = sdsnew("1");
-    sds key1 = sdsnew("key1");
-    sds key2 = sdsnew("key2");
+    sds_t key = sds_new("1");
+    sds_t key1 = sds_new("key1");
+    sds_t key2 = sds_new("key2");
     assert(!hashSetContains(set, key));
     assert(hashSetAdd(set, key));
     assert(!hashSetAdd(set, key));
@@ -168,13 +168,13 @@ int test_hash_api() {
     assert(hashSetRemove(set, key));
     assert(!hashSetContains(set, key));
     hashSetRelease(set);
-    sdsfree(key);
+    sds_free(key);
 
 
     return 1;
 }
 
-sds getHashNodeKey(void* node) {
+sds_t getHashNodeKey(void* node) {
     hashSetNode* n = (hashSetNode*)node;
     return n->key;
 }
@@ -190,9 +190,9 @@ int test_hash() {
 }
 int test_avlset_api() {
     avlSet* s = avlSetCreate(&avlSetSdsType);
-    sds key = sdsnew("key");
-    sds key1 = sdsnew("key1");
-    sds key2 = sdsnew("key2");
+    sds_t key = sds_new("key");
+    sds_t key1 = sds_new("key1");
+    sds_t key2 = sds_new("key2");
     assert(avlSetContains(s, key) == 0);
     assert(avlSetSize(s) == 0);
     assert(avlSetAdd(s, key) == 1);
@@ -210,13 +210,13 @@ int test_avlset_api() {
     assert(avlSetAdd(s, key1) == 1);
     assert(avlSetAdd(s, key2) == 1);
 
-    sds keys[3] = {key, key1, key2};
+    sds_t keys[3] = {key, key1, key2};
     avlSetIterator* iter = avlSetGetAvlSetIterator(s);
     avlNode* node = NULL;
     int i = 0;
     while (avlSetIteratorHasNext(iter)) {
         node = avlSetIteratorNext(iter);
-        assert(sdscmp(node->key, keys[i]) == 0);
+        assert(sds_cmp(node->key, keys[i]) == 0);
         i++;
     }
     
@@ -227,18 +227,18 @@ int test_avlset_api() {
     i = 0;
     while (iteratorHasNext(iterator)) {
         node = iteratorNext(iterator);
-        assert(sdscmp(node->key, keys[i]) == 0);
+        assert(sds_cmp(node->key, keys[i]) == 0);
         i++;
     }
     assert(i == 3);
     iteratorRelease(iterator);
-    sdsfree(key);
-    sdsfree(key1);
-    sdsfree(key2);
+    sds_free(key);
+    sds_free(key1);
+    sds_free(key2);
     avlSetRelease(s);
     return 1;
 }
-sds getAvlNode(void* n) {
+sds_t getAvlNode(void* n) {
     avlNode* node = (avlNode*)n;
     return node->key;
 }

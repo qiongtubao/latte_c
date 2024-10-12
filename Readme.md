@@ -18,6 +18,8 @@
   typedef int xxx_xxx_func(void* v)
 ```
 
+静态对象
+global_xxx
 
 
 # 模块规范

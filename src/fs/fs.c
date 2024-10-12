@@ -66,7 +66,7 @@ int readn(int fd, void *buf, int size, int* len) {
   return 0;
 }
 
-sds readall(int fd) {
+sds_t readall(int fd) {
   if (fd == -1) {
     perror("Error opening file");
     return NULL;
@@ -78,7 +78,7 @@ sds readall(int fd) {
       return NULL;
   }
   int len = sb.st_size;
-  sds buffer = sdsnewlen("", len);
+  sds_t buffer = sds_new_len("", len);
   if (buffer == NULL) {
     perror("Error allocating memory");
     return NULL;
@@ -88,7 +88,7 @@ sds readall(int fd) {
   int error = readn(fd, buffer, len, &size);
   if (error != 0 || size != len) {
       perror("Error reading file");
-      sdsfree(buffer);
+      sds_free(buffer);
       return NULL;
   }
   return buffer;
