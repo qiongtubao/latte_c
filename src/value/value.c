@@ -15,13 +15,13 @@ void valueClean(value_t* v) {
             v->value.sds_value = NULL;
             break;
         case VALUE_ARRAY: {
-            Iterator* it = vectorGetIterator(v->value.array_value);
+            Iterator* it = vector_get_iterator(v->value.array_value);
             while(iteratorHasNext(it)) {
                 value_t* cv = iteratorNext(it);
                 value_delete(cv);
             }
             iteratorRelease(it);
-            vectorRelease(v->value.array_value);
+            vector_delete(v->value.array_value);
             v->value.array_value = NULL;
         }
             break;
@@ -66,7 +66,7 @@ void value_set_bool(value_t* v, bool b) {
     v->type = VALUE_BOOLEAN;
     v->value.bool_value = b;
 }
-void value_set_array(value_t* v, vector* ve) {
+void value_set_array(value_t* v, vector_t* ve) {
     valueClean(v);
     v->type = VALUE_ARRAY;
     v->value.array_value = ve;
@@ -101,7 +101,7 @@ bool value_get_bool(value_t* v) {
     latte_assert(value_is_bool(v), "value is not boolean");
     return v->value.bool_value;
 }
-vector* value_get_array(value_t* v) {
+vector_t* value_get_array(value_t* v) {
     latte_assert(value_is_array(v), "value is not array");
     return v->value.array_value;
 }
@@ -137,7 +137,7 @@ sds value_get_binary(value_t* v) {
  *   1 success
  *   0 fail
  */
-int value_set_binary(value_t* v, value_type_e type, char* data, int len) {
+int value_set_binary(value_t* v, value_type_enum type, char* data, int len) {
     switch (type)
     {
     case VALUE_SDS:

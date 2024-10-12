@@ -11,63 +11,63 @@
 #include <unistd.h>
 
 int test_vector() {
-    vector* v = vectorCreate();
+    vector_t* v = vector_new();
     assert(v != NULL);
-    vectorPush(v, 1);
-    assert(vectorGet(v, 0) == 1);
-    vectorPush(v, 2);
-    assert(vectorGet(v, 1) == 2);
+    vector_push(v, (void*)1);
+    assert(vector_get(v, 0) == (void*)1);
+    vector_push(v, (void*)2);
+    assert(vector_get(v, 1) == (void*)2);
 
     int a[2] = {1,2};
-    Iterator* iterator = vectorGetIterator(v);
+    Iterator* iterator = vector_get_iterator(v);
     int index = 0;
     while(iteratorHasNext(iterator)) {
         void* r = iteratorNext(iterator);
-        assert(r == a[index++]);
+        assert((long)r == a[index++]);
     }
     iteratorRelease(iterator);
 
 
-    assert(vectorSize(v) == 2);
-    vectorSet(v, 1, 3);
-    assert(vectorGet(v, 1) == 3);
+    assert(vector_size(v) == 2);
+    vector_set(v, 1, (void*)3);
+    assert(vector_get(v, 1) == (void*)3);
 
-    assert(vectorPop(v) == 3);
+    assert(vector_pop(v) == (void*)3);
 
-    assert(vectorSize(v) == 1);
-    vectorRelease(v);
+    assert(vector_size(v) == 1);
+    vector_delete(v);
 
     return 1;
 }
 int long_comparator(void* v1, void* v2) {
-    long l1 = v1;
-    long l2 = v2;
+    long l1 = (long)v1;
+    long l2 = (long)v2;
     return l1 - l2;
 }
 int test_sort_vector() {
-    vector* v = vectorCreate();
+    vector_t* v = vector_new();
     
     long a[7] = {2,4,5,8,10,13,19};
     for(int i = 0; i < 7; i++) {
-        vectorPush(v, a[i]);
+        vector_push(v, (void*)a[i]);
     }
-    Iterator* iterator = vectorGetIterator(v);
+    Iterator* iterator = vector_get_iterator(v);
     int index = 0;
     while(iteratorHasNext(iterator)) {
         void* r = iteratorNext(iterator);
-        assert(r == a[index++]);
+        assert((long)r == a[index++]);
     }
     iteratorRelease(iterator);
     
 
-    vectorSort(v, long_comparator);
+    vector_sort(v, long_comparator);
 
     long b[7] = {2,4,5,8,10,13,19};
-    iterator = vectorGetIterator(v);
+    iterator = vector_get_iterator(v);
     index = 0;
     while(iteratorHasNext(iterator)) {
         void* r = iteratorNext(iterator);
-        assert(r == b[index++]);
+        assert((long)r == b[index++]);
     }
     iteratorRelease(iterator);
     return 1;

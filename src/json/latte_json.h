@@ -81,7 +81,7 @@ void json_printbuf_delete(json_printbuf_t* buf);
  * @see json_tokener_set_flags()
  */
 #define JSON_TOKENER_VALIDATE_UTF8 0x10
-typedef enum json_tokener_error_e {
+typedef enum json_tokener_error_enum {
     json_tokener_success,
 	json_tokener_continue,
 	json_tokener_error_depth,
@@ -99,14 +99,14 @@ typedef enum json_tokener_error_e {
 	json_tokener_error_parse_utf8_string,
 	json_tokener_error_size,   /* A string longer than INT32_MAX was passed as input */
 	json_tokener_error_memory  /* Failed to allocate memory */
-} json_tokener_error_e;
+} json_tokener_error_enum;
 
 /**
  * @deprecated Don't use this outside of json_tokener.c, it will be made private in a future release.
  */
-typedef enum json_tokener_state_e
+typedef enum json_tokener_state_enum
 {
-	json_tokener_state_eatws,
+	json_tokener_state_enumatws,
 	json_tokener_state_start,
 	json_tokener_state_finish,
 	json_tokener_state_null,
@@ -116,9 +116,9 @@ typedef enum json_tokener_state_e
 	json_tokener_state_comment_end,
 	json_tokener_state_string,
 	json_tokener_state_string_escape,
-	json_tokener_state_escape_unicode,
-	json_tokener_state_escape_unicode_need_escape,
-	json_tokener_state_escape_unicode_need_u,
+	json_tokener_state_enumscape_unicode,
+	json_tokener_state_enumscape_unicode_need_escape,
+	json_tokener_state_enumscape_unicode_need_u,
 	json_tokener_state_boolean,
 	json_tokener_state_number,
 	json_tokener_state_array,
@@ -133,14 +133,14 @@ typedef enum json_tokener_state_e
 	json_tokener_state_array_after_sep,
 	json_tokener_state_object_field_start_after_sep,
 	json_tokener_state_inf
-} json_tokener_state_e;
+} json_tokener_state_enum;
 
 /**
  * @deprecated Don't use this outside of json_tokener.c, it will be made private in a future release.
  */
 typedef struct json_tokener_srec_t
 {
-	enum json_tokener_state_e state, saved_state;
+	enum json_tokener_state_enum state, saved_state;
 	struct value *obj;
 	struct value *current;
 	sds obj_field_name;
@@ -162,10 +162,10 @@ typedef struct json_tokener_t {
 	/**
 	 * @deprecated See json_tokener_get_error() instead.
 	 */
-	json_tokener_error_e err;
+	json_tokener_error_enum err;
 	unsigned int ucs_char, high_surrogate;
 	char quote_char;
-	vector* stack;
+	vector_t* stack;
 	int flags;
 } json_tokener_t;
 

@@ -5,6 +5,9 @@
 #include <errno.h>
 #include <string.h>
 #include "log/log.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <strings.h>
 // map
 dictType jsonDictTyep  = {
     dictCharHash,
@@ -76,7 +79,7 @@ json_t* json_map_get_value(json_t* root, char* key) {
 
 json_t* json_array_new() {
     json_t* r = value_new();
-    vector* d = vectorCreate();
+    vector_t* d = vector_new();
     value_set_array(r, d);
     return r;
 }
@@ -85,7 +88,7 @@ json_t* json_array_new() {
 
 void json_array_resize(json_t* root, int size) {
     if (!value_is_array(root)) return;
-    vectorResize(value_get_array(root), size);
+    vector_resize(value_get_array(root), size);
 }
 
 
@@ -94,7 +97,7 @@ int json_array_put_sds(json_t* root, sds element) {
     if (!value_is_array(root)) return 0;
     json_t* v = value_new();
     value_set_sds(v, element);
-    vectorPush(value_get_array(root), v);
+    vector_push(value_get_array(root), v);
     return 1;
 }
 
@@ -102,7 +105,7 @@ int json_array_put_bool(json_t* root, bool element) {
     if (!value_is_array(root)) return 0;
     json_t* v = value_new();
     value_set_bool(v, element);
-    return vectorPush(value_get_array(root), v);
+    return vector_push(value_get_array(root), v);
 }
 
 
@@ -110,31 +113,31 @@ int json_array_put_int64(json_t* root, int64_t element) {
     if (!value_is_array(root)) return 0;
     json_t* v = value_new();
     value_set_int64(v, element);
-    return vectorPush(value_get_array(root), v);
+    return vector_push(value_get_array(root), v);
 }
 
 int json_array_put_longdouble(json_t* root, long double element) {
     if (!value_is_array(root)) return 0;
     json_t* v = value_new();
     value_set_longdouble(v, element);
-    return vectorPush(value_get_array(root), v);
+    return vector_push(value_get_array(root), v);
 }
 
 int json_array_put_value(json_t* root, json_t* element) {
     if (!value_is_array(root)) return 0;
-    return vectorPush(value_get_array(root), element);
+    return vector_push(value_get_array(root), element);
 }
 
 int json_array_shrink(json_t* root, int max) {
     if (!value_is_array(root)) return 0;
-    return vectorShrink(value_get_array(root), max);
+    return vector_shrink(value_get_array(root), max);
 }
 
 static void json_tokener_reset_level(struct json_tokener_t *tok, int depth)
 {
-    json_tokener_srec_t* srec = vectorGet(tok->stack, depth);
-    srec->state = json_tokener_state_eatws;
-	// tok->stack[depth].state = json_tokener_state_eatws;
+    json_tokener_srec_t* srec = vector_get(tok->stack, depth);
+    srec->state = json_tokener_state_enumatws;
+	// tok->stack[depth].state = json_tokener_state_enumatws;
     srec->saved_state = json_tokener_state_start;
 	// tok->stack[depth].saved_state = json_tokener_state_start;
 	// json_object_put(tok->stack[depth].current);
@@ -202,13 +205,13 @@ json_tokener_srec_t* jsonTokenerSrecCreate() {
     json_tokener_srec_t* srec = zmalloc(sizeof(json_tokener_srec_t));
     return srec;
 }
-int expandTokenerStack(vector* v, int size) {
+int expandTokenerStack(vector_t* v, int size) {
     if (size < v->count) return 0;
-    vectorResize(v, size);
+    vector_resize(v, size);
     while(v->count < size) {
         json_tokener_srec_t* srec = jsonTokenerSrecCreate();
         if (srec == NULL) return -1;
-        vectorPush(v, srec);
+        vector_push(v, srec);
     }
     return 1;
 }
@@ -221,15 +224,15 @@ json_tokener_t* json_tokener_newSize(int max_depth) {
         return NULL;
     }
     
-    tokener->stack = vectorCreate();
+    tokener->stack = vector_new();
     if (!tokener->stack) {
         zfree(tokener);
-        LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_new] vectorCreate fail");
+        LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_new] vector_new fail");
         return NULL;
     }
 
     if (expandTokenerStack(tokener->stack, max_depth) < 0) {
-        vectorRelease(tokener->stack);
+        vector_delete(tokener->stack);
         zfree(tokener);
         LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_new] expandTokenerStack szie=32 fail");
         return NULL;
@@ -238,7 +241,7 @@ json_tokener_t* json_tokener_newSize(int max_depth) {
 
     tokener->pb = json_printbuf_new();
     if (!tokener->pb) {
-        vectorRelease(tokener->stack);
+        vector_delete(tokener->stack);
         zfree(tokener);
         LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_new] json_printbuf_new fail");
         return NULL;
@@ -252,7 +255,7 @@ json_tokener_t* json_tokener_new() {
     return json_tokener_newSize(32);
 }
 void json_tokener_delete(json_tokener_t* tokener) {
-    vectorRelease(tokener->stack);
+    vector_delete(tokener->stack);
     zfree(tokener);
 }
 
@@ -284,42 +287,42 @@ static int json_tokener_validate_utf8(const char c, unsigned int *nBytes)
 	return 1;
 }
 
-json_tokener_state_e json_tokener_get_state(json_tokener_t* tok) {
-    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
+json_tokener_state_enum json_tokener_get_state(json_tokener_t* tok) {
+    json_tokener_srec_t* srec = vector_get(tok->stack, tok->depth);
     return srec->state;
 }
 
-void json_tokener_set_state(json_tokener_t* tok, json_tokener_state_e state) {
-    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
+void json_tokener_set_state(json_tokener_t* tok, json_tokener_state_enum state) {
+    json_tokener_srec_t* srec = vector_get(tok->stack, tok->depth);
     srec->state = state;
 }
-json_tokener_state_e json_tokener_get_saved_state(json_tokener_t* tok) {
-    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
+json_tokener_state_enum json_tokener_get_saved_state(json_tokener_t* tok) {
+    json_tokener_srec_t* srec = vector_get(tok->stack, tok->depth);
     return srec->saved_state;
 }
 
-void json_tokener_set_saved_state(json_tokener_t* tok, json_tokener_state_e state) {
-    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
+void json_tokener_set_saved_state(json_tokener_t* tok, json_tokener_state_enum state) {
+    json_tokener_srec_t* srec = vector_get(tok->stack, tok->depth);
     srec->saved_state = state;
 }
 
 json_t* json_tokener_get_current(json_tokener_t* tok) {
-    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
+    json_tokener_srec_t* srec = vector_get(tok->stack, tok->depth);
     return srec->current;
 }
 
 void json_tokener_set_current(json_tokener_t* tok, json_t* value) {
-    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
+    json_tokener_srec_t* srec = vector_get(tok->stack, tok->depth);
     srec->current = value;
 }
 
 sds json_tokener_get_fieldname(json_tokener_t* tok) {
-    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
+    json_tokener_srec_t* srec = vector_get(tok->stack, tok->depth);
     return srec->obj_field_name;
 }
 
 void json_tokener_set_fieldname(json_tokener_t* tok, sds* value) {
-    json_tokener_srec_t* srec = vectorGet(tok->stack, tok->depth);
+    json_tokener_srec_t* srec = vector_get(tok->stack, tok->depth);
     srec->obj_field_name = value;
 }
 // #define state tok->stack[tok->depth].state
@@ -356,7 +359,7 @@ static inline int is_hex_char(char c)
  */
 #define PEEK_CHAR(dest, tok)                                                 \
 	(((tok)->char_offset == len)                                         \
-	     ? (((tok)->depth == 0 && json_tokener_get_state(tok) == json_tokener_state_eatws &&   \
+	     ? (((tok)->depth == 0 && json_tokener_get_state(tok) == json_tokener_state_enumatws &&   \
 	         json_tokener_get_saved_state(tok) == json_tokener_state_finish)                   \
 	            ? (((tok)->err = json_tokener_success), 0)               \
 	            : (((tok)->err = json_tokener_continue), 0))             \
@@ -501,9 +504,9 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
         redo_char:
             switch (json_tokener_get_state(tok)) 
             {
-                case json_tokener_state_eatws: //去空格  以及判断是否开始注释
+                case json_tokener_state_enumatws: //去空格  以及判断是否开始注释
                 { 
-                    // LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_eatws] start");
+                    // LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_enumatws] start");
                     while (is_ws_char(c)) 
                     {
                         if ((!ADVANCE_CHAR(str, tok)) || (!PEEK_CHAR(c, tok))) {
@@ -530,7 +533,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                     {
                     case '{': //map
                         LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_start] map start '{' ");
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
                         //标记状态map
                         json_tokener_set_saved_state(tok, json_tokener_state_object_field_start);
                         json_tokener_set_current(tok, json_map_new());
@@ -540,7 +543,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         }
                         break;
                     case '[':
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
                         //标记状态list
                         json_tokener_set_saved_state(tok, json_tokener_state_array);
                         json_tokener_set_current(tok, json_array_new());
@@ -658,7 +661,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         {
                             json_tokener_set_current(tok, NULL);
                             json_tokener_set_saved_state(tok, json_tokener_state_finish);
-                            json_tokener_set_state(tok, json_tokener_state_eatws);
+                            json_tokener_set_state(tok, json_tokener_state_enumatws);
                             goto redo_char;
                         }
                     }
@@ -680,8 +683,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                             json_tokener_set_current(tok, current);
                             json_tokener_set_saved_state(tok, json_tokener_state_finish);
                             // saved_state = json_tokener_state_finish;
-                            // state = json_tokener_state_eatws;
-                            json_tokener_set_state(tok, json_tokener_state_eatws);
+                            // state = json_tokener_state_enumatws;
+                            json_tokener_set_state(tok, json_tokener_state_enumatws);
                             goto redo_char;
                         }
                     }
@@ -744,8 +747,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                     }
                     json_printbuf_memappend_checked(tok->pb, case_start, str - case_start);
                     LATTE_LIB_LOG(LOG_DEBUG,"json_tokener_comment: %s\n", tok->pb->buf);
-                    // state = json_tokener_state_eatws;
-                    json_tokener_set_state(tok, json_tokener_state_eatws);
+                    // state = json_tokener_state_enumatws;
+                    json_tokener_set_state(tok, json_tokener_state_enumatws);
                 }
                     break;
 
@@ -755,8 +758,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                     if (c == '/')
                     {
                         LATTE_LIB_LOG(LOG_DEBUG,"json_tokener_comment: %s\n", tok->pb->buf);
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
-                        // state = json_tokener_state_eatws;
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
+                        // state = json_tokener_state_enumatws;
                     }
                     else
                     {
@@ -788,8 +791,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                             
                             // saved_state = json_tokener_state_finish;
                             json_tokener_set_saved_state(tok, json_tokener_state_finish);
-                            // state = json_tokener_state_eatws;
-                            json_tokener_set_state(tok, json_tokener_state_eatws);
+                            // state = json_tokener_state_enumatws;
+                            json_tokener_set_state(tok, json_tokener_state_enumatws);
                             break;
                         }
                         else if (c == '\\')
@@ -850,7 +853,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         case 'u':
                             tok->ucs_char = 0;
                             tok->st_pos = 0;
-                            json_tokener_set_state(tok, json_tokener_state_escape_unicode);
+                            json_tokener_set_state(tok, json_tokener_state_enumscape_unicode);
                             break;
                         default: 
                             tok->err = json_tokener_error_parse_string; goto out;
@@ -858,7 +861,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                 }
                     break;
 
-                case json_tokener_state_escape_unicode:
+                case json_tokener_state_enumscape_unicode:
                 {
                     /* Handle a 4-byte \uNNNN sequence, or two sequences if a surrogate pair */
                     while (1)
@@ -938,8 +941,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         */
                         tok->high_surrogate = tok->ucs_char;
                         tok->ucs_char = 0;
-                        // state = json_tokener_state_escape_unicode_need_escape;
-                        json_tokener_set_state(tok, json_tokener_state_escape_unicode_need_escape);
+                        // state = json_tokener_state_enumscape_unicode_need_escape;
+                        json_tokener_set_state(tok, json_tokener_state_enumscape_unicode_need_escape);
                         break;
                     }
                     else if (IS_LOW_SURROGATE(tok->ucs_char))
@@ -974,7 +977,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                 }
                     break;
                 
-                case json_tokener_state_escape_unicode_need_escape:
+                case json_tokener_state_enumscape_unicode_need_escape:
                 {
                     // We get here after processing a high_surrogate
                     // require a '\\' char
@@ -992,11 +995,11 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         json_tokener_set_state(tok, json_tokener_get_saved_state(tok));
                         goto redo_char;
                     }
-                    // state = json_tokener_state_escape_unicode_need_u;
-                    json_tokener_set_state(tok, json_tokener_state_escape_unicode_need_u);
+                    // state = json_tokener_state_enumscape_unicode_need_u;
+                    json_tokener_set_state(tok, json_tokener_state_enumscape_unicode_need_u);
                 }
                     break;
-                case json_tokener_state_escape_unicode_need_u:
+                case json_tokener_state_enumscape_unicode_need_u:
                 {
                     /* We already had a \ char, check that it's \u */
                     if (!c || c != 'u')
@@ -1014,8 +1017,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         json_tokener_set_state(tok, json_tokener_state_string_escape);
                         goto redo_char;
                     }
-                    // state = json_tokener_state_escape_unicode;
-                    json_tokener_set_state(tok, json_tokener_state_escape_unicode);
+                    // state = json_tokener_state_enumscape_unicode;
+                    json_tokener_set_state(tok, json_tokener_state_enumscape_unicode);
                 }
                     break;
 
@@ -1043,8 +1046,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                             json_tokener_set_current(tok, current);
                             // saved_state = json_tokener_state_finish;
                             json_tokener_set_saved_state(tok, json_tokener_state_finish);
-                            // state = json_tokener_state_eatws;
-                            json_tokener_set_state(tok, json_tokener_state_eatws);
+                            // state = json_tokener_state_enumatws;
+                            json_tokener_set_state(tok, json_tokener_state_enumatws);
                             goto redo_char;
                         }
                     }
@@ -1066,8 +1069,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                             json_tokener_set_current(tok, current);
                             // saved_state = json_tokener_state_finish;
                             json_tokener_set_saved_state(tok, json_tokener_state_finish);
-                            // state = json_tokener_state_eatws;
-                            json_tokener_set_state(tok, json_tokener_state_eatws);
+                            // state = json_tokener_state_enumatws;
+                            json_tokener_set_state(tok, json_tokener_state_enumatws);
                             goto redo_char;
                         }
                     }
@@ -1279,8 +1282,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         }
                         // saved_state = json_tokener_state_finish;
                         json_tokener_set_saved_state(tok, json_tokener_state_finish);
-                        // state = json_tokener_state_eatws;
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
+                        // state = json_tokener_state_enumatws;
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
                         goto redo_char;
                     }
                     break;
@@ -1301,8 +1304,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         }
                         // saved_state = json_tokener_state_finish;
                         json_tokener_set_saved_state(tok, json_tokener_state_finish);
-                        // state = json_tokener_state_eatws;
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
+                        // state = json_tokener_state_enumatws;
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
                     }
                     else
                     {
@@ -1329,8 +1332,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                     }
                     // saved_state = json_tokener_state_array_sep;
                     json_tokener_set_saved_state(tok, json_tokener_state_array_sep);
-                    // state = json_tokener_state_eatws;
-                    json_tokener_set_state(tok, json_tokener_state_eatws);
+                    // state = json_tokener_state_enumatws;
+                    json_tokener_set_state(tok, json_tokener_state_enumatws);
                     goto redo_char;
                 }    
                     break; //无效
@@ -1343,15 +1346,15 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
 
                         // saved_state = json_tokener_state_finish;
                         json_tokener_set_saved_state(tok, json_tokener_state_finish);
-                        // state = json_tokener_state_eatws;
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
+                        // state = json_tokener_state_enumatws;
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
                     }
                     else if (c == ',')
                     {
                         // saved_state = json_tokener_state_array_after_sep;
                         json_tokener_set_saved_state(tok, json_tokener_state_array_after_sep);
-                        // state = json_tokener_state_eatws;
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
+                        // state = json_tokener_state_enumatws;
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
                     }
                     else
                     {
@@ -1374,8 +1377,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         }
                         // saved_state = json_tokener_state_finish;
                         json_tokener_set_saved_state(tok, json_tokener_state_finish);
-                        // state = json_tokener_state_eatws;
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
+                        // state = json_tokener_state_enumatws;
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
                     }
                     else if (c == '"' || c == '\'')
                     {
@@ -1410,8 +1413,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                             }
                             // saved_state = json_tokener_state_object_field_end;
                             json_tokener_set_saved_state(tok, json_tokener_state_object_field_end);
-                            // state = json_tokener_state_eatws;
-                            json_tokener_set_state(tok, json_tokener_state_eatws);
+                            // state = json_tokener_state_enumatws;
+                            json_tokener_set_state(tok, json_tokener_state_enumatws);
                             break;
                         }
                         else if (c == '\\')
@@ -1440,8 +1443,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                         LATTE_LIB_LOG(LOG_DEBUG, "[json_tokener_state_object_field_end] parse :");
                         // saved_state = json_tokener_state_object_value;
                         json_tokener_set_saved_state(tok, json_tokener_state_object_value);
-                        // state = json_tokener_state_eatws;
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
+                        // state = json_tokener_state_enumatws;
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
                     }
                     else
                     {
@@ -1477,8 +1480,8 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                     json_tokener_set_fieldname(tok, NULL);
                     // saved_state = json_tokener_state_object_sep;
                     json_tokener_set_saved_state(tok, json_tokener_state_object_sep);
-                    // state = json_tokener_state_eatws;
-                    json_tokener_set_state(tok, json_tokener_state_eatws);
+                    // state = json_tokener_state_enumatws;
+                    json_tokener_set_state(tok, json_tokener_state_enumatws);
                     goto redo_char;
                 }
                     break;
@@ -1489,15 +1492,15 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                     {
                         // saved_state = json_tokener_state_finish;
                         json_tokener_set_saved_state(tok, json_tokener_state_finish);
-                        // state = json_tokener_state_eatws;
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
+                        // state = json_tokener_state_enumatws;
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
                     }
                     else if (c == ',') //还有下个属性
                     {
                         // saved_state = json_tokener_state_object_field_start_after_sep;
                         json_tokener_set_saved_state(tok, json_tokener_state_object_field_start_after_sep);
-                        // state = json_tokener_state_eatws;
-                        json_tokener_set_state(tok, json_tokener_state_eatws);
+                        // state = json_tokener_state_enumatws;
+                        json_tokener_set_state(tok, json_tokener_state_enumatws);
                     }
                     else
                     {
@@ -1584,7 +1587,7 @@ sds json_to_sds(json_t* v) {
             return v->value.bool_value == true? sdsnew("true"): sdsnew("false");
         case VALUE_ARRAY: {
             sds result = sdsnew("[");
-            Iterator* itor = vectorGetIterator(value_get_array(v));
+            Iterator* itor = vector_get_iterator(value_get_array(v));
             int frist = 1;
             while(iteratorHasNext(itor)) {
                 json_t* v = iteratorNext(itor);
