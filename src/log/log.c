@@ -33,7 +33,7 @@ struct logger_t* get_logger_by_tag(char* tag) {
   return dictGetVal(entry);
 }
 
-struct logger_t* loggerCreate() {
+struct logger_t* logger_new() {
   struct logger_t* logger = zmalloc(sizeof(struct logger_t));
   return logger; 
 }
@@ -41,13 +41,13 @@ struct logger_t* loggerCreate() {
 struct logger_t* get_or_new_logger_by_tag(char* tag) {
     struct logger_t* logger = get_logger_by_tag(tag);
     if (logger == NULL) {
-        logger = loggerCreate();
+        logger = logger_new();
         dictAdd(global_logger_factory.loggers, tag, logger);
     }
     return logger;
 }
 
-void loggerFree(struct logger_t* logger) {
+void logger_delete(struct logger_t* logger) {
     zfree(logger);
 }
 
@@ -70,7 +70,7 @@ void logger_free_callback(dict* privdata, void* val) {
     DICT_NOTUSED(privdata);
     // printf("delete :%p\n", val);
     if(val != NULL) {
-        loggerFree(val);
+        logger_delete(val);
     }
 }
 static dictType logger_dict_type = {
