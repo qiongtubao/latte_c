@@ -57,32 +57,32 @@ typedef struct {
   int line;
   int level;
   const char* func;
-} log_Event;
+} log_event_t;
 
-typedef void (*log_LogFn)(log_Event *ev);
-typedef void (*log_LockFn)(bool lock, void *udata);
+typedef void (*log_func)(log_event_t *ev);
+typedef void (*log_lock_func)(bool lock, void *udata);
 
 #define MAX_CALLBACKS 32
 
 typedef struct {
-  log_LogFn fn;
+  log_func fn;
   void *udata;
   int level;
-} Callback;
+} log_callback_t;
 
-struct Logger {
+struct logger_t {
   void *udata;
-  log_LockFn lock;
+  log_lock_func lock;
   int level;
   bool quiet;
-  Callback callbacks[MAX_CALLBACKS];
+  log_callback_t callbacks[MAX_CALLBACKS];
 } ;
 
-static struct LoggerFactory {
+static struct logger_factory_t {
     dict* loggers;
-} loggerFactory;
+} global_logger_factory;
 
-void initLogger();
+void log_init();
 
 
 
@@ -97,10 +97,10 @@ void initLogger();
 
 
 const char* log_level_string(int level);
-void log_set_lock(char* tag, log_LockFn fn, void *udata);
+void log_set_lock(char* tag, log_lock_func fn, void *udata);
 void log_set_level(char* tag, int level);
 void log_set_quiet(char* tag, bool enable);
-int log_add_callback(char* tag, log_LogFn fn, void *udata, int level);
+int log_add_callback(char* tag, log_func fn, void *udata, int level);
 int log_add_file(char* tag, char *fp, int level);
 int log_add_stdout(char* tag, int level);
 
