@@ -13,7 +13,7 @@ int test_value() {
     value_set_longdouble(v, 1.11);
     assert(1.11 == value_get_longdouble(v));
    
-    value_set_sds(v, sdsnew("hello"));
+    value_set_sds(v, sds_new("hello"));
     assert(strcmp("hello", value_get_sds(v)) == 0);
     dictType t = {
         
@@ -44,10 +44,10 @@ int test_type() {
 int test_binary() {
     value_t* v = value_new();
     value_set_uint64(v, ULLONG_MAX);
-    sds result = value_get_binary(v);
+    sds_t result = value_get_binary(v);
     
     value_t* v1 = value_new();
-    value_set_binary(v1, VALUE_UINT, result, sdslen(result));
+    value_set_binary(v1, VALUE_UINT, result, sds_len(result));
     assert(value_is_uint64(v1));
     assert(value_get_uint64(v1) == value_get_uint64(v));
     return 1;

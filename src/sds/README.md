@@ -15,5 +15,5 @@
 | 字符串大小 ｜ 系统 ｜内存分配器 ｜ 平均耗时(1亿) ｜
 ｜ 7 ｜ macos ｜ libc ｜ ｜
 # API
-* sdsnew （申请sds字符串）
-* sdsfree （释放sds）
+* sds_new （申请sds字符串）
+* sds_free （释放sds）

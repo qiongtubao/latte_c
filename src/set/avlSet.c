@@ -54,7 +54,7 @@ avlNode* createSetSdsNode(void* key, void* value) {
     avlNode* node = zmalloc(sizeof(avlNode));
     node->left = NULL;
     node->right = NULL;
-    node->key = sdsdup(key);
+    node->key = sds_dup(key);
     node->height = 0;
     return node;
 }
@@ -64,12 +64,12 @@ void UNSETVAL(avlNode* node, void* val) {
 }
 
 void releaseSetSdsNode(avlNode* node) {
-    sdsfree(node->key);
+    sds_free(node->key);
     zfree(node);
 }
 
 int avlSetSdsOperator(void* a, void* b) {
-    return sdscmp((sds)a, (sds)b);
+    return sds_cmp((sds)a, (sds)b);
 }
 avlTreeType avlSetSdsType = {
     .createNode = createSetSdsNode,

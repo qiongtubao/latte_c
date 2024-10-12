@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #define bitmap_t sds
-#define bit_size sdslen
+#define bit_size sds_len
 
 bitmap_t bitmap_new(int size);
 void bitmap_clear_all(bitmap_t map);

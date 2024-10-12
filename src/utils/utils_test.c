@@ -9,9 +9,9 @@ int test_ll_string(void) {
     char buf[MAX_ULL_CHARS];
     assert(ll2string(buf, MAX_ULL_CHARS, 1234) == 4);
 
-    sds ll_str = ll2sds(1234);
+    sds_t ll_str = ll2sds(1234);
     assert(ll_str != NULL);
-    assert(sdslen(ll_str) == 4);
+    assert(sds_len(ll_str) == 4);
     assert(strncmp("1234", ll_str, 4) == 0);
 
 
@@ -25,7 +25,7 @@ int test_ll_string(void) {
     assert(sds2ll(ll_str, &ll) == 1);
     assert(ll == 1234);
 
-    sdsfree(ll_str);
+    sds_free(ll_str);
     return 1;
 }
 
@@ -57,7 +57,7 @@ int test_d_string() {
     assert(len == 4);
     assert(strncmp(buffer, "1.21", len) == 0);
     
-    sds result = d2sds(d);
+    sds_t result = d2sds(d);
     assert(strcmp(result, "1.21") == 0);
 
 
@@ -75,7 +75,7 @@ int test_d_string() {
 int test_ld_string() {
     // ld => string
     long double  ld = 1.234;
-    sds result = ld2sds(ld, 0);
+    sds_t result = ld2sds(ld, 0);
     assert(strcmp(result, "1.234") == 0);
 
 
@@ -96,8 +96,8 @@ int test_ull_string() {
     assert(len == 20);
     assert(strncmp("18446744073709551615", buffer, 20) == 0);
 
-    sds u_str = ull2sds(u);
-    assert(sdslen(u_str) == 20);
+    sds_t u_str = ull2sds(u);
+    assert(sds_len(u_str) == 20);
     assert(strncmp("18446744073709551615", u_str, 20) == 0);
 
     // string => ull

@@ -17,7 +17,7 @@ typedef enum Code {
 
 typedef struct Error {
     Code code;
-    sds state;
+    sds_t state;
 } Error;
 
 static Error Ok = {COk, NULL};

@@ -13,7 +13,7 @@ int lockFile(int fd);
 int unlockFile(int fd);
 typedef struct FileLock {
     int fd;
-    sds filename;
+    sds_t filename;
 } FileLock;
 
 typedef struct WritableFile {
@@ -27,14 +27,14 @@ FileLock* fileLockCreate(int fd, char* filename);
 void fileLockRelease(FileLock* lock);
 int removeFile(char* file);
 int closeFile(int fd);
-bool fileExists(sds filename);
-int renameFile(sds from, sds to);
+bool fileExists(sds_t filename);
+int renameFile(sds_t from, sds_t to);
 
 //   ================== WritableFile ==================
-Error* writableFileCreate(sds filename,
+Error* writableFileCreate(sds_t filename,
                          WritableFile** result);
 void writableFileRelease(WritableFile* file);
-Error* writableFileAppendSds(WritableFile* file, sds data);
+Error* writableFileAppendSds(WritableFile* file, sds_t data);
 Error* writableFileAppend(WritableFile* file, char* buf, size_t len);
 Error* writableFileAppendSlice(WritableFile* file, Slice* data);
 Error* writableFileFlush(WritableFile* file);
@@ -45,7 +45,7 @@ Error* writableFileClose(WritableFile* file);
 
 //   ================== SequentialFile ==================
 //创建顺序读文件
-Error* sequentialFileCreate(sds filename, SequentialFile** fd);
+Error* sequentialFileCreate(sds_t filename, SequentialFile** fd);
 //顺序读（读取文件）
 Error* sequentialFileRead(SequentialFile* file,size_t n, Slice* slice);
 

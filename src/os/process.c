@@ -30,8 +30,8 @@ char *basename(const char *path) {
     }
 }
 
-sds get_process_name(const char *prog_name) {
-  sds process_name;
+sds_t get_process_name(const char *prog_name) {
+  sds_t process_name;
   int buf_len = strlen(prog_name);
 //   assert(buf_len);
   char buf[buf_len + 1];
@@ -42,7 +42,7 @@ sds get_process_name(const char *prog_name) {
   snprintf(buf, buf_len + 1, "%s", prog_name);  // 第二个参数需为buf_len + 1
 
   process_name = basename(buf);
-  return sdsnew(process_name);
+  return sds_new(process_name);
 }
 
 
@@ -88,7 +88,7 @@ void sys_log_redirect(const char *std_out_file, const char *std_err_file)
   // Always use append-write. And if not exist, create it.
   std_err_flag = std_out_flag = O_CREAT | O_APPEND | O_WRONLY;
 
-  sds err_file = getAbsolutePath(std_err_file);
+  sds_t err_file = getAbsolutePath(std_err_file);
 
   // CWE367: A check occurs on a file's attributes before the file is
   // used in a privileged operation, but things may have changed
@@ -110,7 +110,7 @@ void sys_log_redirect(const char *std_out_file, const char *std_err_file)
   setvbuf(stderr, NULL, _IONBF, 0);  // Make sure stderr is not buffering
   log_error("latte_lib", "Process %d built error output at %lld ", getpid() , tv.tv_sec );
 
-  sds outFile = getAbsolutePath(std_out_file);
+  sds_t outFile = getAbsolutePath(std_out_file);
 
   // Redirect stdout to outFile.c_str()
   // rc = stat(outFile.c_str(), &st);
@@ -131,7 +131,7 @@ void sys_log_redirect(const char *std_out_file, const char *std_err_file)
 }
 
 
-int daemonize_service(sds stdout, sds stderr) {
+int daemonize_service(sds_t stdout, sds_t stderr) {
     int rc = daemonize_service0(false);
     if (rc != 0) {
         log_error("latte_lib", "Error: \n");
@@ -149,22 +149,22 @@ int daemonize_service(sds stdout, sds stderr) {
  * The function does not try to normalize everything, but only the obvious
  * case of one or more "../" appearing at the start of "filename"
  * relative path. */
-sds getAbsolutePath(char *filename) {
+sds_t getAbsolutePath(char *filename) {
     char cwd[1024];
-    sds abspath;
-    sds relpath = sdsnew(filename);
+    sds_t abspath;
+    sds_t relpath = sds_new(filename);
 
-    relpath = sdstrim(relpath," \r\n\t");
+    relpath = sds_trim(relpath," \r\n\t");
     if (relpath[0] == '/') return relpath; /* Path is already absolute. */
 
     /* If path is relative, join cwd and relative path. */
     if (getcwd(cwd,sizeof(cwd)) == NULL) {
-        sdsfree(relpath);
+        sds_free(relpath);
         return NULL;
     }
-    abspath = sdsnew(cwd);
-    if (sdslen(abspath) && abspath[sdslen(abspath)-1] != '/')
-        abspath = sdscat(abspath,"/");
+    abspath = sds_new(cwd);
+    if (sds_len(abspath) && abspath[sds_len(abspath)-1] != '/')
+        abspath = sds_cat(abspath,"/");
 
     /* At this point we have the current path always ending with "/", and
      * the trimmed relative path. Try to normalize the obvious case of
@@ -172,24 +172,24 @@ sds getAbsolutePath(char *filename) {
      *
      * For every "../" we find in the filename, we remove it and also remove
      * the last element of the cwd, unless the current cwd is "/". */
-    while (sdslen(relpath) >= 3 &&
+    while (sds_len(relpath) >= 3 &&
            relpath[0] == '.' && relpath[1] == '.' && relpath[2] == '/')
     {
-        sdsrange(relpath,3,-1);
-        if (sdslen(abspath) > 1) {
-            char *p = abspath + sdslen(abspath)-2;
+        sds_range(relpath,3,-1);
+        if (sds_len(abspath) > 1) {
+            char *p = abspath + sds_len(abspath)-2;
             int trimlen = 1;
 
             while(*p != '/') {
                 p--;
                 trimlen++;
             }
-            sdsrange(abspath,0,-(trimlen+1));
+            sds_range(abspath,0,-(trimlen+1));
         }
     }
 
     /* Finally glue the two parts together. */
-    abspath = sdscatsds(abspath,relpath);
-    sdsfree(relpath);
+    abspath = sds_cat_sds(abspath,relpath);
+    sds_free(relpath);
     return abspath;
 }

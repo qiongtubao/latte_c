@@ -8,7 +8,7 @@
 
 #define ZSKIPLIST_P 0.25      /* Skiplist P = 1/4 */
 
-skiplistNode* skipListCreateNode(int level, void* score, sds ele) {
+skiplistNode* skipListCreateNode(int level, void* score, sds_t ele) {
     skiplistNode* node = zmalloc(sizeof(skiplistNode) + sizeof(skiplistNode) * level);
     node->backward = NULL;
     node->ele = ele;
@@ -22,7 +22,7 @@ skiplistNode* skipListCreateNode(int level, void* score, sds ele) {
 
 void* skipListFreeNode(skiplistNode* node) {
     void* score = node->score;
-    sdsfree(node->ele);
+    sds_free(node->ele);
     zfree(node);
     return score;
 }
@@ -66,7 +66,7 @@ skiplist* skipListNew(comparator* c) {
     return sl;
 }
 
-skiplistNode* skipListInsert(skiplist *sl, void* score, sds ele) {
+skiplistNode* skipListInsert(skiplist *sl, void* score, sds_t ele) {
     skiplistNode *update[ZSKIPLIST_MAXLEVEL], *x;
     int rank[ZSKIPLIST_MAXLEVEL];
     int i, level;
@@ -137,7 +137,7 @@ void skiplistDeleteNode(skiplist *sl, skiplistNode *x, skiplistNode **update) {
     sl->length--;
 }
 
-void* skipListDelete(skiplist *sl, void* score, sds ele, skiplistNode **node) {
+void* skipListDelete(skiplist *sl, void* score, sds_t ele, skiplistNode **node) {
     skiplistNode *update[ZSKIPLIST_MAXLEVEL], *x;
     int i;
 
@@ -154,7 +154,7 @@ void* skipListDelete(skiplist *sl, void* score, sds ele, skiplistNode **node) {
 
     x = x->level[0].forward;
     if (x && sl->comparator(NULL, x->score, NULL, score) == 0 
-        && sdscmp(x->ele, ele) == 0) {
+        && sds_cmp(x->ele, ele) == 0) {
         skiplistDeleteNode(sl, x, update);
         if (!node) {
             return skipListFreeNode(x);
@@ -261,7 +261,7 @@ void slDeleteNode(skiplist *zsl, skiplistNode *x, skiplistNode **update) {
  * of the element is freed too, unless node->ele is set to NULL before calling
  * this function. */
 void zslFreeNode(skiplist* sl, skiplistNode *node) {
-    sdsfree(node->ele);
+    sds_free(node->ele);
     zfree(node);
 }
 

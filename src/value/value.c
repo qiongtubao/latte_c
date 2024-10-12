@@ -11,7 +11,7 @@ value_t* value_new() {
 void valueClean(value_t* v) {
     switch (v->type) {
         case VALUE_SDS:
-            sdsfree(v->value.sds_value);
+            sds_free(v->value.sds_value);
             v->value.sds_value = NULL;
             break;
         case VALUE_ARRAY: {
@@ -38,7 +38,7 @@ void value_delete(value_t* v) {
     zfree(v);
 }
 
-void value_set_sds(value_t* v, sds s) {
+void value_set_sds(value_t* v, sds_t s) {
     valueClean(v);
     v->type = VALUE_SDS;
     v->value.sds_value = s;
@@ -78,7 +78,7 @@ void value_set_map(value_t* v, dict* d) {
 }
 
 
-sds value_get_sds(value_t* v) {
+sds_t value_get_sds(value_t* v) {
     latte_assert(value_is_sds(v), "value is not sds");
     return v->value.sds_value;
 }
@@ -110,7 +110,7 @@ dict* value_get_map(value_t* v) {
     return v->value.map_value;
 }
 
-sds value_get_binary(value_t* v) {
+sds_t value_get_binary(value_t* v) {
     switch (v->type)
     {
     case VALUE_SDS:
@@ -118,13 +118,13 @@ sds value_get_binary(value_t* v) {
         /* code */
         break;
     case VALUE_INT:
-        return sdsnewlen((const char*)&v->value.i64_value, sizeof(int64_t));
+        return sds_new_len((const char*)&v->value.i64_value, sizeof(int64_t));
     case VALUE_UINT:
-        return sdsnewlen((const char*)&v->value.u64_value, sizeof(uint64_t));
+        return sds_new_len((const char*)&v->value.u64_value, sizeof(uint64_t));
     case VALUE_DOUBLE:
-        return sdsnewlen((const char*)&v->value.ld_value, sizeof(long double));
+        return sds_new_len((const char*)&v->value.ld_value, sizeof(long double));
     case VALUE_BOOLEAN:
-        return sdsnewlen((const char*)&v->value.bool_value, sizeof(int));
+        return sds_new_len((const char*)&v->value.bool_value, sizeof(int));
     default:
         LATTE_LIB_LOG(LOG_ERROR, "[value_get_binary] unsupport data type: %d", v->type);
         break;
@@ -141,7 +141,7 @@ int value_set_binary(value_t* v, value_type_enum type, char* data, int len) {
     switch (type)
     {
     case VALUE_SDS:
-        value_set_sds(v, sdsnewlen(data, len));
+        value_set_sds(v, sds_new_len(data, len));
         break;
     case VALUE_INT:
         value_set_int64(v, *(int64_t*)data);

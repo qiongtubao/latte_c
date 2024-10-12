@@ -36,16 +36,16 @@
 void latte_assert(int condition, const char *message, ...);
 
 int ll2string(char *s, size_t len, long long value);
-sds ll2sds(long long value);
+sds_t ll2sds(long long value);
 int string2ll(const char *s, size_t slen, long long *value);
-int sds2ll(sds s, long long* value);
+int sds2ll(sds_t s, long long* value);
 // int string2ll(const char *s, size_t slen, long long *value);
 int string2ull(const char *s, unsigned long long *value);
 int ull2string(char *s, size_t len, unsigned long long value);
-sds ull2sds(unsigned long long value);
+sds_t ull2sds(unsigned long long value);
 // int string2l(const char *s, size_t slen, long *value);
 int string2ld(const char *s, size_t slen, long double *dp);
-int sds2ld(sds s, long double* dp);
+int sds2ld(sds_t s, long double* dp);
 /* long double to string convertion options */
 typedef enum {
     LD_STR_AUTO,     /* %.17Lg */
@@ -53,11 +53,11 @@ typedef enum {
     LD_STR_HEX       /* %La */
 } ld2string_mode;
 int ld2string(char *buf, size_t len, long double value, ld2string_mode mode);
-sds ld2sds(long double value, ld2string_mode mode);
+sds_t ld2sds(long double value, ld2string_mode mode);
 int string2d(const char *s, size_t slen, double *dp);
-int sds2d(sds value, double* dp);
+int sds2d(sds_t value, double* dp);
 int d2string(char *buf, size_t len, double value);
-sds d2sds(double value);
+sds_t d2sds(double value);
 long long ustime(void);
 
 static long long nowustime;

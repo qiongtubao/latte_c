@@ -67,29 +67,29 @@ int removeFile(char* file) {
     return unlink(file);
 }
 
-int renameFile(sds from, sds to) {
+int renameFile(sds_t from, sds_t to) {
     return rename(from, to);
 }
 
 FileLock* fileLockCreate(int fd, char* filename) {
     FileLock* fl = zmalloc(sizeof(FileLock));
     fl->fd = fd;
-    fl->filename = sdsnew(filename);
+    fl->filename = sds_new(filename);
     return fl;
 }
 
 void fileLockRelease(FileLock* lock) {
-    sdsfree(lock->filename);
+    sds_free(lock->filename);
     zfree(lock);
 }
 
 //判断某个文件是否存在
-bool fileExists(sds filename) {
+bool fileExists(sds_t filename) {
     return access(filename, F_OK) == 0;
 }
 
 //创建一个写文件，如果原来有数据则清空数据， 
-Error* writableFileCreate(sds filename,
+Error* writableFileCreate(sds_t filename,
                          WritableFile** result)  {
     //O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags: 这是一个位或运算表达式，用于设置open函数的标志参数。这些标志决定了文件的打开模式和行为：
     //O_TRUNC: 如果文件已存在，那么在打开时会被截断至零长度，即清空文件内容。如果文件不存在，此标志将被忽略。
@@ -111,8 +111,8 @@ Error* writableFileCreate(sds filename,
     return &Ok;
   }
 
-Error* writableFileAppendSds(WritableFile* file, sds data) {
-    return writableFileAppend(file, data, sdslen(data));
+Error* writableFileAppendSds(WritableFile* file, sds_t data) {
+    return writableFileAppend(file, data, sds_len(data));
 }  
 
 Error* writableFileAppend(WritableFile* file, char* buf, size_t len) {
@@ -143,7 +143,7 @@ void writableFileRelease(WritableFile* file) {
 // ================ SequentialFile =============
 
 //创建顺序读文件
-Error* sequentialFileCreate(sds filename, SequentialFile** file) {
+Error* sequentialFileCreate(sds_t filename, SequentialFile** file) {
     return posixSequentialFileCreate(filename, file);
 }
 
@@ -173,7 +173,7 @@ void sequentialFileRelease(SequentialFile* file) {
 
 Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* data) {
     Slice slice = {
-        .p = sdsemptylen(n),
+        .p = sds_empty_len(n),
         .len = 0
     };
     Error* error = posixSequentialFileRead(file, n, &slice);
@@ -181,6 +181,6 @@ Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* data) {
         return error;
     }
     *data = slice.p;
-    sdssetlen(slice.p, slice.len);
+    sds_set_len(slice.p, slice.len);
     return error;
 }

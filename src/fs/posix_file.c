@@ -6,33 +6,33 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include "flags.h"
-sds baseName(sds filename) {
-    size_t pos = sdsFindLastOf(filename, "/");
+sds_t baseName(sds_t filename) {
+    size_t pos = sds_find_lastof(filename, "/");
     if (pos == -1) {
-        return sdsnew(filename);
+        return sds_new(filename);
     }
     // assert(find(filename, '/', pos + 1) == C_NPOS);
-    return sdsnewlen(filename + pos + 1, 
-        sdslen(filename) - pos - 1);
+    return sds_new_len(filename + pos + 1, 
+        sds_len(filename) - pos - 1);
 }
-bool isManifest(sds filename) {
-    sds base = baseName(filename);
-    int result = sdsStartsWith(base, "MANIFEST");
-    sdsfree(base);
+bool isManifest(sds_t filename) {
+    sds_t base = baseName(filename);
+    int result = sds_starts_with(base, "MANIFEST");
+    sds_free(base);
     return result;
 }
-sds getDirName(sds path) {
-    size_t pos = sdsFindLastOf(path, "/");
+sds_t getDirName(sds_t path) {
+    size_t pos = sds_find_lastof(path, "/");
     if (pos == C_NPOS) {
-        return sdsnew(".");
+        return sds_new(".");
     }
     // assert(find(filename, '/', pos + 1) == C_NPOS);
-    return sdsnewlen(path, pos);
+    return sds_new_len(path, pos);
 }
 
 PosixWritableFile* posixWritableFileCreate(char* filename, int fd) {
     PosixWritableFile* file = zmalloc(sizeof(PosixWritableFile));
-    file->filename = sdsnew(filename);
+    file->filename = sds_new(filename);
     file->fd = fd;
     file->is_manifest = isManifest(file->filename);
     file->pos = 0;
@@ -106,7 +106,7 @@ Error* posixWritableFileFlush(PosixWritableFile* writer) {
     return posixWritableFileFlushBuffer(writer);
 }
 
-Error* posixWritableFileSyncFd(int fd, const sds fd_path) {
+Error* posixWritableFileSyncFd(int fd, const sds_t fd_path) {
 #if HAVE_FULLFSYNC
     // On macOS and iOS, fsync() doesn't guarantee durability past power
     // failures. fcntl(F_FULLFSYNC) is required for that purpose. Some
@@ -203,13 +203,13 @@ void posixWritableFileRelease(PosixWritableFile* file) {
   if (file->fd >= 0) {
     posixWritableFileClose(file);
   }
-  sdsfree(file->dirname);
-  sdsfree(file->filename);
+  sds_free(file->dirname);
+  sds_free(file->filename);
   zfree(file);
 }
 
 //============ posixSequentialFile ============ 
-Error* posixSequentialFileCreate(sds filename, PosixSequentialFile** file) {
+Error* posixSequentialFileCreate(sds_t filename, PosixSequentialFile** file) {
     int fd = open(filename, O_RDONLY | kOpenBaseFlags);
     if (fd < 0) {
       *file = NULL;

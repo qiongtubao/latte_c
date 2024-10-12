@@ -7,13 +7,13 @@
 #include "iterator/iterator.h"
 
 void valueSdsFree(void* node) {
-    sdsfree((sds)node);
+    sds_free((sds)node);
 }
 int test_list_iterator() {
     list* l = listCreate();
     l->free = valueSdsFree;
-    listAddNodeTail(l, sdsnew("hello"));
-    listAddNodeTail(l, sdsnew("world"));
+    listAddNodeTail(l, sds_new("hello"));
+    listAddNodeTail(l, sds_new("world"));
     Iterator* iter = listGetLatteIterator(l, 1);
     printf("???? : %p %p \n",iter->data, ((listIter*)(iter->data))->direction);
     int i = 0;

@@ -25,10 +25,10 @@ int echoHandler(struct latteClient* lc) {
         stopServer(lc->server);
         return 1;
     }
-    if (connWrite(lc->conn, lc->querybuf, sdslen(lc->querybuf)) == -1) {
+    if (connWrite(lc->conn, lc->querybuf, sds_len(lc->querybuf)) == -1) {
         printf("write fail");
     }
-    lc->qb_pos = sdslen(lc->querybuf);
+    lc->qb_pos = sds_len(lc->querybuf);
     return 1;
 }
 struct latteClient *createLatteClient() {

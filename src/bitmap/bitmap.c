@@ -1,7 +1,7 @@
 #include "bitmap.h"
 
 bitmap_t bitmap_new(int len) {
-    sds map = sdsnewlen("", len);
+    sds_t map = sds_new_len("", len);
     if (map == NULL) return NULL;
     bitmap_clear_all(map);
     return map;
