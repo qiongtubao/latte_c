@@ -22,7 +22,7 @@ typedef struct bPlusTreeNode {
 bPlusTreeNode* bPlusTreeNodeCreate(int order, int isLeaf);
 void bPlusTreeNodeRelease(bPlusTreeNode* node);
 
-typedef int (*cmp_func_t)(const void*, const void*);
+typedef int (*cmp_func_t)(void*, void*);
 typedef struct bPlusTreeType {
     cmp_func_t cmp;
     void (*freeNode)(void* value);
@@ -40,11 +40,11 @@ void bPlusTreeUpdate(bPlusTreeRoot* tree, void* key, void* data);
 void bPlusTreeDelete(bPlusTreeRoot* tree, void* key);
 
 typedef struct bPlusTreeIterator {
-    Iterator iterator;              //data is bPlusTreeNode
+    latte_iterator_t iterator;              //data is bPlusTreeNode
     int currentIndex;               //当前叶子节点上的索引
-    keyValuePair pair;
+    latte_pair_t pair;
 } bPlusTreeIterator;
 
-Iterator* bPlusTreeGetIterator(bPlusTreeRoot* tree);
+latte_iterator_t* bPlusTreeGetIterator(bPlusTreeRoot* tree);
 
 #endif

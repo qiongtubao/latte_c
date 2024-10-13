@@ -19,13 +19,13 @@ int test_vector() {
     assert(vector_get(v, 1) == (void*)2);
 
     int a[2] = {1,2};
-    Iterator* iterator = vector_get_iterator(v);
+    latte_iterator_t* iterator = vector_get_iterator(v);
     int index = 0;
-    while(iteratorHasNext(iterator)) {
-        void* r = iteratorNext(iterator);
+    while(latte_iterator_has_next(iterator)) {
+        void* r = latte_iterator_next(iterator);
         assert((long)r == a[index++]);
     }
-    iteratorRelease(iterator);
+    latte_iterator_delete(iterator);
 
 
     assert(vector_size(v) == 2);
@@ -51,13 +51,13 @@ int test_sort_vector() {
     for(int i = 0; i < 7; i++) {
         vector_push(v, (void*)a[i]);
     }
-    Iterator* iterator = vector_get_iterator(v);
+    latte_iterator_t* iterator = vector_get_iterator(v);
     int index = 0;
-    while(iteratorHasNext(iterator)) {
-        void* r = iteratorNext(iterator);
+    while(latte_iterator_has_next(iterator)) {
+        void* r = latte_iterator_next(iterator);
         assert((long)r == a[index++]);
     }
-    iteratorRelease(iterator);
+    latte_iterator_delete(iterator);
     
 
     vector_sort(v, long_comparator);
@@ -65,11 +65,11 @@ int test_sort_vector() {
     long b[7] = {2,4,5,8,10,13,19};
     iterator = vector_get_iterator(v);
     index = 0;
-    while(iteratorHasNext(iterator)) {
-        void* r = iteratorNext(iterator);
+    while(latte_iterator_has_next(iterator)) {
+        void* r = latte_iterator_next(iterator);
         assert((long)r == b[index++]);
     }
-    iteratorRelease(iterator);
+    latte_iterator_delete(iterator);
     return 1;
 }
 

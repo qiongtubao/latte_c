@@ -120,11 +120,11 @@ int test_set_base(set_t* s1, getKey getNodeKey, int order) {
     assert(set_add(s1, key2) == 1);
     assert(set_size(s1) == 3);
 
-    Iterator* iterator = set_get_iterator(s1);
+    latte_iterator_t* iterator = set_get_iterator(s1);
     int i = 0;
     sds_t keys[3] = {key, key1, key2};
-    while (iteratorHasNext(iterator)) {
-        void* node = iteratorNext(iterator);
+    while (latte_iterator_has_next(iterator)) {
+        void* node = latte_iterator_next(iterator);
         if (order) {
             assert(sds_cmp(getNodeKey(node), keys[i]) == 0);
         } else {
@@ -135,7 +135,7 @@ int test_set_base(set_t* s1, getKey getNodeKey, int order) {
         i++;
     }
     assert(i == 3);
-    iteratorRelease(iterator);
+    latte_iterator_delete(iterator);
 
     sds_delete(key);
     sds_delete(key1);
@@ -223,15 +223,15 @@ int test_avlset_api() {
     assert(i == 3);
     avlSetIteratorRelease(iter);
 
-    Iterator* iterator = avlSetGetIterator(s);
+    latte_iterator_t* iterator = avlSetGetIterator(s);
     i = 0;
-    while (iteratorHasNext(iterator)) {
-        node = iteratorNext(iterator);
+    while (latte_iterator_has_next(iterator)) {
+        node = latte_iterator_next(iterator);
         assert(sds_cmp(node->key, keys[i]) == 0);
         i++;
     }
     assert(i == 3);
-    iteratorRelease(iterator);
+    latte_iterator_delete(iterator);
     sds_delete(key);
     sds_delete(key1);
     sds_delete(key2);

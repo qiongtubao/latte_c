@@ -15,12 +15,12 @@ void valueClean(value_t* v) {
             v->value.sds_value = NULL;
             break;
         case VALUE_ARRAY: {
-            Iterator* it = vector_get_iterator(v->value.array_value);
-            while(iteratorHasNext(it)) {
-                value_t* cv = iteratorNext(it);
+            latte_iterator_t* it = vector_get_iterator(v->value.array_value);
+            while(latte_iterator_has_next(it)) {
+                value_t* cv = latte_iterator_next(it);
                 value_delete(cv);
             }
-            iteratorRelease(it);
+            latte_iterator_delete(it);
             vector_delete(v->value.array_value);
             v->value.array_value = NULL;
         }

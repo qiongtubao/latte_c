@@ -1587,10 +1587,10 @@ sds_t json_to_sds(json_t* v) {
             return v->value.bool_value == true? sds_new("true"): sds_new("false");
         case VALUE_ARRAY: {
             sds_t result = sds_new("[");
-            Iterator* itor = vector_get_iterator(value_get_array(v));
+            latte_iterator_t* itor = vector_get_iterator(value_get_array(v));
             int frist = 1;
-            while(iteratorHasNext(itor)) {
-                json_t* v = iteratorNext(itor);
+            while(latte_iterator_has_next(itor)) {
+                json_t* v = latte_iterator_next(itor);
                 sds_t r = json_to_sds(v);
                 if (frist) {
                     result = sds_cat_fmt(result, "%s", r);
@@ -1600,7 +1600,7 @@ sds_t json_to_sds(json_t* v) {
                 }
                 sds_delete(r);
             }
-            iteratorRelease(itor);
+            latte_iterator_delete(itor);
             return sds_cat_fmt(result, "]");
         }
         case VALUE_MAP: {

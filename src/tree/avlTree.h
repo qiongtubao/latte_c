@@ -54,12 +54,12 @@ avlNode* avlTreeIteratorNext(avlTreeIterator* iterator);
 void avlTreeIteratorRelease(avlTreeIterator* iterator);
 
 typedef struct avlTreeLatteIterator {
-    Iterator iterator;
-    keyValuePair pair;
+    latte_iterator_t iterator;
+    latte_pair_t pair;
     avlTree* tree;
 } avlTreeLatteIterator;
 
-Iterator* avlTreeGetIterator(avlTree* tree);
+latte_iterator_t* avlTreeGetIterator(avlTree* tree);
 
 
 

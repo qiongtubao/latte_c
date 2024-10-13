@@ -81,7 +81,7 @@ int dirIs(char* path) {
 }
 
 #define PATH_MAX 4096
-Iterator* dir_scan_file(char* dir_path, const char* filter_pattern) {
+latte_iterator_t* dir_scan_file(char* dir_path, const char* filter_pattern) {
   regex_t reg;
   if (filter_pattern) {
     const int res = regcomp(&reg, filter_pattern, REG_NOSUB);

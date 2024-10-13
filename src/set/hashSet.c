@@ -94,7 +94,7 @@ typedef struct hashIteratorData {
     void* currentNode;
 } hashIteratorData;
 
-bool hashIteratorApiHasNext(Iterator* iterator) {
+bool hashIteratorApiHasNext(latte_iterator_t* iterator) {
     hashIteratorData* data = iterator->data;
     hashSetNode* node = hashSetNext(data->iter);
     if (node == NULL) return false;
@@ -102,28 +102,28 @@ bool hashIteratorApiHasNext(Iterator* iterator) {
     return true;
 }
 
-void* hashIteratorApiNext(Iterator* iterator) {
+void* hashIteratorApiNext(latte_iterator_t* iterator) {
     hashIteratorData* data = iterator->data;
     hashSetNode* node = data->currentNode;
     data->currentNode = NULL;
     return node;
 }
 
-void hashIteratorApiRelease(Iterator* iterator) {
+void hashIteratorApiRelease(latte_iterator_t* iterator) {
     hashIteratorData* data = iterator->data;
     hashSetReleaseIterator(data->iter);
     zfree(iterator->data);
     zfree(iterator);
 }
 
-IteratorType hashIteratorApi = {
+latte_iterator_func hashIteratorApi = {
     .hasNext = hashIteratorApiHasNext,
     .next = hashIteratorApiNext,
     .release = hashIteratorApiRelease
 };
 
-Iterator* hashSetApiGetIterator(set_t* set) {
-    Iterator* iterator = zmalloc(sizeof(Iterator));
+latte_iterator_t* hashSetApiGetIterator(set_t* set) {
+    latte_iterator_t* iterator = zmalloc(sizeof(latte_iterator_t));
     hashIteratorData* data = zmalloc(sizeof(hashIteratorData));
     data->currentNode = NULL;
     data->iter = hashSetGetIterator(set->data);

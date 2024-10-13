@@ -255,7 +255,7 @@ void bPlusTreeDelete(bPlusTreeRoot* tree, void* key) {
     deleteKey(tree, &(tree->root), key);
 }
 
-bool bPlusIteratorHasNext(Iterator* it_) {
+bool bPlusIteratorHasNext(latte_iterator_t* it_) {
     bPlusTreeIterator* it = (bPlusTreeIterator*)it_;
     bPlusTreeNode* currentNode = it->iterator.data;
     if (currentNode == NULL || it->currentIndex >= currentNode->numKeys) {
@@ -264,7 +264,7 @@ bool bPlusIteratorHasNext(Iterator* it_) {
     return true;
 }
 
-void* bPlusIteratorNext(Iterator* it_) {
+void* bPlusIteratorNext(latte_iterator_t* it_) {
     bPlusTreeIterator* it = (bPlusTreeIterator*)it_;
     bPlusTreeNode* currentNode = it->iterator.data;
     if (currentNode == NULL || it->currentIndex >= currentNode->numKeys) {
@@ -286,16 +286,16 @@ void* bPlusIteratorNext(Iterator* it_) {
     return &it->pair;
 }
 
-void bPlusIteratorRelease(Iterator* it) {
+void bPlusIteratorRelease(latte_iterator_t* it) {
     zfree(it);
 }
-IteratorType bPlusIteratorType = {
+latte_iterator_func bPlusIteratorType = {
     .hasNext = bPlusIteratorHasNext,
     .next = bPlusIteratorNext,
     .release = bPlusIteratorRelease,
 };
 
-Iterator* bPlusTreeGetIterator(bPlusTreeRoot* tree) {
+latte_iterator_t* bPlusTreeGetIterator(bPlusTreeRoot* tree) {
     bPlusTreeIterator* it = zmalloc(sizeof(bPlusTreeIterator));
     if (it == NULL) return NULL;
     it->iterator.type = &bPlusIteratorType;
@@ -305,5 +305,5 @@ Iterator* bPlusTreeGetIterator(bPlusTreeRoot* tree) {
         node = node->children[0];
     }
     it->iterator.data = node;
-    return it;
+    return (latte_iterator_t*)it;
 }

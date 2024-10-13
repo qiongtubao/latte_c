@@ -4,35 +4,36 @@
 #include "iterator.h"
 #include "zmalloc/zmalloc.h"
 
-typedef struct arrayIterator {
-    IteratorType* type;
+typedef struct array_iterator_t {
+    latte_iterator_func* type;
     void* data;
     int len;
     int current_index;
     int one_size;
-} arrayIterator;
-bool arrayIteratorHasNext(Iterator* it) {
-    arrayIterator* iterator = (arrayIterator*)it;
+} array_iterator_t;
+
+bool arrayIteratorHasNext(latte_iterator_t* it) {
+    array_iterator_t* iterator = (array_iterator_t*)it;
     return iterator->current_index < iterator->len;
 }
-void* arrayIteratorNext(Iterator *it) {
-    arrayIterator* iterator = (arrayIterator*)it;
+void* arrayIteratorNext(latte_iterator_t *it) {
+    array_iterator_t* iterator = (array_iterator_t*)it;
     iterator->current_index++;
     return iterator->data + (iterator->current_index-1)*iterator->one_size;
 }
 
-void arrayIteratorRelease(Iterator* it) {
-    arrayIterator* iterator = (arrayIterator*)it;
+void arrayIteratorRelease(latte_iterator_t* it) {
+    array_iterator_t* iterator = (array_iterator_t*)it;
     zfree(iterator);
 }
 
-IteratorType arrayIteratorType = {
+latte_iterator_func arrayIteratorType = {
     .hasNext = arrayIteratorHasNext,
     .next = arrayIteratorNext,
     .release = arrayIteratorRelease
 };
-Iterator* arrayIteratorCreate(void* data, int len, int one_size) {
-    arrayIterator* iterator = zmalloc(sizeof(arrayIterator));
+latte_iterator_t* arrayIteratorCreate(void* data, int len, int one_size) {
+    array_iterator_t* iterator = zmalloc(sizeof(array_iterator_t));
     iterator->type = &arrayIteratorType;
     iterator->data = data;
     iterator->len = len;
@@ -45,21 +46,21 @@ int test_array_iterator() {
     for(int i = 0; i < 26; i++) {
         array[i] = 'a' + i;
     }
-    Iterator* it = arrayIteratorCreate(array, 26, 1);
+    latte_iterator_t* it = arrayIteratorCreate(array, 26, 1);
     for(int i = 0; i < 36; i++) {
-        assert(iteratorHasNext(it) == true);
+        assert(latte_iterator_has_next(it) == true);
     }
-    char* val = iteratorNext(it);
+    char* val = latte_iterator_next(it);
     assert(val[0] == 'a');
-    val = iteratorNext(it);
+    val = latte_iterator_next(it);
     assert(val[0] == 'b');
     
-    while(iteratorHasNext(it)) {
-        val = iteratorNext(it);
+    while(latte_iterator_has_next(it)) {
+        val = latte_iterator_next(it);
         assert(val[0] > 'b');
     }
 
-    iteratorRelease(it);
+    latte_iterator_delete(it);
 
     return 1;
 }

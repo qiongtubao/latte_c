@@ -32,7 +32,7 @@ void avlSetTypeRelease(set_t* set) {
     zfree(set);
 }
 
-Iterator* avlSetTypeGetIterator(set_t* set) {
+latte_iterator_t* avlSetTypeGetIterator(set_t* set) {
     return avlSetGetIterator(set->data);
 }
 

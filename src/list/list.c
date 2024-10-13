@@ -382,12 +382,12 @@ void list_join(list_t *l, list_t *o) {
 
 
 typedef struct latte_list_iterator_t {
-    Iterator it;
+    latte_iterator_t it;
     list_node_t* next;
     list_t* list;
 } latte_list_iterator_t;
 
-bool latte_list_iterator_has_next(Iterator* iterator) {
+bool latte_list_iterator_has_next(latte_iterator_t* iterator) {
     latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_node_t* node = list_next(((list_iterator_t*)it->it.data));
     if (node == NULL) {
@@ -397,14 +397,14 @@ bool latte_list_iterator_has_next(Iterator* iterator) {
     return true;
 }
 
-void* latte_list_iterator_next(Iterator* iterator) {
+void* latte_list_iterator_next(latte_iterator_t* iterator) {
     latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_node_t* node = it->next;
     it->next = NULL;
     return list_node_value(node);
 }
 
-void latte_list_iterator_delete(Iterator* iterator) {
+void latte_list_iterator_delete(latte_iterator_t* iterator) {
     latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_iterator_delete(it->it.data);
     if (it->list != NULL) {
@@ -413,13 +413,13 @@ void latte_list_iterator_delete(Iterator* iterator) {
     }
 }
 
-IteratorType latte_list_iterator_func = {
+latte_iterator_func latte_list_iterator_func = {
     .hasNext = latte_list_iterator_has_next,
     .next = latte_list_iterator_next,
     .release = latte_list_iterator_delete
 };
 
-Iterator* list_get_latte_iterator(list_t* l, int opt) {
+latte_iterator_t* list_get_latte_iterator(list_t* l, int opt) {
     latte_list_iterator_t* it = zmalloc(sizeof(latte_list_iterator_t));
     list_iterator_t* t;
     if (opt & LIST_ITERATOR_OPTION_TAIL) {
@@ -433,7 +433,7 @@ Iterator* list_get_latte_iterator(list_t* l, int opt) {
     it->next = NULL;
     it->list = NULL;
     if (opt & LIST_ITERATOR_OPTION_DELETE_LIST) it->list = l;
-    return (Iterator*)it;
+    return (latte_iterator_t*)it;
 }
 
 
