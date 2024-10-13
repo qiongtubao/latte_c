@@ -18,7 +18,7 @@ static struct beancmarkConfig {
     const char *hostip;
     int hostport;
     struct benchmarkThread **threads;
-    list *clients;
+    list_t *clients;
     latteAtomic int liveclients;
     latteAtomic int slots_last_update;/* 插槽最后更新 */
 } config;
@@ -173,7 +173,7 @@ static client createClient(char *cmd, size_t len, client from, int thread_id) {
         el = thread->el;
     }
     aeCreateFileEvent(el,c->context->fd,AE_WRITABLE,writeHandler,c);
-    listAddNodeTail(config.clients,c);
+    list_add_node_tail(config.clients,c);
     atomicIncr(config.liveclients, 1);
     atomicGet(config.slots_last_update, c->slots_last_update);
 }
@@ -182,7 +182,7 @@ static client createClient(char *cmd, size_t len, client from, int thread_id) {
 
 /* benchmark method */
 int initBenchmark(struct benchmark* be) {
-    be->clients = listCreate();
+    be->clients = list_new();
     be->threads = NULL;
     be->liveclients = 0;
     be->el = aeCreateEventLoop(1024*10);

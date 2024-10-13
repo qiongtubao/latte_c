@@ -6,26 +6,26 @@
 typedef int (comparator)(sds_t a_ele, void* a, sds_t b_ele, void* b);
 typedef void (freeValue)(void* value);
 
-typedef struct skiplistNode {
+typedef struct skiplist_node_t {
     sds_t ele;
     void* score;
-    struct skiplistNode *backward;
+    struct skiplist_node_t *backward;
     struct skiplistLevel {
-        struct skiplistNode *forward;
+        struct skiplist_node_t *forward;
         unsigned long span;
     } level[];
-} skiplistNode;
+} skiplist_node_t;
 
-typedef struct skiplist {
-    struct skiplistNode *header, *tail;
+typedef struct skiplist_t {
+    struct skiplist_node_t *header, *tail;
     unsigned long length;
     int level;
     comparator* comparator;
-} skiplist;
+} skiplist_t;
 
 typedef struct skiplistIter {
-    struct skiplist* list;
-    struct skiplistNode* node;
+    struct skiplist_t* list;
+    struct skiplist_node_t* node;
 } skiplistIter;
 
 
@@ -35,21 +35,21 @@ typedef struct {
 } zrangespec;
 
 //skiplist method
-struct skiplist* skipListNew(comparator comparator);
-void skipListFree(skiplist* sl, freeValue* free_fn);
-skiplistNode* skipListCreateNode(int level, void* value, sds_t ele);
-void* skipListFreeNode(skiplistNode* node);
+struct skiplist_t* skipListNew(comparator comparator);
+void skipListFree(skiplist_t* sl, freeValue* free_fn);
+skiplist_node_t* skipListCreateNode(int level, void* value, sds_t ele);
+void* skipListFreeNode(skiplist_node_t* node);
 
-skiplistNode* skiplistFirstInRange(skiplist* sl, zrangespec* zs);
-skiplistNode* skiplistLastInRange(skiplist* sl, zrangespec* zs);
+skiplist_node_t* skiplist_firstInRange(skiplist_t* sl, zrangespec* zs);
+skiplist_node_t* skiplist_lastInRange(skiplist_t* sl, zrangespec* zs);
 
-// int skipListContains(skiplist* skiplist, void* key);
-skiplistNode* skipListInsert(skiplist* skiplist, void* value, sds_t ele);
-void* skipListDelete(skiplist* skiplist, void* val, sds_t ele, skiplistNode** node);
-// skiplistNode* skiplistFindGreaterOrEqual(const Key& key, Node** prev) const;
-// int skiplistEqual(skiplist* skiplist, void* a, void* b);
-// skiplistNode* skiplistFindLast(skiplist* skiplist);
-// skiplistNode* skiplistFindLessThan(skiplist* skiplist, void* key);
+// int skipListContains(skiplist_t* skiplist, void* key);
+skiplist_node_t* skipListInsert(skiplist_t* skiplist, void* value, sds_t ele);
+void* skipListDelete(skiplist_t* skiplist, void* val, sds_t ele, skiplist_node_t** node);
+// skiplist_node_t* skiplistFindGreaterOrEqual(const Key& key, Node** prev) const;
+// int skiplistEqual(skiplist_t* skiplist, void* a, void* b);
+// skiplist_node_t* skiplistFindLast(skiplist_t* skiplist);
+// skiplist_node_t* skiplistFindLessThan(skiplist_t* skiplist, void* key);
 
 
 //skiplistIter method
@@ -63,11 +63,11 @@ void* skipListDelete(skiplist* skiplist, void* val, sds_t ele, skiplistNode** no
 
 
 //skiplistNode method
-// int skiplistNodeSetNext(skiplistNode* node, int i, skiplistNode* n);
-// skiplistNode* skiplistNodeNext(skiplistNode* node, int i);
-// int skiplistNodeNoBarrierSetNext(skiplistNode* node, int i, skiplistrNode* n);
-// skiplistNode* skiplistNodeNoBarrierNext(skiplistNode* node, int i);
+// int skiplistNodeSetNext(skiplist_node_t* node, int i, skiplist_node_t* n);
+// skiplist_node_t* skiplistNodeNext(skiplist_node_t* node, int i);
+// int skiplistNodeNoBarrierSetNext(skiplist_node_t* node, int i, skiplistrNode* n);
+// skiplist_node_t* skiplistNodeNoBarrierNext(skiplist_node_t* node, int i);
 
 //
-int slValueGteMin(skiplist* sl, void* score, zrangespec* zs);
-int slValueLteMax(skiplist* sl, void* score, zrangespec* zs);
+int slValueGteMin(skiplist_t* sl, void* score, zrangespec* zs);
+int slValueLteMax(skiplist_t* sl, void* score, zrangespec* zs);

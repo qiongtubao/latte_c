@@ -10,12 +10,12 @@ void valueSdsFree(void* node) {
     sds_delete((sds)node);
 }
 int test_list_iterator() {
-    list* l = listCreate();
+    list_t* l = list_new();
     l->free = valueSdsFree;
-    listAddNodeTail(l, sds_new("hello"));
-    listAddNodeTail(l, sds_new("world"));
-    Iterator* iter = listGetLatteIterator(l, 1);
-    printf("???? : %p %p \n",iter->data, ((listIter*)(iter->data))->direction);
+    list_add_node_tail(l, sds_new("hello"));
+    list_add_node_tail(l, sds_new("world"));
+    Iterator* iter = list_get_latte_iterator(l, 1);
+    printf("???? : %p %p \n",iter->data, ((list_iterator_t*)(iter->data))->direction);
     int i = 0;
     while (iteratorHasNext(iter)) {
         iteratorNext(iter);
@@ -27,13 +27,13 @@ int test_list_iterator() {
 }
 
 int test_list() {
-    list* l = listCreate();
+    list_t* l = list_new();
     
-    listAddNodeHead(l, (void*)0);
-    listAddNodeTail(l, (void*)1L);
-    listAddNodeTail(l, (void*)2L);
-    listAddNodeTail(l, (void*)3L);
-    Iterator* iter = listGetLatteIterator(l, 0);
+    list_add_node_head(l, (void*)0);
+    list_add_node_tail(l, (void*)1L);
+    list_add_node_tail(l, (void*)2L);
+    list_add_node_tail(l, (void*)3L);
+    Iterator* iter = list_get_latte_iterator(l, 0);
     long a[4] = {0L,1L,2L,3L};
     int i = 0;
     while (iteratorHasNext(iter)) {
@@ -43,7 +43,7 @@ int test_list() {
     }
     iteratorRelease(iter);
 
-    iter = listGetLatteIterator(l, 1);
+    iter = list_get_latte_iterator(l, 1);
     long b[4] = {3L,2L,1L,0L};
     i = 0;
     while (iteratorHasNext(iter)) {
@@ -55,16 +55,16 @@ int test_list() {
 
     long c[4] = {1L,0L,2L,3L};
     i = 0;
-    listMoveHead(l, l->head->next);
+    list_move_head(l, l->head->next);
     for(int i = 0; i < 4; i++) {
-        assert(listNodeValue(listIndex(l, i)) == c[i]);
+        assert(list_node_value(list_index(l, i)) == c[i]);
     }
 
-    long r = ((long)listPop(l));
+    long r = ((long)list_pop(l));
     assert(r == 1L);
-    assert(listLength(l) == 3);
+    assert(list_length(l) == 3);
 
-    listRelease(l);
+    list_delete(l);
     return 1;
 }
 

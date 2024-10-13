@@ -56,9 +56,9 @@ void basicTaskRun(taskThread* thread, asyncTask* task) {
 
 void nextSeriesTask(asyncTask* task) {
     seriesTask* parent =  task->parent;
-    listNode* node = listSearchKey(parent->tasks, task);
+    list_node_t* node = list_search_key(parent->tasks, task);
     if (node->next != NULL) {
-        asyncTask* nextChild = listNodeValue(node->next);
+        asyncTask* nextChild = list_node_value(node->next);
         asyncRun(parent->task.ctx, nextChild);
     } else {
         taskDone(parent);
@@ -97,7 +97,7 @@ void notifyParent(asyncTask* task) {
 
 int checkSeriesTaskFinished(asyncTask* task) {
     seriesTask* parent = task->parent;
-    asyncTask* last = listNodeValue(listLast(parent->tasks));
+    asyncTask* last = list_node_value(list_last(parent->tasks));
     return last == task;
 }
 
@@ -107,12 +107,12 @@ int checkSeriesTaskFinished(asyncTask* task) {
 void seriesTaskRun(taskThread* thread, asyncTask* task) {
     // if (!checkTask(task)) return;
     seriesTask* series = (seriesTask*)task;
-    if (listLength(series->tasks) == 0) {
+    if (list_length(series->tasks) == 0) {
         taskDone(series);
         return;
     }
     series->task.status = DOING_TASK_STATUS;
-    asyncTask* childTask = listNodeValue(listFirst(series->tasks));
+    asyncTask* childTask = list_node_value(list_first(series->tasks));
     // assert(childTask->cb == NULL);
     // childTask->cb = seriesCallback;
     task->ctx = thread;
@@ -188,12 +188,12 @@ asyncTask* createSeriesTask() {
     seriesTask* task = zmalloc(sizeof(seriesTask));
     initTask(task);
     task->task.type = SERIES_TASK_TYPE;
-    task->tasks = listCreate();
+    task->tasks = list_new();
     return task;
 }
 
 int addSeriesTask(seriesTask* task, asyncTask* child) {
-    listAddNodeTail(task->tasks, child);
+    list_add_node_tail(task->tasks, child);
     child->parent = task;
     return 1;
 }
