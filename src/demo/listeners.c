@@ -3,11 +3,11 @@
 #include "listeners.h"
 #include <string.h>
 #define DICT_NOTUSED(V) ((void) V)
-uint64_t dictSdsHash(const void *key) {
+uint64_t dict_sds_hash(const void *key) {
     return dict_gen_hash_function((unsigned char*)key, sds_len((char*)key));
 }
 
-int dictSdsKeyCompare(void *privdata, const void *key1,
+int dict_sds_key_compare(void *privdata, const void *key1,
         const void *key2)
 {
     int l1,l2;
@@ -19,7 +19,7 @@ int dictSdsKeyCompare(void *privdata, const void *key1,
     return memcmp(key1, key2, l1) == 0;
 }
 
-void dictSdsDestructor(void *privdata, void *val)
+void dict_sds_destructor(void *privdata, void *val)
 {
     DICT_NOTUSED(privdata);
 
@@ -27,11 +27,11 @@ void dictSdsDestructor(void *privdata, void *val)
 }
 
 dict_func_t requestListenersDictType = {
-    dictSdsHash,                    /* hash function */
+    dict_sds_hash,                    /* hash function */
     NULL,                           /* key dup */
     NULL,                           /* val dup */
-    dictSdsKeyCompare,              /* key compare */
-    dictSdsDestructor,              /* key destructor */
+    dict_sds_key_compare,              /* key compare */
+    dict_sds_destructor,              /* key destructor */
     NULL,                           /* val destructor */
     NULL                            /* allow to expand */
 };

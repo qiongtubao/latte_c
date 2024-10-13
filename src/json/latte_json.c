@@ -10,11 +10,11 @@
 #include <strings.h>
 // map
 dict_func_t jsonDictTyep  = {
-    dictCharHash,
+    dict_char_hash,
     NULL,
     NULL,
-    dictCharKeyCompare,
-    dictSdsDestructor,
+    dict_char_key_compare,
+    dict_sds_destructor,
     NULL,
     NULL
 };
