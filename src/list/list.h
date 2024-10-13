@@ -50,7 +50,7 @@ list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int a
 void list_del_node(list_t *list, list_node_t *node);
 list_iterator_t*list_get_iterator(list_t *list, int direction);
 list_node_t *list_next(list_iterator_t*iter);
-void list_delete_iterator(list_iterator_t*iter);
+void list_iterator_delete(list_iterator_t*iter);
 list_t *list_dup(list_t *orig);
 list_node_t *list_search_key(list_t *list, void *key);
 list_node_t *list_index(list_t *list, long index);
@@ -60,8 +60,16 @@ void list_rotate_tail_to_head(list_t *list);
 void list_rotate_head_to_tail(list_t *list);
 void list_join(list_t *l, list_t *o);
 
-Iterator* list_get_latte_iterator(list_t* l, int for_seq);
-Iterator* list_get_latte_iterator_free_list(list_t* l, int for_seq);
+
+
+
+// option
+#define LIST_ITERATOR_OPTION_HEAD 0
+#define LIST_ITERATOR_OPTION_TAIL (1 << 0)
+#define LIST_ITERATOR_OPTION_DELETE_LIST (1 << 1)
+
+Iterator* list_get_latte_iterator(list_t* l, int opt);
+Iterator* list_get_latte_iterator_free_list(list_t* l, int opt);
 
 void  list_move_head(list_t* l, list_node_t* node);
 void* list_pop(list_t* l) ;

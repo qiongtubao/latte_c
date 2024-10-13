@@ -197,7 +197,7 @@ list_iterator_t* list_get_iterator(list_t *list, int direction)
 }
 
 /* Release the iterator memory */
-void list_delete_iterator(list_iterator_t*iter) {
+void list_iterator_delete(list_iterator_t*iter) {
     zfree(iter);
 }
 
@@ -381,14 +381,14 @@ void list_join(list_t *l, list_t *o) {
 }
 
 
-typedef struct latteListIter {
+typedef struct latte_list_iterator_t {
     Iterator it;
     list_node_t* next;
     list_t* list;
-} latteListIter;
+} latte_list_iterator_t;
 
-bool freeListIteratorApiHasNext(Iterator* iterator) {
-    latteListIter* it = (latteListIter*)iterator;
+bool latte_list_iterator_has_next(Iterator* iterator) {
+    latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_node_t* node = list_next(((list_iterator_t*)it->it.data));
     if (node == NULL) {
         return false;
@@ -397,46 +397,46 @@ bool freeListIteratorApiHasNext(Iterator* iterator) {
     return true;
 }
 
-void* freeListIteratorApiNext(Iterator* iterator) {
-    latteListIter* it = (latteListIter*)iterator;
+void* latte_list_iterator_next(Iterator* iterator) {
+    latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_node_t* node = it->next;
     it->next = NULL;
     return list_node_value(node);
 }
 
-void freeListIteratorApiRelease(Iterator* iterator) {
-    latteListIter* it = (latteListIter*)iterator;
-    list_delete_iterator(it->it.data);
+void latte_list_iterator_delete(Iterator* iterator) {
+    latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
+    list_iterator_delete(it->it.data);
     if (it->list != NULL) {
         list_delete(it->list);
         it->list = NULL;
     }
 }
 
-IteratorType freeListIteratorApi = {
-    .hasNext = freeListIteratorApiHasNext,
-    .next = freeListIteratorApiNext,
-    .release = freeListIteratorApiRelease
+IteratorType latte_list_iterator_func = {
+    .hasNext = latte_list_iterator_has_next,
+    .next = latte_list_iterator_next,
+    .release = latte_list_iterator_delete
 };
 
-Iterator* list_get_latte_iterator(list_t* l, int for_seq) {
-    latteListIter* it = zmalloc(sizeof(latteListIter));
-    list_iterator_t* t = list_get_iterator(l, for_seq);
+Iterator* list_get_latte_iterator(list_t* l, int opt) {
+    latte_list_iterator_t* it = zmalloc(sizeof(latte_list_iterator_t));
+    list_iterator_t* t;
+    if (opt & LIST_ITERATOR_OPTION_TAIL) {
+        t = list_get_iterator(l, AL_START_TAIL);
+    } else {
+        t = list_get_iterator(l, AL_START_HEAD);
+    } 
+    if (opt & LIST_ITERATOR_OPTION_DELETE_LIST) it->list = l;
     it->it.data = t;
-    it->it.type = &freeListIteratorApi;
+    it->it.type = &latte_list_iterator_func;
     it->next = NULL;
     it->list = NULL;
+    if (opt & LIST_ITERATOR_OPTION_DELETE_LIST) it->list = l;
     return (Iterator*)it;
 }
 
-Iterator* list_get_latte_iterator_free_list(list_t* l, int for_seq) {
-    latteListIter* it = zmalloc(sizeof(latteListIter));
-    it->it.data = list_get_iterator(l, for_seq);
-    it->it.type = &freeListIteratorApi;
-    it->next = NULL;
-    it->list = l;
-    return it;
-}
+
 
 void list_move_head(list_t* l, list_node_t* node) {
     if ( NULL == node->prev) {
