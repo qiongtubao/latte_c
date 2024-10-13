@@ -31,5 +31,5 @@ size_t hashSetSize(hashSet* hashSet);
 
 
 //set api
-set* setCreateHash(hashSetType* type);
+set_t* set_newHash(hashSetType* type);
 #endif

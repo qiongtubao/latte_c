@@ -8,7 +8,7 @@
 
 Env* envCreate() {
     Env* env = zmalloc(sizeof(Env));
-    set* set = setCreateHash(&sdsHashSetDictType);
+    set_t* set = set_newHash(&sdsHashSetDictType);
     lockSetInit(&env->locks_, set);
     return env;
 }
