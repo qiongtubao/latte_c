@@ -3,11 +3,11 @@
 
 /* hashSet dictionary type. Keys are SDS strings, values are ot used. */
 hashSetType sdsHashSetDictType = {
-    dictSdsHash,               /* hash function */
-    dictSdsDup,                      /* key dup */
+    dict_sds_hash,               /* hash function */
+    dict_sds_dup,                      /* key dup */
     NULL,                      /* val dup */
-    dictSdsKeyCompare,         /* key compare */
-    dictSdsDestructor,         /* key destructor */
+    dict_sds_key_compare,         /* key compare */
+    dict_sds_destructor,         /* key destructor */
     NULL                       /* val destructor */
 };
 

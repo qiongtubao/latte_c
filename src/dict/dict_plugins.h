@@ -5,13 +5,13 @@
 #include <stdlib.h>
 #include "dict.h"
 /* key sds_t*/
-uint64_t dictSdsHash(const void *key);
-int dictSdsKeyCompare(dict_t*privdata, const void *key1,
+uint64_t dict_sds_hash(const void *key);
+int dict_sds_key_compare(dict_t*privdata, const void *key1,
         const void *key2);
-void dictSdsDestructor(dict_t*privdata, void *val);
-void *dictSdsDup(dict_t*d, const void *key);
+void dict_sds_destructor(dict_t*privdata, void *val);
+void *dict_sds_dup(dict_t*d, const void *key);
 
-uint64_t dictCharHash(const void *key);
-int dictCharKeyCompare(dict_t* privdata, const void *key1,
+uint64_t dict_char_hash(const void *key);
+int dict_char_key_compare(dict_t* privdata, const void *key1,
     const void *key2);
 #endif

@@ -27,11 +27,11 @@ long long ptr2ll(void* value) {
 
 
 dict_func_t ruleDictType = {
-    dictCharHash,
+    dict_char_hash,
     NULL,
     NULL,
-    dictCharKeyCompare,
-    dictSdsDestructor,
+    dict_char_key_compare,
+    dict_sds_destructor,
     NULL,
     NULL
 };
