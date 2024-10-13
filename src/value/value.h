@@ -26,7 +26,7 @@ typedef struct {
         long double ld_value;
         bool bool_value;
         vector_t* array_value;
-        dict* map_value;
+        dict_t* map_value;
     } value;
 } value_t;
 
@@ -40,7 +40,7 @@ uint64_t value_get_uint64(value_t* v);
 long double value_get_longdouble(value_t* v);
 bool value_get_bool(value_t* v);
 vector_t* value_get_array(value_t* v);
-dict* value_get_map(value_t* v);
+dict_t* value_get_map(value_t* v);
 
 sds_t value_get_binary(value_t* v);
 
@@ -50,7 +50,7 @@ void value_set_uint64(value_t* v, uint64_t ull);
 void value_set_longdouble(value_t* v, long double d);
 void value_set_bool(value_t* v, bool b);
 void value_set_array(value_t* v, vector_t* ve);
-void value_set_map(value_t* v, dict* d);
+void value_set_map(value_t* v, dict_t* d);
 
 // 1 success 0 fail
 int value_set_binary(value_t* v, value_type_enum type,char* s, int len);

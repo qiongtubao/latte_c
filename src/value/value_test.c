@@ -15,10 +15,10 @@ int test_value() {
    
     value_set_sds(v, sds_new("hello"));
     assert(strcmp("hello", value_get_sds(v)) == 0);
-    dictType t = {
+    dict_func_t t = {
         
     };
-    dict* d = dictCreate(&t);
+    dict_t* d = dict_new(&t);
     value_set_map(v, d);
     assert(d == value_get_map(v));
 

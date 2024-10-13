@@ -124,18 +124,18 @@ void seriesTaskRun(taskThread* thread, asyncTask* task) {
 
 void parallelTaskRun(taskThread* thread,asyncTask* task) {
     parallelTask* ptask = (parallelTask*)task;
-    if (dictSize(ptask->tasks) == 0) {
+    if (dict_size(ptask->tasks) == 0) {
         taskDone(ptask);
         return;
     }
     ptask->task.status = DOING_TASK_STATUS;
-    dictIterator *di = dictGetIterator(ptask->tasks);
-    dictEntry *de;
-    while ((de = dictNext(di)) != NULL) {
-        seriesTask* stask = dictGetVal(de);
+    dict_iterator_t *di = dict_get_iterator(ptask->tasks);
+    dict_entry_t*de;
+    while ((de = dict_next(di)) != NULL) {
+        seriesTask* stask = dict_get_val(de);
         seriesTaskRun(thread, stask);
     }
-    dictReleaseIterator(di);
+    dict_iterator_delete(di);
     ptask->task.ctx = thread;
     
 }
@@ -227,7 +227,7 @@ void continueNextTask(asyncTask* task) {
 
 
 // uint64_t dictSdsHash(const void *key) {
-//     return dictGenHashFunction((unsigned char*)key, sds_len((char*)key));
+//     return dict_gen_hash_function((unsigned char*)key, sds_len((char*)key));
 // }
 
 // int dictSdsKeyCompare(void *privdata, const void *key1,
@@ -249,7 +249,7 @@ void continueNextTask(asyncTask* task) {
 //     sds_free(val);
 // }
 
-static dictType parallelTaskDictType = {
+static dict_func_t parallelTaskDictType = {
     dictSdsHash,                    /* hash function */
     NULL,                           /* key dup */
     NULL,                           /* val dup */
@@ -262,7 +262,7 @@ asyncTask* createParallelTask() {
     parallelTask* ptask = zmalloc(sizeof(parallelTask));
     initTask(ptask);
     ptask->task.type = PARALLEL_TASK_TYPE;
-    ptask->tasks = dictCreate(&parallelTaskDictType);
+    ptask->tasks = dict_new(&parallelTaskDictType);
     ptask->num = 0;
     return ptask;
 }
@@ -271,15 +271,15 @@ int addParallelTask(parallelTask* ptask, sds_t name, asyncTask* child) {
     if (ptask->task.status == DONE_TASK_STATUS) {
         return 0;
     }
-    dictEntry* entry = dictFind(ptask->tasks, name);
+    dict_entry_t* entry = dict_find(ptask->tasks, name);
     asyncTask* task;
     if (entry == NULL) {
         task = createSeriesTask();
         task->parent = ptask;
-        assert(DICT_OK == dictAdd(ptask->tasks, name, task));
+        assert(DICT_OK == dict_add(ptask->tasks, name, task));
         ptask->num++;
     } else {
-        task = dictGetVal(entry);
+        task = dict_get_val(entry);
     }
     addSeriesTask(task, child);
     if (entry == NULL && ptask->task.status == DOING_TASK_STATUS) {

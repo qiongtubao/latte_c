@@ -4,7 +4,7 @@
 #include <string.h>
 #define DICT_NOTUSED(V) ((void) V)
 uint64_t dictSdsHash(const void *key) {
-    return dictGenHashFunction((unsigned char*)key, sds_len((char*)key));
+    return dict_gen_hash_function((unsigned char*)key, sds_len((char*)key));
 }
 
 int dictSdsKeyCompare(void *privdata, const void *key1,
@@ -26,7 +26,7 @@ void dictSdsDestructor(void *privdata, void *val)
     sds_free(val);
 }
 
-dictType requestListenersDictType = {
+dict_func_t requestListenersDictType = {
     dictSdsHash,                    /* hash function */
     NULL,                           /* key dup */
     NULL,                           /* val dup */
@@ -53,7 +53,7 @@ requestListeners *requestListenersCreate(int level,  requestListeners *parent) {
 requestListeners *dbRequestListenersCreate(redisDb dbid, requestListeners *parent) {
     requestListeners* listeners = requestListenersCreate(REQUEST_LEVEL_DB, parent);
     listeners->db.db = dbid;
-    listeners->db.keys = dictCreate(&requestListenersDictType, NULL);
+    listeners->db.keys = dict_new(&requestListenersDictType);
     return listeners;
 }
 
@@ -61,7 +61,7 @@ requestListeners *keyRequestListenersCreate(robj* key, requestListeners *parent)
     requestListeners* listeners = requestListenersCreate(REQUEST_LEVEL_KEY, parent);
     // incrRefCount(key);
     listeners->key.key = key;
-    dictAdd(parent->db.keys, key, listeners);
+    dict_add(parent->db.keys, key, listeners);
     return listeners;
 }
 
@@ -103,7 +103,7 @@ static inline void requestListenersUnlink(requestListeners *listeners) {
     }
 }
 
-static void requestListenersPush(requestListeners *listeners,
+void requestListenersPush(requestListeners *listeners,
         requestListener *listener) {
     serverAssert(listeners);
     listAddNodeTail(listeners->listeners, listener);

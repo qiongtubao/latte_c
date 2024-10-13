@@ -39,7 +39,7 @@ typedef struct seriesTask {
 
 typedef struct parallelTask {
   asyncTask task;
-  dict* tasks;
+  dict_t* tasks;
   int num;
 } parallelTask;
 

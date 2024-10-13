@@ -28,9 +28,9 @@
 #include <stdlib.h>
 
 struct logger_t* get_logger_by_tag(char* tag) {
-  dictEntry* entry = dictFind(global_logger_factory.loggers, tag);
+  dict_entry_t* entry = dict_find(global_logger_factory.loggers, tag);
   if (entry == NULL) return NULL;
-  return dictGetVal(entry);
+  return dict_get_val(entry);
 }
 
 struct logger_t* logger_new() {
@@ -42,7 +42,7 @@ struct logger_t* get_or_new_logger_by_tag(char* tag) {
     struct logger_t* logger = get_logger_by_tag(tag);
     if (logger == NULL) {
         logger = logger_new();
-        dictAdd(global_logger_factory.loggers, tag, logger);
+        dict_add(global_logger_factory.loggers, tag, logger);
     }
     return logger;
 }
@@ -52,10 +52,10 @@ void logger_delete(struct logger_t* logger) {
 }
 
 uint64_t logger_hash_callback(const void *key) {
-    return dictGenCaseHashFunction((unsigned char*)key, strlen((char*)key));
+    return dict_gen_case_hash_function((unsigned char*)key, strlen((char*)key));
 }
 
-int logger_compare_callback(dict *privdata, const void *key1, const void *key2) {
+int logger_compare_callback(dict_t*privdata, const void *key1, const void *key2) {
     int l1,l2;
     DICT_NOTUSED(privdata);
     l1 = strlen((char*) key1);
@@ -66,14 +66,14 @@ int logger_compare_callback(dict *privdata, const void *key1, const void *key2) 
 
 
 
-void logger_free_callback(dict* privdata, void* val) {
+void logger_free_callback(dict_t* privdata, void* val) {
     DICT_NOTUSED(privdata);
     // printf("delete :%p\n", val);
     if(val != NULL) {
         logger_delete(val);
     }
 }
-static dictType logger_dict_type = {
+static dict_func_t logger_dict_type = {
     logger_hash_callback,
     NULL,
     NULL,
@@ -83,7 +83,7 @@ static dictType logger_dict_type = {
     NULL
 };
 void log_init() {
-  global_logger_factory.loggers = dictCreate(&logger_dict_type);
+  global_logger_factory.loggers = dict_new(&logger_dict_type);
 }
 
 static const char *level_strings[] = {

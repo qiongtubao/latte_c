@@ -19,14 +19,14 @@ hashSet* hashSetCreate(hashSetType* dt) {
 }
 
 void hashSetRelease(hashSet* hashSet) {
-    dictRelease(hashSet);
+    dict_delete(hashSet);
 }
 
-void hashSetInit(hashSet* s, dictType* dt) {
-    _dictInit(s, dt);
+void hashSetInit(hashSet* s, dict_func_t* dt) {
+    _dict_init(s, dt);
 }
 void hashSetDestroy(hashSet* hashSet) {
-    dictDestroy(hashSet);
+    dict_destroy(hashSet);
 }
 
 /**
@@ -35,9 +35,9 @@ void hashSetDestroy(hashSet* hashSet) {
  *  1 表示新加
  */
 int hashSetAdd(hashSet* hashSet, void* element) {
-    dictEntry *de = dictAddRaw(hashSet,element,NULL);
+    dict_entry_t*de = dict_add_raw(hashSet,element,NULL);
     if (de) {
-        dictSetVal(hashSet,de,NULL);
+        dict_set_val(hashSet,de,NULL);
         return 1;
     }
     return 0;
@@ -47,8 +47,8 @@ int hashSetAdd(hashSet* hashSet, void* element) {
  *  0 删除失败
  */
 int hashSetRemove(hashSet* hashSet, void* element) {
-    if (dictDelete(hashSet ,element) == DICT_OK) {
-        if (htNeedsResize(hashSet)) dictResize(hashSet);
+    if (dict_delete_key(hashSet ,element) == DICT_OK) {
+        if (ht_needs_resize(hashSet)) dict_resize(hashSet);
         return 1;
     }
     return 0;
@@ -59,11 +59,11 @@ int hashSetRemove(hashSet* hashSet, void* element) {
  * 0 查找失败
  */
 int hashSetContains(hashSet* hashSet, void* element) {
-    return dictFind(hashSet, element) != NULL;
+    return dict_find(hashSet, element) != NULL;
 }
 
 size_t hashSetSize(hashSet* hashSet) {
-    return dictSize(hashSet);
+    return dict_size(hashSet);
 }
 
 
