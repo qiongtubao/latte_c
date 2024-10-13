@@ -23,7 +23,7 @@ void dict_sds_destructor(void *privdata, void *val)
 {
     DICT_NOTUSED(privdata);
 
-    sds_free(val);
+    sds_delete(val);
 }
 
 dict_func_t requestListenersDictType = {

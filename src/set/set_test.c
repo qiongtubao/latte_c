@@ -48,13 +48,13 @@ void* increment_counter(void* arg) {
     }
     // printf("keys after %p \n", keys);
     // printf("keys %d %p \n", 0, keys[0]);
-    sds_free(k1);
-    sds_free(k2);
-    sds_free(k3);
+    sds_delete(k1);
+    sds_delete(k2);
+    sds_delete(k3);
     for(int i  = 0; i < t->timers; i++) {
         // printf("keys %d %s \n", i, keys[i]);
         lockSetRemove(set, keys[i]);
-        sds_free(keys[i]);
+        sds_delete(keys[i]);
     }
     zfree(keys);
     pthread_exit(NULL);
@@ -137,9 +137,9 @@ int test_set_base(set* s1, getKey getNodeKey, int order) {
     assert(i == 3);
     iteratorRelease(iterator);
 
-    sds_free(key);
-    sds_free(key1);
-    sds_free(key2);
+    sds_delete(key);
+    sds_delete(key1);
+    sds_delete(key2);
     setRelease(s1);
     return 1;
 }
@@ -168,7 +168,7 @@ int test_hash_api() {
     assert(hashSetRemove(set, key));
     assert(!hashSetContains(set, key));
     hashSetRelease(set);
-    sds_free(key);
+    sds_delete(key);
 
 
     return 1;
@@ -232,9 +232,9 @@ int test_avlset_api() {
     }
     assert(i == 3);
     iteratorRelease(iterator);
-    sds_free(key);
-    sds_free(key1);
-    sds_free(key2);
+    sds_delete(key);
+    sds_delete(key1);
+    sds_delete(key2);
     avlSetRelease(s);
     return 1;
 }

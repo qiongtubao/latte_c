@@ -88,7 +88,7 @@ sds_t readall(int fd) {
   int error = readn(fd, buffer, len, &size);
   if (error != 0 || size != len) {
       perror("Error reading file");
-      sds_free(buffer);
+      sds_delete(buffer);
       return NULL;
   }
   return buffer;

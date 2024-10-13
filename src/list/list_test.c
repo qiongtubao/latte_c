@@ -7,7 +7,7 @@
 #include "iterator/iterator.h"
 
 void valueSdsFree(void* node) {
-    sds_free((sds)node);
+    sds_delete((sds)node);
 }
 int test_list_iterator() {
     list* l = listCreate();

@@ -11,7 +11,7 @@ value_t* value_new() {
 void valueClean(value_t* v) {
     switch (v->type) {
         case VALUE_SDS:
-            sds_free(v->value.sds_value);
+            sds_delete(v->value.sds_value);
             v->value.sds_value = NULL;
             break;
         case VALUE_ARRAY: {

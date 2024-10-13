@@ -22,7 +22,7 @@ skiplistNode* skipListCreateNode(int level, void* score, sds_t ele) {
 
 void* skipListFreeNode(skiplistNode* node) {
     void* score = node->score;
-    sds_free(node->ele);
+    sds_delete(node->ele);
     zfree(node);
     return score;
 }
@@ -261,7 +261,7 @@ void slDeleteNode(skiplist *zsl, skiplistNode *x, skiplistNode **update) {
  * of the element is freed too, unless node->ele is set to NULL before calling
  * this function. */
 void zslFreeNode(skiplist* sl, skiplistNode *node) {
-    sds_free(node->ele);
+    sds_delete(node->ele);
     zfree(node);
 }
 

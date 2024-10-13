@@ -176,7 +176,7 @@ int loadConfigFromArgv(config* c, char** argv, int argc) {
         i++;
     }
     int result = loadConfigFromString(c, format_conf_sds, sds_len(format_conf_sds));
-    sds_free(format_conf_sds);
+    sds_delete(format_conf_sds);
     return result;
 }
 #define CONFIG_MAX_LINE 1024
@@ -198,7 +198,7 @@ int loadConfigFromFile(config* c, char *filename) {
         fclose(fp);
     }
     int result = loadConfigFromString(c, config, sds_len(config));
-    sds_free(config);
+    sds_delete(config);
     return result;
 }
 
@@ -215,7 +215,7 @@ sds_t sdsWriteConfigSds(sds_t config, char* key, configRule* rule) {
 
 void sdsReleaseValue(void* value) {
     if(value) {
-        sds_free(value);
+        sds_delete(value);
     }
 }
 int sdsLoadConfig(configRule* rule, char** argv, int argc) {
@@ -275,7 +275,7 @@ void arraySdsReleaseValue(void* _value) {
     if (_value == NULL) return;
     struct arraySds* value = (struct arraySds*)_value;
     for(int i = 0; i < value->len; i++) {
-        sds_free(value->value[i]);
+        sds_delete(value->value[i]);
     }
     zfree(value->value);
     zfree(value);

@@ -8,7 +8,7 @@ int test_sds_new(void) {
     //type 5
     sds_t s = sds_new("foo");
     assert(strcmp(s, "foo") == 0);
-    sds_free(s);
+    sds_delete(s);
     return 1;
 }
 
@@ -26,7 +26,7 @@ int assert_random_sds(size_t len, int try) {
     }
     
     assert(strncmp(s, buf, len) == 0);
-    sds_free(s);
+    sds_delete(s);
     zfree(buf);
     return 1;
 }
@@ -49,7 +49,7 @@ int test_sds_new_len(void) {
     //type64
     assert(assert_random_sds((1ll << 32), 0) == 1);
     
-    sds_free(value);
+    sds_delete(value);
     return 1;
 }
 
@@ -71,7 +71,7 @@ int test_sds_try_new_len() {
     //type64
     assert(assert_random_sds((1ll << 32), 1) == 1);
 
-    sds_free(value);
+    sds_delete(value);
     return 1;
 }
 
@@ -103,37 +103,37 @@ int test_resize() {
     test_cond("sdsrezie() crop len", sds_len(x) == 4);
     test_cond("sdsrezie() crop strlen", strlen(x) == 4);
     test_cond("sdsrezie() crop alloc", sds_alloc(x) == 4);
-    sds_free(x);
+    sds_delete(x);
     return 1;
 }
 int test_findlastof() {
     sds_t haystack = sds_new("Hello world");
     size_t index = sds_find_lastof(haystack, "Hello");
     test_cond("sds_t findlastof",index == 0);
-    sds_free(haystack);
+    sds_delete(haystack);
 
     haystack = sds_new("This is a test string with test inside.");
     index = sds_find_lastof(haystack, "test");
     assert(index != C_NPOS);
     assert(index > 0);
-    sds_free(haystack);
+    sds_delete(haystack);
 
     haystack = sds_new("abcd/edf");
     index = sds_find_lastof(haystack, "xyz");
     assert(index == C_NPOS);
-    sds_free(haystack);
+    sds_delete(haystack);
 
     haystack = sds_new("/a/b/c/edf");
     index = sds_find_lastof(haystack, "/");
     assert(index == 6);
-    sds_free(haystack);
+    sds_delete(haystack);
     return 1;
 }
 
 int test_startsWith() {
     sds_t haystack = sds_new("Hello, world!");
     assert(sds_starts_with(haystack, "Hello"));
-    sds_free(haystack);
+    sds_delete(haystack);
     return 1;
 }
 
@@ -157,7 +157,7 @@ int test_fixed32() {
     assert(0x12 == (unsigned int)s[3]);
     value1 = decode_fixed32(s);
     assert(0x12345678 == value1);
-    sds_free(s);
+    sds_delete(s);
     return 1;
 }
 
@@ -189,7 +189,7 @@ int test_fixed64() {
     assert(0x34 == (unsigned int)s[6]);
     assert(0x12 == (unsigned int)s[7]);
     assert(0x123456789ABCDEF0ull == value1);
-    sds_free(s);
+    sds_delete(s);
     return 1;
 }
 
@@ -289,7 +289,7 @@ int test_slice() {
     sds_t r = slice_to_sds(&a);
     assert(sds_len(r) == 5);
     assert(strncmp(r, a.p, a.len) == 0);
-    sds_free(r);
+    sds_delete(r);
     slice_remove_prefix(&a, 1);
     slice_t b = {
         .p = "ello",
@@ -333,8 +333,8 @@ int test_sds_cat_fmt() {
     assert(sds_len(o) == 1);
     assert(strncmp(o, "a", 1) == 0);
     // assert(d == o);
-    sds_free(o);
-    sds_free(result);
+    sds_delete(o);
+    sds_delete(result);
     return 1;
 }
 

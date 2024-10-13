@@ -64,7 +64,7 @@ void UNSETVAL(avlNode* node, void* val) {
 }
 
 void releaseSetSdsNode(avlNode* node) {
-    sds_free(node->key);
+    sds_delete(node->key);
     zfree(node);
 }
 

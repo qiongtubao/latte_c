@@ -246,7 +246,7 @@ void continueNextTask(asyncTask* task) {
 // {
 //     DICT_NOTUSED(privdata);
 
-//     sds_free(val);
+//     sds_delete(val);
 // }
 
 static dict_func_t parallelTaskDictType = {

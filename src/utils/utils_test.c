@@ -25,7 +25,7 @@ int test_ll_string(void) {
     assert(sds2ll(ll_str, &ll) == 1);
     assert(ll == 1234);
 
-    sds_free(ll_str);
+    sds_delete(ll_str);
     return 1;
 }
 

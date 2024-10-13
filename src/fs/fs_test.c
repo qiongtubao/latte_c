@@ -142,7 +142,7 @@ int test_env_write_read() {
     assert(isOk(error));
     assert(sds_len(result) == 4);
     assert(strncmp("test", result, 4) == 0);
-    sds_free(result);
+    sds_delete(result);
     
     error = envSequentialFileCreate(env, file, &sf);
     assert(isOk(error));
@@ -151,7 +151,7 @@ int test_env_write_read() {
     assert(isOk(error));
     assert(sds_len(result) == 4);
     assert(strncmp("test", result, 4) == 0);
-    sds_free(result);
+    sds_delete(result);
 
     recursive_rmdir("test_env_dir");
     return 1;

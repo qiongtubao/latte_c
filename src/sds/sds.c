@@ -146,7 +146,7 @@ sds_t sds_new(const char *init) {
 
 
 /* Free an sds_t string. No operation is performed if 's' is NULL. */
-void sds_free(sds_t s) {
+void sds_delete(sds_t s) {
     if (s == NULL) return;
     s_free((char*)s-sdsHdrSize(s[-1]));
 }
@@ -586,9 +586,9 @@ sds_t *sds_split_args(const char *line, int *argc) {
 
 err:
     while((*argc)--)
-        sds_free(vector[*argc]);
+        sds_delete(vector[*argc]);
     s_free(vector);
-    if (current) sds_free(current);
+    if (current) sds_delete(current);
     *argc = 0;
     return NULL;
 }
@@ -597,7 +597,7 @@ err:
 void sds_free_splitres(sds_t *tokens, int count) {
     if (!tokens) return;
     while(count--)
-        sds_free(tokens[count]);
+        sds_delete(tokens[count]);
     s_free(tokens);
 }
 
@@ -660,7 +660,7 @@ sds_t *sds_split_len(const char *s, ssize_t len, const char *sep, int seplen, in
 cleanup:
     {
         int i;
-        for (i = 0; i < elements; i++) sds_free(tokens[i]);
+        for (i = 0; i < elements; i++) sds_delete(tokens[i]);
         s_free(tokens);
         *count = 0;
         return NULL;

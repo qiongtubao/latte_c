@@ -36,7 +36,7 @@ Error* errnoIoCreate(char* format, ...) {
 
 void errorRelease(Error* error) {
     if (error->state != NULL) {
-        sds_free(error->state);
+        sds_delete(error->state);
     }
     zfree(error);
 }

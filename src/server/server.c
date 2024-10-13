@@ -380,7 +380,7 @@ void initInnerLatteClient(struct latteClient* client) {
 
 void freeInnerLatteClient(struct latteClient* client) {
     if (client->querybuf != NULL) {
-        sds_free(client->querybuf);
+        sds_delete(client->querybuf);
         client->querybuf = NULL;
     }
 }

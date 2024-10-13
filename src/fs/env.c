@@ -135,7 +135,7 @@ Error* envReadFileToSds(Env* env, sds_t fname, sds* data) {
         result = sds_cat_len(result, buffer.p, buffer.len);
         buffer.len = 0; 
     }
-    sds_free(buffer.p);
+    sds_delete(buffer.p);
     sequentialFileRelease(file);
     return error;
 
