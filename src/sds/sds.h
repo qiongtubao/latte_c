@@ -197,7 +197,7 @@ static inline void sds_inc_len(sds_t s, size_t inc) {
  *      assert(strcmp(s, "foo") == 0);
  */
 sds_t sds_new(const char *init);
-void sds_free(sds_t s);
+void sds_delete(sds_t s);
 /**
  *
  * @param init
@@ -243,11 +243,11 @@ sds_t sds_cat(sds_t s, const char *t);
  *      sds_t x = sds_empty();
  *      x = sds_cat_fmt(x, "string:%s", "hello");
  *      assert(memcmp(x, "string:hello\0", strlen("string:hello\0")) == 0);
- *      sds_free(x);
+ *      sds_delete(x);
  *      x = sds_empty();
  *      x = sds_cat_fmt(x, "int:%i", 100);
  *      assert(memcmp(x, "int:100\0", strlen("int:100\0")) == 0);
- *      sds_free(x);
+ *      sds_delete(x);
  *      x = sds_empty();
  *      x = sds_cat_fmt(x, "long:%u", 2147483648);
  *      assert(memcmp(x, "long:2147483648\0", strlen("long:2147483648\0")) == 0);

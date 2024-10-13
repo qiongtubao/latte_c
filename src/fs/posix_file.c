@@ -18,7 +18,7 @@ sds_t baseName(sds_t filename) {
 bool isManifest(sds_t filename) {
     sds_t base = baseName(filename);
     int result = sds_starts_with(base, "MANIFEST");
-    sds_free(base);
+    sds_delete(base);
     return result;
 }
 sds_t getDirName(sds_t path) {
@@ -203,8 +203,8 @@ void posixWritableFileRelease(PosixWritableFile* file) {
   if (file->fd >= 0) {
     posixWritableFileClose(file);
   }
-  sds_free(file->dirname);
-  sds_free(file->filename);
+  sds_delete(file->dirname);
+  sds_delete(file->filename);
   zfree(file);
 }
 

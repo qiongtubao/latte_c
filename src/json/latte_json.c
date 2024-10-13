@@ -143,7 +143,7 @@ static void json_tokener_reset_level(struct json_tokener_t *tok, int depth)
 	// json_object_put(tok->stack[depth].current);
 	// tok->stack[depth].current = NULL;
     srec->current = NULL;
-	sds_free(srec->obj_field_name);
+	sds_delete(srec->obj_field_name);
 	srec->obj_field_name = NULL;
 }
 
@@ -1598,7 +1598,7 @@ sds_t json_to_sds(json_t* v) {
                 } else {
                     result = sds_cat_fmt(result, ",%s", r);
                 }
-                sds_free(r);
+                sds_delete(r);
             }
             iteratorRelease(itor);
             return sds_cat_fmt(result, "]");
@@ -1618,8 +1618,8 @@ sds_t json_to_sds(json_t* v) {
                 } else {
                     result = sds_cat_fmt(result, ",%s:%s",k,  r);
                 }
-                sds_free(k);
-                sds_free(r);
+                sds_delete(k);
+                sds_delete(r);
             }
             dict_iterator_delete(itor);
             return sds_cat_fmt(result, "}");

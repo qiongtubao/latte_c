@@ -79,7 +79,7 @@ FileLock* fileLockCreate(int fd, char* filename) {
 }
 
 void fileLockRelease(FileLock* lock) {
-    sds_free(lock->filename);
+    sds_delete(lock->filename);
     zfree(lock);
 }
 

@@ -159,7 +159,7 @@ sds_t getAbsolutePath(char *filename) {
 
     /* If path is relative, join cwd and relative path. */
     if (getcwd(cwd,sizeof(cwd)) == NULL) {
-        sds_free(relpath);
+        sds_delete(relpath);
         return NULL;
     }
     abspath = sds_new(cwd);
@@ -190,6 +190,6 @@ sds_t getAbsolutePath(char *filename) {
 
     /* Finally glue the two parts together. */
     abspath = sds_cat_sds(abspath,relpath);
-    sds_free(relpath);
+    sds_delete(relpath);
     return abspath;
 }

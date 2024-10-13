@@ -25,7 +25,7 @@ int dict_sds_key_compare(dict_t*privdata, const void *key1,
 void dict_sds_destructor(dict_t*privdata, void *val) {
     DICT_NOTUSED(privdata);
 
-    sds_free(val);
+    sds_delete(val);
 }
 
 
