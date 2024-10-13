@@ -68,23 +68,23 @@ size_t hashSetSize(hashSet* hashSet) {
 
 
 // =========
-int hashSetApiAdd(set* set, void* key) {
+int hashSetApiAdd(set_t* set, void* key) {
     return hashSetAdd(set->data, key);
 }
 
-int hashSetApiContains(set* set, void* key) {
+int hashSetApiContains(set_t* set, void* key) {
     return hashSetContains(set->data, key);
 }
 
-size_t hashSetApiSize(set* set) {
+size_t hashSetApiSize(set_t* set) {
     return hashSetSize(set->data);
 }
 
-int hashSetApiRemove(set* set, void* key) {
+int hashSetApiRemove(set_t* set, void* key) {
     return hashSetRemove(set->data, key);
 }
 
-void hashSetApiRelease(set* set) {
+void hashSetApiRelease(set_t* set) {
     hashSetRelease(set->data);
     zfree(set);
 }
@@ -122,7 +122,7 @@ IteratorType hashIteratorApi = {
     .release = hashIteratorApiRelease
 };
 
-Iterator* hashSetApiGetIterator(set* set) {
+Iterator* hashSetApiGetIterator(set_t* set) {
     Iterator* iterator = zmalloc(sizeof(Iterator));
     hashIteratorData* data = zmalloc(sizeof(hashIteratorData));
     data->currentNode = NULL;
@@ -132,7 +132,7 @@ Iterator* hashSetApiGetIterator(set* set) {
     return iterator;
 }
 
-setType hashSetApiType = {
+set_func_t hashSetApiType = {
     .add = hashSetApiAdd,
     .contains = hashSetApiContains,
     .size = hashSetApiSize,
@@ -140,8 +140,8 @@ setType hashSetApiType = {
     .release = hashSetApiRelease,
     .getIterator = hashSetApiGetIterator
 };
-set* setCreateHash(hashSetType* type) {
-    set* s = zmalloc(sizeof(set));
+set_t* set_newHash(hashSetType* type) {
+    set_t* s = zmalloc(sizeof(set_t));
     s->data = hashSetCreate(type);
     s->type = &hashSetApiType;
     return s;

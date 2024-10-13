@@ -9,12 +9,12 @@
 #include "set.h"
 
 typedef struct lockSet {
-    set* set;
+    set_t* set;
     latte_mutex_t mutex;
 } lockSet;
 
-lockSet* lockSetCreate(set* dt);
-int lockSetInit(lockSet* lockset, set* type);
+lockSet* lockSetCreate(set_t* dt);
+int lockSetInit(lockSet* lockset, set_t* type);
 void lockSetDestroy(lockSet* lockset);
 void lockSetRelease(lockSet* lockset);
 

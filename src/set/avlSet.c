@@ -11,32 +11,32 @@ int avlSetContains(avlSet* set, void* element) {
     return node == NULL? 0 : 1;
 }
 
-int avlSetTypeAdd(set *set, void* key) {
+int avlSetTypeAdd(set_t *set, void* key) {
     return avlSetAdd(set->data, key);
 }
 
-int avlSetTypeContains(set *set, void* key) {
+int avlSetTypeContains(set_t *set, void* key) {
     return avlSetContains(set->data, key);
 }
 
-int avlSetTypeRemove(set* set, void* key) {
+int avlSetTypeRemove(set_t* set, void* key) {
     return avlSetRemove(set->data, key);
 }
 
-size_t avlSetTypeSize(set* set) {
+size_t avlSetTypeSize(set_t* set) {
     return avlSetSize(set->data);
 }
 
-void avlSetTypeRelease(set* set) {
+void avlSetTypeRelease(set_t* set) {
     avlSetRelease(set->data);
     zfree(set);
 }
 
-Iterator* avlSetTypeGetIterator(set* set) {
+Iterator* avlSetTypeGetIterator(set_t* set) {
     return avlSetGetIterator(set->data);
 }
 
-struct setType avlSetApi = {
+struct set_func_t avlSetApi = {
     .add = avlSetTypeAdd,
     .contains = avlSetTypeContains,
     .remove = avlSetTypeRemove,
@@ -44,8 +44,8 @@ struct setType avlSetApi = {
     .release = avlSetTypeRelease,
     .getIterator = avlSetTypeGetIterator
 };
-set* setCreateAvl(avlTreeType* type) {
-    set* s = zmalloc(sizeof(set));
+set_t* set_newAvl(avlTreeType* type) {
+    set_t* s = zmalloc(sizeof(set_t));
     s->data = avlSetCreate(type);
     s->type = &avlSetApi;
     return s;

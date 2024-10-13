@@ -83,44 +83,44 @@ int test_lockSet_(lockSet* lockset) {
 }
 
 
-int test_lock_set(set* s) {
+int test_lock_set(set_t* s) {
     lockSet* lockset = lockSetCreate(s);
     test_lockSet_(lockset);
     lockSetRelease(lockset); 
     return 1;
 }
 int test_lockSet() {
-    set* s = setCreateHash(&sdsHashSetDictType);
+    set_t* s = set_newHash(&sdsHashSetDictType);
     assert(test_lock_set(s) == 1);
 
-    s = setCreateAvl(&avlSetSdsType);
+    s = set_newAvl(&avlSetSdsType);
     assert(test_lock_set(s) == 1);
     
     return 1;
 }
 typedef sds_t (* getKey)(void*);
-int test_set_base(set* s1, getKey getNodeKey, int order) {
+int test_set_base(set_t* s1, getKey getNodeKey, int order) {
     sds_t key = sds_new("key");
     sds_t key1 = sds_new("key1");
     sds_t key2 = sds_new("key2");
 
     
-    assert(setContains(s1, key) == 0);
-    assert(setSize(s1) == 0);
-    assert(setAdd(s1, key) == 1);
-    assert(setContains(s1, key) == 1);
-    assert(setAdd(s1, key) == 0);
-    assert(setSize(s1) == 1);
-    assert(setRemove(s1, key) == 1);
-    assert(setRemove(s1, key) == 0);
-    assert(setSize(s1) == 0);
+    assert(set_contains(s1, key) == 0);
+    assert(set_size(s1) == 0);
+    assert(set_add(s1, key) == 1);
+    assert(set_contains(s1, key) == 1);
+    assert(set_add(s1, key) == 0);
+    assert(set_size(s1) == 1);
+    assert(set_remove(s1, key) == 1);
+    assert(set_remove(s1, key) == 0);
+    assert(set_size(s1) == 0);
 
-    assert(setAdd(s1, key) == 1);
-    assert(setAdd(s1, key1) == 1);
-    assert(setAdd(s1, key2) == 1);
-    assert(setSize(s1) == 3);
+    assert(set_add(s1, key) == 1);
+    assert(set_add(s1, key1) == 1);
+    assert(set_add(s1, key2) == 1);
+    assert(set_size(s1) == 3);
 
-    Iterator* iterator = setGetIterator(s1);
+    Iterator* iterator = set_get_iterator(s1);
     int i = 0;
     sds_t keys[3] = {key, key1, key2};
     while (iteratorHasNext(iterator)) {
@@ -140,7 +140,7 @@ int test_set_base(set* s1, getKey getNodeKey, int order) {
     sds_delete(key);
     sds_delete(key1);
     sds_delete(key2);
-    setRelease(s1);
+    set_delete(s1);
     return 1;
 }
 
@@ -179,7 +179,7 @@ sds_t getHashNodeKey(void* node) {
     return n->key;
 }
 int test_hash_set_api() {
-    set* s = setCreateHash(&sdsHashSetDictType);
+    set_t* s = set_newHash(&sdsHashSetDictType);
     return test_set_base(s, getHashNodeKey, 0);
 }
 
@@ -244,7 +244,7 @@ sds_t getAvlNode(void* n) {
 }
 
 int test_avlset_set_api() {
-    set* s1 = setCreateAvl(&avlSetSdsType);
+    set_t* s1 = set_newAvl(&avlSetSdsType);
     return test_set_base(s1, getAvlNode, 1);
 }
 

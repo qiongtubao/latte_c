@@ -20,8 +20,8 @@ typedef struct avlTreeIterator avlSetIterator;
 int avlSetContains(avlSet* set, void* element);
 
 extern avlTreeType avlSetSdsType;
-extern setType avlSetApi;
-set* setCreateAvl(avlTreeType* type);
+extern set_func_t avlSetApi;
+set_t* set_newAvl(avlTreeType* type);
 
 
 #endif
