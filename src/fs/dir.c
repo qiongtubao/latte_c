@@ -101,7 +101,7 @@ Iterator* dir_scan_file(char* dir_path, const char* filter_pattern) {
     }
   }
   struct dirent *pentry;
-  list* files = listCreate();
+  list_t* files = list_new();
   char tmp_path[PATH_MAX];
   while ((pentry = readdir(pdir)) != NULL) {
     if ('.' == pentry->d_name[0]) // 跳过 ./ ..文件和隐藏文件
@@ -111,10 +111,10 @@ Iterator* dir_scan_file(char* dir_path, const char* filter_pattern) {
       continue;
 
     if (!filter_pattern || 0 == regexec(&reg, pentry->d_name, 0, NULL, 0))
-      listAddNodeTail(files, sds_new(pentry->d_name));
+      list_add_node_tail(files, sds_new(pentry->d_name));
   }
   if (filter_pattern)
     regfree(&reg);
   closedir(pdir);
-  return listGetLatteIteratorFreeList(files, 0);
+  return list_get_latte_iterator_free_list(files, 0);
 }

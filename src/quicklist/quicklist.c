@@ -2,6 +2,7 @@
 #include "quicklist.h"
 #include "utils/utils.h"
 #include <assert.h>
+#include <limits.h>
 /* packed_threshold is initialized to 1gb*/
 static size_t packed_threshold = (1 << 30);
 
@@ -46,8 +47,8 @@ static const size_t optimization_level[] = {4096, 8192, 16384, 32768, 65536};
         (node)->sz = lpBytes((node)->entry);                                   \
     } while (0)
 
-static quicklistNode* __quicklistCreatePlainNode(void *value, size_t sz) {
-    quicklistNode *new_node = quicklistCreateNode();
+static quicklist_node_t* __quicklist_newPlainNode(void *value, size_t sz) {
+    quicklist_node_t *new_node = quicklist_newNode();
     new_node->entry = zmalloc(sz);
     new_node->container = QUICKLIST_NODE_CONTAINER_PLAIN;
     memcpy(new_node->entry, value, sz);
@@ -59,7 +60,7 @@ static quicklistNode* __quicklistCreatePlainNode(void *value, size_t sz) {
 /* Compress the listpack in 'node' and update encoding details.
  * Returns 1 if listpack compressed successfully.
  * Returns 0 if compression failed or if listpack too small to compress. */
-int __quicklistCompressNode(quicklistNode *node) {
+int __quicklistCompressNode(quicklist_node_t *node) {
 #ifdef REDIS_TEST
     node->attempted_compress = 1;
 #endif
@@ -104,7 +105,7 @@ int __quicklistCompressNode(quicklistNode *node) {
 
 /* Uncompress the listpack in 'node' and update encoding details.
  * Returns 1 on successful decode, 0 on failure to decode. */
-int __quicklistDecompressNode(quicklistNode *node) {
+int __quicklistDecompressNode(quicklist_node_t *node) {
 #ifdef REDIS_TEST
     node->attempted_compress = 0;
 #endif
@@ -133,8 +134,8 @@ int __quicklistDecompressNode(quicklistNode *node) {
  * The only way to guarantee interior nodes get compressed is to iterate
  * to our "interior" compress depth then compress the next node we find.
  * If compress depth is larger than the entire list, we return immediately. */
-void __quicklistCompress(const quicklist *quicklist,
-                                      quicklistNode *node) {
+void __quicklistCompress(const quicklist_t *quicklist,
+                                      quicklist_node_t *node) {
     if (quicklist->len == 0) return;
 
     /* The head and tail should never be compressed (we should not attempt to recompress them) */
@@ -149,15 +150,15 @@ void __quicklistCompress(const quicklist *quicklist,
 #if 0
     /* Optimized cases for small depth counts */
     if (quicklist->compress == 1) {
-        quicklistNode *h = quicklist->head, *t = quicklist->tail;
+        quicklist_node_t *h = quicklist->head, *t = quicklist->tail;
         quicklistDecompressNode(h);
         quicklistDecompressNode(t);
         if (h != node && t != node)
             quicklistCompressNode(node);
         return;
     } else if (quicklist->compress == 2) {
-        quicklistNode *h = quicklist->head, *hn = h->next, *hnn = hn->next;
-        quicklistNode *t = quicklist->tail, *tp = t->prev, *tpp = tp->prev;
+        quicklist_node_t *h = quicklist->head, *hn = h->next, *hnn = hn->next;
+        quicklist_node_t *t = quicklist->tail, *tp = t->prev, *tpp = tp->prev;
         quicklistDecompressNode(h);
         quicklistDecompressNode(hn);
         quicklistDecompressNode(t);
@@ -178,8 +179,8 @@ void __quicklistCompress(const quicklist *quicklist,
     /* Iterate until we reach compress depth for both sides of the list.a
      * Note: because we do length checks at the *top* of this function,
      *       we can skip explicit null checks below. Everything exists. */
-    quicklistNode *forward = quicklist->head;
-    quicklistNode *reverse = quicklist->tail;
+    quicklist_node_t *forward = quicklist->head;
+    quicklist_node_t *reverse = quicklist->tail;
     int depth = 0;
     int in_depth = 0;
     while (depth++ < quicklist->compress) {
@@ -218,9 +219,9 @@ void __quicklistCompress(const quicklist *quicklist,
  * Insert 'new_node' before 'old_node' if 'after' is 0.
  * Note: 'new_node' is *always* uncompressed, so if we assign it to
  *       head or tail, we do not need to uncompress it. */
-void __quicklistInsertNode(quicklist *quicklist,
-                                        quicklistNode *old_node,
-                                        quicklistNode *new_node, int after) {
+void __quicklist_insert_node(quicklist_t *quicklist,
+                                        quicklist_node_t *old_node,
+                                        quicklist_node_t *new_node, int after) {
     if (after) {
         new_node->prev = old_node;
         if (old_node) {
@@ -256,9 +257,9 @@ void __quicklistInsertNode(quicklist *quicklist,
     quicklistCompress(quicklist, new_node);
 }
 
-static void __quicklistInsertPlainNode(quicklist *quicklist, quicklistNode *old_node,
+static void __quicklistInsertPlainNode(quicklist_t *quicklist, quicklist_node_t *old_node,
                                        void *value, size_t sz, int after) {
-    __quicklistInsertNode(quicklist, old_node, __quicklistCreatePlainNode(value, sz), after);
+    __quicklist_insert_node(quicklist, old_node, __quicklist_newPlainNode(value, sz), after);
     quicklist->count++;
 }
 
@@ -281,16 +282,16 @@ void quicklistNodeLimit(int fill, size_t *size, unsigned int *count) {
 
 
 /* Wrappers for node inserting around existing node. */
-void _quicklistInsertNodeBefore(quicklist *quicklist,
-                                             quicklistNode *old_node,
-                                             quicklistNode *new_node) {
-    __quicklistInsertNode(quicklist, old_node, new_node, 0);
+void _quicklist_insert_nodeBefore(quicklist_t *quicklist,
+                                             quicklist_node_t *old_node,
+                                             quicklist_node_t *new_node) {
+    __quicklist_insert_node(quicklist, old_node, new_node, 0);
 }
 
-void _quicklistInsertNodeAfter(quicklist *quicklist,
-                                            quicklistNode *old_node,
-                                            quicklistNode *new_node) {
-    __quicklistInsertNode(quicklist, old_node, new_node, 1);
+void _quicklist_insert_nodeAfter(quicklist_t *quicklist,
+                                            quicklist_node_t *old_node,
+                                            quicklist_node_t *new_node) {
+    __quicklist_insert_node(quicklist, old_node, new_node, 1);
 }
 
 #define sizeMeetsSafetyLimit(sz) ((sz) <= SIZE_SAFETY_LIMIT)
@@ -316,7 +317,7 @@ int quicklistNodeExceedsLimit(int fill, size_t new_sz, unsigned int new_count) {
     latte_unreachable();
 }
 
-int _quicklistNodeAllowInsert(const quicklistNode *node,
+int _quicklistNodeAllowInsert(const quicklist_node_t *node,
                                            const int fill, const size_t sz) {
     if (unlikely(!node))
         return 0;
@@ -336,8 +337,8 @@ int _quicklistNodeAllowInsert(const quicklistNode *node,
 }
 
 
-struct quicklist *quicklistCreate(void) {
-    struct quicklist *quicklist;
+struct quicklist_t *quicklist_new(void) {
+    struct quicklist_t *quicklist;
     quicklist = zmalloc(sizeof(*quicklist));
     quicklist->head = quicklist->tail = NULL;
     quicklist->len = 0;
@@ -348,8 +349,8 @@ struct quicklist *quicklistCreate(void) {
     return quicklist;
 }
 
-struct quicklistNode *quicklistCreateNode(void) {
-    quicklistNode *node;
+struct quicklist_node_t *quicklist_newNode(void) {
+    quicklist_node_t *node;
     node = zmalloc(sizeof(*node));
     node->entry = NULL;
     node->count = 0;
@@ -367,8 +368,8 @@ struct quicklistNode *quicklistCreateNode(void) {
 *
 *如果使用现有的头返回0。
 *如果创建了新的头部返回1。*/
-int quicklistPushHead(quicklist *quicklist, void *value, size_t sz) {
-    quicklistNode *orig_head = quicklist->head;
+int quicklistPushHead(quicklist_t *quicklist, void *value, size_t sz) {
+    quicklist_node_t *orig_head = quicklist->head;
 
     if (unlikely(isLargeElement(sz))) {
         __quicklistInsertPlainNode(quicklist, quicklist->head, value, sz, 0);
@@ -380,11 +381,11 @@ int quicklistPushHead(quicklist *quicklist, void *value, size_t sz) {
         quicklist->head->entry = lpPrepend(quicklist->head->entry, value, sz);
         quicklistNodeUpdateSz(quicklist->head);
     } else {
-        quicklistNode *node = quicklistCreateNode();
+        quicklist_node_t *node = quicklist_newNode();
         node->entry = lpPrepend(lpNew(0), value, sz);
 
         quicklistNodeUpdateSz(node);
-        _quicklistInsertNodeBefore(quicklist, quicklist->head, node);
+        _quicklist_insert_nodeBefore(quicklist, quicklist->head, node);
     }
     quicklist->count++;
     quicklist->head->count++;
@@ -395,8 +396,8 @@ int quicklistPushHead(quicklist *quicklist, void *value, size_t sz) {
  *
  * Returns 0 if used existing tail.
  * Returns 1 if new tail created. */
-int quicklistPushTail(quicklist *quicklist, void *value, size_t sz) {
-    quicklistNode *orig_tail = quicklist->tail;
+int quicklistPushTail(quicklist_t *quicklist, void *value, size_t sz) {
+    quicklist_node_t *orig_tail = quicklist->tail;
     if (unlikely(isLargeElement(sz))) {
         __quicklistInsertPlainNode(quicklist, quicklist->tail, value, sz, 1);
         return 1;
@@ -407,18 +408,18 @@ int quicklistPushTail(quicklist *quicklist, void *value, size_t sz) {
         quicklist->tail->entry = lpAppend(quicklist->tail->entry, value, sz);
         quicklistNodeUpdateSz(quicklist->tail);
     } else {
-        quicklistNode *node = quicklistCreateNode();
+        quicklist_node_t *node = quicklist_newNode();
         node->entry = lpAppend(lpNew(0), value, sz);
 
         quicklistNodeUpdateSz(node);
-        _quicklistInsertNodeAfter(quicklist, quicklist->tail, node);
+        _quicklist_insert_nodeAfter(quicklist, quicklist->tail, node);
     }
     quicklist->count++;
     quicklist->tail->count++;
     return (orig_tail != quicklist->tail);
 }
 
-void quicklistPush(quicklist *quicklist, void *value, const size_t sz,
+void quicklistPush(quicklist_t *quicklist, void *value, const size_t sz,
                    int where) {
     if (quicklist->head) {
         assert(quicklist->head->encoding != QUICKLIST_NODE_ENCODING_LZF);
@@ -444,13 +445,13 @@ void quicklistPush(quicklist *quicklist, void *value, const size_t sz,
 
 void quicklistRepr(unsigned  char* ql, int full) {
     int i = 0;
-    quicklist *quicklist = (struct quicklist*) ql;
+    quicklist_t *quicklist = (struct quicklist_t*) ql;
     printf("{count : %ld}\n", quicklist->count);
     printf("{len: %ld}\n", quicklist->len);
     printf("{fill: %d}\n", quicklist->fill);
     printf("{compress : %d}\n", quicklist->compress);
     printf("{bookmark_count : %d}\n", quicklist->bookmark_count);
-    quicklistNode* node = quicklist->head;
+    quicklist_node_t* node = quicklist->head;
 
     while(node != NULL) {
         printf("{quicklist node(%d)\n", i++);

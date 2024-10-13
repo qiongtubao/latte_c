@@ -49,7 +49,7 @@ typedef struct benchmark {
     const char *hostip;
     int hostport;
     struct benchmarkThread **threads;
-    list *clients;
+    list_t *clients;
     latteAtomic int liveclients;
     latteAtomic int slots_last_update;/* 插槽最后更新 */
 } benchmark;

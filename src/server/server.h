@@ -50,7 +50,7 @@ typedef struct latteServer {
     createClientFunc createClient;
     freeClientFunc freeClient;
     latteAtomic uint64_t next_client_id;
-    list *clients;
+    list_t *clients;
     unsigned int maxclients;
     rax *clients_index;         /* Active clients dictionary by client ID. */
 } latteServer;
@@ -76,7 +76,7 @@ typedef struct latteClient {
     ExecFunc exec;
     int flags;
     struct latteServer* server;
-    struct listNode* client_list_node;
+    struct list_node_t* client_list_node;
 } latteClient;
 
 void initInnerLatteClient(struct latteClient* client);

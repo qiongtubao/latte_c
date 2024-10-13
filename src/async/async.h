@@ -34,7 +34,7 @@ typedef struct asyncBasicTask {
 typedef struct seriesTask {
     /* data */
     asyncTask task;
-    list* tasks;
+    list_t* tasks;
 } seriesTask;
 
 typedef struct parallelTask {
