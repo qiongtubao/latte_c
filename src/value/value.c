@@ -26,7 +26,7 @@ void valueClean(value_t* v) {
         }
             break;
         case VALUE_MAP:
-            dictRelease(v->value.map_value);
+            dict_delete(v->value.map_value);
             v->value.map_value = NULL;
         default:
         break;
@@ -71,7 +71,7 @@ void value_set_array(value_t* v, vector_t* ve) {
     v->type = VALUE_ARRAY;
     v->value.array_value = ve;
 }
-void value_set_map(value_t* v, dict* d) {
+void value_set_map(value_t* v, dict_t* d) {
     valueClean(v);
     v->type = VALUE_MAP;
     v->value.map_value = d;
@@ -105,7 +105,7 @@ vector_t* value_get_array(value_t* v) {
     latte_assert(value_is_array(v), "value is not array");
     return v->value.array_value;
 }
-dict* value_get_map(value_t* v) {
+dict_t* value_get_map(value_t* v) {
     latte_assert(value_is_map(v), "value is not map");
     return v->value.map_value;
 }

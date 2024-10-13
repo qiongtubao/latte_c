@@ -115,9 +115,9 @@ int test_encode() {
 
 value_t* getMapTestValue(value_t* root) {
     assert(value_is_map(root));
-    dictEntry* entry = dictFind(root->value.map_value, "test");
+    dict_entry_t* entry = dict_find(root->value.map_value, "test");
     assert(entry != NULL);
-    return dictGetVal(entry);
+    return dict_get_val(entry);
 }
 int test_decode_int() {
     value_t* root1 = NULL;
@@ -155,7 +155,7 @@ int test_decode_object() {
     assert(1 == sds_to_json(sds_new("{}"), &root1));
     assert(root1 != NULL);
     assert(value_is_map(root1));
-    assert(dictSize(root1->value.map_value) == 0);
+    assert(dict_size(root1->value.map_value) == 0);
     value_delete(root1);
     root1 = NULL;
     return 1;

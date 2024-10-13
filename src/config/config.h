@@ -14,7 +14,7 @@ typedef struct configRule {
 } configRule;
 
 typedef struct config {
-    dict* rules;
+    dict_t* rules;
 } config;
 struct config* createConfig();
 void releaseConfig(config* c);

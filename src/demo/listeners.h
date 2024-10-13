@@ -23,7 +23,7 @@ typedef struct requestListeners {
       } svr;
       struct {
           redisDb db;
-          dict *keys;
+          dict_t*keys;
       } db;
       struct {
           robj *key;
@@ -34,8 +34,13 @@ typedef struct requestListeners {
 
 requestListeners* requestBindListeners(requestListeners *root, redisDb db, robj *key, int create);
 requestListeners *srvRequestListenersCreate(int dbnum, requestListeners *parent);
-void *dictFetchValue(dict *d, const void *key);
+void *dictFetchValue(dict_t*d, const void *key);
 
 void requestListenersLink(requestListeners *listeners);
+typedef struct  requestListener
+{
+    /* data */
+} requestListener;
+
 void requestListenersPush(requestListeners *listeners,
         requestListener *listener);

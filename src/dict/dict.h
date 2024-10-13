@@ -13,7 +13,7 @@
 #define DICT_NOTUSED(V) ((void) V)
 
 
-typedef struct dictEntry {
+typedef struct dict_entry_t {
     void *key;
     union {
         void *val;
@@ -21,41 +21,41 @@ typedef struct dictEntry {
         int64_t s64;
         double d;
     } v;
-    struct dictEntry *next;     /* Next entry in the same hash bucket. */
+    struct dict_entry_t*next;     /* Next entry in the same hash bucket. */
     void *metadata[];           /* An arbitrary number of bytes (starting at a
                                  * pointer-aligned address) of size as returned
-                                 * by dictType's dictEntryMetadataBytes(). */
-} dictEntry;
+                                 * by dict_func_t's dictEntryMetadataBytes(). */
+} dict_entry_t;
 
-typedef struct dict dict;
+typedef struct dict_t dict_t;
 
-typedef struct dictType {
+typedef struct dict_func_t {
     uint64_t (*hashFunction)(const void *key);
-    void *(*keyDup)(dict *d, const void *key);
-    void *(*valDup)(dict *d, const void *obj);
-    int (*keyCompare)(dict *d, const void *key1, const void *key2);
-    void (*keyDestructor)(dict *d, void *key);
-    void (*valDestructor)(dict *d, void *obj);
+    void *(*keyDup)(dict_t *d, const void *key);
+    void *(*valDup)(dict_t *d, const void *obj);
+    int (*keyCompare)(dict_t *d, const void *key1, const void *key2);
+    void (*keyDestructor)(dict_t *d, void *key);
+    void (*valDestructor)(dict_t *d, void *obj);
     int (*expandAllowed)(size_t moreMem, double usedRatio);
-    /* Allow a dictEntry to carry extra caller-defined metadata.  The
-     * extra memory is initialized to 0 when a dictEntry is allocated. */
-    size_t (*dictEntryMetadataBytes)(dict *d);
-} dictType;
+    /* Allow a dict_entry_tto carry extra caller-defined metadata.  The
+     * extra memory is initialized to 0 when a dict_entry_tis allocated. */
+    size_t (*dictEntryMetadataBytes)(dict_t *d);
+} dict_func_t;
 
 #define DICTHT_SIZE(exp) ((exp) == -1 ? 0 : (unsigned long)1<<(exp))
 #define DICTHT_SIZE_MASK(exp) ((exp) == -1 ? 0 : (DICTHT_SIZE(exp))-1)
 
 /* Hash table parameters */
 #define HASHTABLE_MIN_FILL        10      /* Minimal hash table fill 10% */
-#define dictSlots(d) (DICTHT_SIZE((d)->ht_size_exp[0])+DICTHT_SIZE((d)->ht_size_exp[1]))
+#define dict_slots(d) (DICTHT_SIZE((d)->ht_size_exp[0])+DICTHT_SIZE((d)->ht_size_exp[1]))
 
 /**
  *  可参考redis 7.2.5
  */
-struct dict {
-    dictType *type;
+struct dict_t {
+    dict_func_t *type;
 
-    dictEntry **ht_table[2];
+    dict_entry_t **ht_table[2];
     unsigned long ht_used[2];
 
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
@@ -66,17 +66,17 @@ struct dict {
 };
 
 /* If safe is set to 1 this is a safe iterator, that means, you can call
- * dictAdd, dictFind, and other functions against the dictionary even while
- * iterating. Otherwise it is a non safe iterator, and only dictNext()
+ * dict_add, dict_find, and other functions against the dictionary even while
+ * iterating. Otherwise it is a non safe iterator, and only dict_next()
  * should be called while iterating. */
-typedef struct dictIterator {
-    dict *d;
+typedef struct dict_iterator_t {
+    dict_t *d;
     long index;
     int table, safe;
-    dictEntry *entry, *nextEntry;
+    dict_entry_t *entry, *nextEntry;
     /* unsafe iterator fingerprint for misuse detection. */
     unsigned long long fingerprint;
-} dictIterator;
+} dict_iterator_t;
 
 
 
@@ -85,84 +85,84 @@ typedef struct dictIterator {
 #define DICT_HT_INITIAL_SIZE     (1<<(DICT_HT_INITIAL_EXP))
 
 
-#define dictFreeVal(d, entry) \
+#define dict_free_val(d, entry) \
     if ((d)->type->valDestructor) \
         (d)->type->valDestructor((d), (entry)->v.val)
 
 
-#define dictFreeKey(d, entry) \
+#define dict_free_key(d, entry) \
     if ((d)->type->keyDestructor) \
         (d)->type->keyDestructor((d), (entry)->key)
 
-#define dictSetKey(d, entry, _key_) do { \
+#define dict_set_key(d, entry, _key_) do { \
     if ((d)->type->keyDup) \
         (entry)->key = (d)->type->keyDup((d), _key_); \
     else \
         (entry)->key = (_key_); \
 } while(0)
 
-#define dictCompareKeys(d, key1, key2) \
+#define dict_compare_keys(d, key1, key2) \
     (((d)->type->keyCompare) ? \
         (d)->type->keyCompare((d), key1, key2) : \
         (key1) == (key2))
 
-#define dictMetadata(entry) (&(entry)->metadata)
-#define dictMetadataSize(d) ((d)->type->dictEntryMetadataBytes \
+#define dict_get_meta_data(entry) (&(entry)->metadata)
+#define dict_get_meta_data_size(d) ((d)->type->dictEntryMetadataBytes \
                              ? (d)->type->dictEntryMetadataBytes(d) : 0)
 
 
-#define dictSize(d) ((d)->ht_used[0]+(d)->ht_used[1])
-#define dictIsRehashing(d) ((d)->rehashidx != -1)
-#define dictHashKey(d, key) (d)->type->hashFunction(key)
+#define dict_size(d) ((d)->ht_used[0]+(d)->ht_used[1])
+#define dict_is_rehashing(d) ((d)->rehashidx != -1)
+#define dict_hash_key(d, key) (d)->type->hashFunction(key)
 
 
-#define dictGetVal(he) ((he)->v.val)
+#define dict_get_val(he) ((he)->v.val)
 
 
-#define dictSetVal(d, entry, _val_) do { \
+#define dict_set_val(d, entry, _val_) do { \
     if ((d)->type->valDup) \
         (entry)->v.val = (d)->type->valDup((d), _val_); \
     else \
         (entry)->v.val = (_val_); \
 } while(0)
 
-#define dictPauseRehashing(d) (d)->pauserehash++
-#define dictResumeRehashing(d) (d)->pauserehash--
+#define dict_pause_rehashing(d) (d)->pauserehash++
+#define dict_resume_rehashing(d) (d)->pauserehash--
 
-#define dictGetEntryKey(he) ((he)->key)
-#define dictGetEntryVal(he) ((he)->v.val)
+#define dict_get_entry_key(he) ((he)->key)
+#define dict_get_entry_val(he) ((he)->v.val)
 /* API */
-dict *dictCreate(dictType *type);
-void dictRelease(dict *d);
+dict_t* dict_new(dict_func_t *type);
+void dict_delete(dict_t*d);
 
-int _dictInit(dict* d, dictType *ty);
-#define  dictInit  _dictInit
-void dictDestroy(dict *d);
-
-
-dictEntry *dictAddRaw(dict *d, void *key, dictEntry **existing);
-dictEntry *dictAddOrFind(dict *d, void *key);
-uint64_t dictGenCaseHashFunction(const unsigned char *buf, size_t len);
-
-dictEntry * dictFind(dict *d, const void *key);
-int dictAdd(dict *d, void *key, void *val);
+int _dict_init(dict_t* d, dict_func_t *ty);
+#define  dict_init  _dict_init
+void dict_destroy(dict_t*d);
 
 
-dictIterator *dictGetIterator(dict *d);
-dictEntry *dictNext(dictIterator *iter);
-void dictReleaseIterator(dictIterator *iter);
-int dictExpand(dict *d, unsigned long size);
+dict_entry_t*dict_add_raw(dict_t*d, void *key, dict_entry_t**existing);
+dict_entry_t*dict_add_or_find(dict_t*d, void *key);
+uint64_t dict_gen_case_hash_function(const unsigned char *buf, size_t len);
+
+dict_entry_t* dict_find(dict_t*d, const void *key);
+int dict_add(dict_t*d, void *key, void *val);
 
 
-/* dict basic function */
-uint64_t dictGenHashFunction(const void *key, size_t len);
+dict_iterator_t *dict_get_iterator(dict_t*d);
+dict_entry_t*dict_next(dict_iterator_t *iter);
+void dict_iterator_delete(dict_iterator_t *iter);
+int dict_expand(dict_t*d, unsigned long size);
 
-int htNeedsResize(dict *dict);
+
+/* dict_tbasic function */
+uint64_t dict_gen_hash_function(const void *key, size_t len);
+
+int ht_needs_resize(dict_t*dict);
 typedef enum {
     DICT_RESIZE_ENABLE,
     DICT_RESIZE_AVOID,
     DICT_RESIZE_FORBID,
-} dictResizeEnable;
-int dictResize(dict *d);
-int dictDelete(dict *ht, const void *key);
+} dict_resize_enable_enum;
+int dict_resize(dict_t*d);
+int dict_delete_key(dict_t*ht, const void *key);
 #endif

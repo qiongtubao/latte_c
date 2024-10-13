@@ -17,10 +17,10 @@ long long timeInMilliseconds(void) {
 }
 
 uint64_t testHashCallback(const void *key) {
-    return dictGenCaseHashFunction((unsigned char*)key, strlen((char*)key));
+    return dict_gen_case_hash_function((unsigned char*)key, strlen((char*)key));
 }
 
-int testCompareCallback(dict *privdata, const void *key1, const void *key2) {
+int testCompareCallback(dict_t*privdata, const void *key1, const void *key2) {
     int l1,l2;
     DICT_NOTUSED(privdata);
     l1 = strlen((char*) key1);
@@ -29,7 +29,7 @@ int testCompareCallback(dict *privdata, const void *key1, const void *key2) {
     return memcmp(key1, key2,l1) == 0;
 }
 
-void testFreeCallback(dict* privdata, void* val) {
+void testFreeCallback(dict_t* privdata, void* val) {
     DICT_NOTUSED(privdata);
     // printf("delete :%p\n", val);
     if(val != NULL) {
@@ -43,7 +43,7 @@ void testFreeCallback(dict* privdata, void* val) {
  * @return long long
  *  
  */
-static dictType testDict = {
+static dict_func_t testDict = {
     testHashCallback,
     NULL,
     NULL,
@@ -74,72 +74,72 @@ char* stringFromLongLong(long long value) {
 } while(0)
 
 
-int test_dictCreate() {
-    dict *dict = dictCreate(&testDict);
-    assert((long)dictSize(dict) == 0);
-    dictRelease(dict);
+int test_dict_new() {
+    dict_t*dict= dict_new(&testDict);
+    assert((long)dict_size(dict) == 0);
+    dict_delete(dict);
     return 1;
 }
 
-int test_dictExpand() {
-    dict *dict = dictCreate(&testDict);
+int test_dict_expand() {
+    dict_t*dict = dict_new(&testDict);
     assert(DICTHT_SIZE((dict)->ht_size_exp[0]) == 0);
     assert(DICTHT_SIZE((dict)->ht_size_exp[1]) == 0);
-    dictExpand(dict, 100);
+    dict_expand(dict, 100);
     //2 ^ x
     assert(DICTHT_SIZE((dict)->ht_size_exp[0]) == 128);
     assert(DICTHT_SIZE((dict)->ht_size_exp[1])== 0);
-    dictRelease(dict);
+    dict_delete(dict);
     return 1;
 }
 
-int test_dictAdd() {
-    dict *dict = dictCreate(&testDict);
+int test_dict_add() {
+    dict_t* dict= dict_new(&testDict);
     // long count = 5000;
-    //dict add long long
+    //dict_tadd long long
     // for (int j = 0; j < count; j++) {
-    //     dictEntry* de = dictAddOrFind(dict, stringFromLongLong(j));
+    //     dict_entry_t* de = dict_add_or_find(dict, stringFromLongLong(j));
     //     dictSetSignedIntegerVal(de, (long long)j);
     // }
-    // assert((long)dictSize(dict) == count);
-    dictRelease(dict);
+    // assert((long)dict_size(dict) == count);
+    dict_delete(dict);
     return 1;
 }
 
-int test_dictAdd_speed() {
-    dict *dict = dictCreate(&testDict);
+int test_dict_add_speed() {
+    dict_t*dict = dict_new(&testDict);
     long count = 5000;
     long long start, elapsed;
     start_benchmark();
-    //dict add long long
+    //dict_tadd long long
     // for (int j = 0; j < count; j++) {
-    //     dictEntry* de = dictAddOrFind(dict, stringFromLongLong(j));
+    //     dict_entry_t* de = dict_add_or_find(dict, stringFromLongLong(j));
     //     dictSetSignedIntegerVal(de, (long long)j);
     // }
-    // assert((long)dictSize(dict) == count);
+    // assert((long)dict_size(dict) == count);
     end_benchmark("\nInserting");
-    dictRelease(dict);
+    dict_delete(dict);
     return 1;
 }
 
-int test_dictAddRaw() {
-    dict* dict = dictCreate(&testDict);
+int test_dict_add_raw() {
+    dict_t* dict= dict_new(&testDict);
     char* key = stringFromLongLong(100);
-    dictEntry* entry = dictAddRaw(dict, key, NULL);
+    dict_entry_t* entry = dict_add_raw(dict, key, NULL);
     assert(entry != NULL);
-    assert(dictAddRaw(dict, key, NULL) == NULL);
-    dictRelease(dict);
+    assert(dict_add_raw(dict, key, NULL) == NULL);
+    dict_delete(dict);
     return 1;
 }
 
-int test_dictAddOrFind() {
-    dict* dict = dictCreate(&testDict);
+int test_dict_add_or_find() {
+    dict_t* dict= dict_new(&testDict);
     char* key = stringFromLongLong(100);
-    dictEntry* create_entry = dictAddOrFind(dict, key);
+    dict_entry_t* create_entry = dict_add_or_find(dict, key);
     assert(create_entry != NULL);
-    dictEntry* find_entry = dictAddOrFind(dict, key);
+    dict_entry_t* find_entry = dict_add_or_find(dict, key);
     assert(find_entry != NULL);
-    dictRelease(dict);
+    dict_delete(dict);
     return 1;
 }
 
@@ -149,18 +149,18 @@ int test_api(void) {
         #ifdef LATTE_TEST
             // ..... private
         #endif
-        test_cond("dictCreate function", 
-            test_dictCreate() == 1);
-        test_cond("dictAdd function",
-            test_dictAdd() == 1);
-        test_cond("dictExpand function",
-            test_dictExpand() == 1);
-        test_cond("dictAddRaw function",
-            test_dictAddRaw() == 1);
-        test_cond("dictAddOrFind function",
-            test_dictAddOrFind() == 1);
-        test_cond("dictAdd speed",
-            test_dictAdd_speed() == 1);
+        test_cond("dict_new function", 
+            test_dict_new() == 1);
+        test_cond("dict_add function",
+            test_dict_add() == 1);
+        test_cond("dict_expand function",
+            test_dict_expand() == 1);
+        test_cond("dict_add_raw function",
+            test_dict_add_raw() == 1);
+        test_cond("dict_add_or_find function",
+            test_dict_add_or_find() == 1);
+        test_cond("dict_add speed",
+            test_dict_add_speed() == 1);
         
     } test_report()
     return 1;

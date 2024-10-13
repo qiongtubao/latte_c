@@ -79,7 +79,7 @@ struct logger_t {
 } ;
 
 static struct logger_factory_t {
-    dict* loggers;
+    dict_t* loggers;
 } global_logger_factory;
 
 void log_init();

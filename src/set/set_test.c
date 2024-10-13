@@ -26,7 +26,7 @@ void* increment_counter(void* arg) {
     // printf("keys before %p \n", keys);
     for(int i  = 0; i < t->timers; i++) {
         char buf[10];
-        int size = sprintf(buf, "%d", i);
+        int size = sprintf(buf, "%d" , i);
         sds_t k4 = sds_new_len(buf, size);
         keys[i] = k4;
        

@@ -22,7 +22,7 @@ long long ptr2ll(void* value) {
 
 
 
-dictType ruleDictType = {
+dict_func_t ruleDictType = {
     dictCharHash,
     NULL,
     NULL,
@@ -34,27 +34,27 @@ dictType ruleDictType = {
 
 struct config* createConfig() {
     config* c = zmalloc(sizeof(config));
-    c->rules = dictCreate(&ruleDictType);
+    c->rules = dict_new(&ruleDictType);
     return c;
 }
 
 void releaseConfig(config* c) {
-    dictIterator* di = dictGetIterator(c->rules);
-    dictEntry *de;
-    while ((de = dictNext(di)) != NULL) {
-        configRule* rule = dictGetVal(de);
+    dict_iterator_t* di = dict_get_iterator(c->rules);
+    dict_entry_t*de;
+    while ((de = dict_next(di)) != NULL) {
+        configRule* rule = dict_get_val(de);
         rule->releaseValue(rule->value);
         rule->value = NULL;
     }
-    dictReleaseIterator(di);
-    dictRelease(c->rules);
+    dict_iterator_delete(di);
+    dict_delete(c->rules);
     zfree(c);
 }
 
 configRule* getConfigRule(struct config* c, char* key) {
-    dictEntry* entry = dictFind(c->rules, key);
+    dict_entry_t* entry = dict_find(c->rules, key);
     if (entry == NULL) return NULL;
-    return dictGetVal(entry);
+    return dict_get_val(entry);
 }
 
 void* configGet(config* c, char* key) {
@@ -76,9 +76,9 @@ long long configGetLongLong(config* c, char* key) {
 }
 
 int configSetSds(config* c, char* key, sds_t value) {
-    dictEntry* entry = dictFind(c->rules, key);
+    dict_entry_t* entry = dict_find(c->rules, key);
     if (entry == NULL) return 0;
-    configRule* rule = dictGetVal(entry);
+    configRule* rule = dict_get_val(entry);
     if (rule->update(rule, rule->value, value)) {
         rule->value = value;
     }
@@ -86,9 +86,9 @@ int configSetSds(config* c, char* key, sds_t value) {
 }
 
 int configSetInt(config* c, sds_t key, int value) {
-    dictEntry* entry = dictFind(c->rules, key);
+    dict_entry_t* entry = dict_find(c->rules, key);
     if (entry == NULL) return 0;
-    configRule* rule = dictGetVal(entry);
+    configRule* rule = dict_get_val(entry);
     if (rule->update(rule, rule->value, &value)) {
         rule->value = &value;
     }
@@ -96,9 +96,9 @@ int configSetInt(config* c, sds_t key, int value) {
 }
 
 int configSetLongLong(config* c, char* key, long long value) {
-    dictEntry* entry = dictFind(c->rules, key);
+    dict_entry_t* entry = dict_find(c->rules, key);
     if (entry == NULL) return 0;
-    configRule* rule = dictGetVal(entry);
+    configRule* rule = dict_get_val(entry);
     if (rule->update(rule, rule->value, ll2ptr(value))) {
         rule->value = *(void **)(&value);
     }
@@ -106,7 +106,7 @@ int configSetLongLong(config* c, char* key, long long value) {
 }
 
 int registerConfig(config* c, sds_t key, configRule* rule) {
-    return dictAdd(c->rules, key, rule);
+    return dict_add(c->rules, key, rule);
 }
 
 

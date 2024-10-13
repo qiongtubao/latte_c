@@ -43,7 +43,7 @@ int test_configCreate() {
     sds_t age = sds_new("age");
     registerConfig(c, age, &age_rule);
 
-    assert(dictSize(c->rules) == 2);
+    assert(dict_size(c->rules) == 2);
 
     sds_t value = sds_new("latte");
     assert(configSetSds(c, "name", value) == 1);

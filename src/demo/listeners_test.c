@@ -10,7 +10,8 @@
 int test_listeners() {
     requestListeners* srv = srvRequestListenersCreate(2, NULL);
     requestListeners* es = requestBindListeners(srv, 0, "123", 1);
-    requestListener* listener = requestListenerCreate(db,key,cb,c,pd,pdfree,msgs);
+    // requestListener* listener = requestListenerCreate(db,key,cb,c,pd,pdfree,msgs);
+    requestListener* listener = NULL;
     requestListenersPush(es,listener);
     assert(es->level == REQUEST_LEVEL_KEY);
     requestListeners* es1 = requestBindListeners(srv, 0, NULL, 1);

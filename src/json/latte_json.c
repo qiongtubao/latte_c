@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <strings.h>
 // map
-dictType jsonDictTyep  = {
+dict_func_t jsonDictTyep  = {
     dictCharHash,
     NULL,
     NULL,
@@ -20,7 +20,7 @@ dictType jsonDictTyep  = {
 };
 json_t* json_map_new() {
     json_t* r = value_new();
-    dict* d = dictCreate(&jsonDictTyep);
+    dict_t* d = dict_new(&jsonDictTyep);
     value_set_map(r, d);
     return r;
 }
@@ -28,14 +28,14 @@ json_t* json_map_new() {
 
 int json_map_put_value(json_t* root, sds_t key, json_t* v) {
     if (!value_is_map(root)) return 0;
-    dictEntry* node = dictFind(root->value.map_value, key);
+    dict_entry_t* node = dict_find(root->value.map_value, key);
     if (node != NULL) {
-        json_t* old_v = (json_t*)dictGetVal(node);
+        json_t* old_v = (json_t*)dict_get_val(node);
         value_delete(old_v);
-        dictSetVal(root->value.map_value, node, v);
+        dict_set_val(root->value.map_value, node, v);
         return 1;
     } else {
-        return dictAdd(root->value.map_value, key, v);
+        return dict_add(root->value.map_value, key, v);
     }
 }
 
@@ -70,9 +70,9 @@ int json_map_put_longdouble(json_t* root, sds_t key, long double ld) {
 
 json_t* json_map_get_value(json_t* root, char* key) {
     latte_assert(value_is_map(root), "json is not map!!!");
-    dictEntry* entry = dictFind(root->value.map_value, key);
+    dict_entry_t* entry = dict_find(root->value.map_value, key);
     if (entry == NULL) return NULL;
-    return dictGetVal(entry);
+    return dict_get_val(entry);
 }
 
 // list 
@@ -1605,12 +1605,12 @@ sds_t json_to_sds(json_t* v) {
         }
         case VALUE_MAP: {
             sds_t result = sds_new("{");
-            dictIterator* itor = dictGetIterator(value_get_map(v));
+            dict_iterator_t* itor = dict_get_iterator(value_get_map(v));
             int frist = 1;
-            dictEntry* entry = NULL;
-            while(NULL != (entry = dictNext(itor))) {
-                sds_t k = sds_to_string(dictGetEntryKey(entry));
-                json_t* v = (json_t*)dictGetEntryVal(entry);
+            dict_entry_t* entry = NULL;
+            while(NULL != (entry = dict_next(itor))) {
+                sds_t k = sds_to_string(dict_get_entry_key(entry));
+                json_t* v = (json_t*)dict_get_entry_val(entry);
                 sds_t r = json_to_sds(v);
                 if (frist) {
                     result = sds_cat_fmt(result, "%s:%s", k , r);
@@ -1621,7 +1621,7 @@ sds_t json_to_sds(json_t* v) {
                 sds_free(k);
                 sds_free(r);
             }
-            dictReleaseIterator(itor);
+            dict_iterator_delete(itor);
             return sds_cat_fmt(result, "}");
         }
         break;
