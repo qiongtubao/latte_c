@@ -27,6 +27,6 @@ void set_delete(set_t* s) {
     s->type->release(s);
 }
 
-Iterator* set_get_iterator(set_t* s) {
+latte_iterator_t* set_get_iterator(set_t* s) {
     return s->type->getIterator(s);
 }

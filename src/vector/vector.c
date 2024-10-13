@@ -119,21 +119,23 @@ typedef struct vector_iterator_t {
     vector_t* v;
     size_t index;
 } vector_iterator_t;
-bool vector_iterator_has_next(Iterator* iterator) {
+
+bool vector_iterator_has_next(latte_iterator_t* iterator) {
     vector_iterator_t* data = (vector_iterator_t*)(iterator->data);
     return data->index < data->v->count;
 }
 
-void* vector_iterator_next(Iterator* iterator) {
+void* vector_iterator_next(latte_iterator_t* iterator) {
     vector_iterator_t* data = (vector_iterator_t*)(iterator->data);
     return vector_get(data->v, data->index++);
 }
 
-void vector_iterator_delete(Iterator* iterator) {
+void vector_iterator_delete(latte_iterator_t* iterator) {
     zfree(iterator->data);
     zfree(iterator);
 }
-IteratorType vector_iterator_type = {
+
+latte_iterator_func vector_iterator_type = {
     .hasNext = vector_iterator_has_next,
     .next = vector_iterator_next,
     .release = vector_iterator_delete
@@ -143,8 +145,8 @@ IteratorType vector_iterator_type = {
 /**
  * TODO 暂时没实现倒序遍历
  */
-Iterator* vector_get_iterator(vector_t* v) {
-    Iterator* iterator = zmalloc(sizeof(Iterator));
+latte_iterator_t* vector_get_iterator(vector_t* v) {
+    latte_iterator_t* iterator = zmalloc(sizeof(latte_iterator_t));
     vector_iterator_t* data = zmalloc(sizeof(vector_iterator_t));
     data->index = 0;
     data->v = v;

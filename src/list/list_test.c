@@ -14,15 +14,15 @@ int test_list_iterator() {
     l->free = valueSdsFree;
     list_add_node_tail(l, sds_new("hello"));
     list_add_node_tail(l, sds_new("world"));
-    Iterator* iter = list_get_latte_iterator(l, LIST_ITERATOR_OPTION_TAIL);
+    latte_iterator_t* iter = list_get_latte_iterator(l, LIST_ITERATOR_OPTION_TAIL);
     printf("???? : %p %p \n",iter->data, ((list_iterator_t*)(iter->data))->direction);
     int i = 0;
-    while (iteratorHasNext(iter)) {
-        iteratorNext(iter);
+    while (latte_iterator_has_next(iter)) {
+        latte_iterator_next(iter);
         i++;
     }
     assert(i == 2);
-    iteratorRelease(iter);
+    latte_iterator_delete(iter);
     return 1;
 }
 
@@ -33,25 +33,25 @@ int test_list() {
     list_add_node_tail(l, (void*)1L);
     list_add_node_tail(l, (void*)2L);
     list_add_node_tail(l, (void*)3L);
-    Iterator* iter = list_get_latte_iterator(l, LIST_ITERATOR_OPTION_HEAD);
+    latte_iterator_t* iter = list_get_latte_iterator(l, LIST_ITERATOR_OPTION_HEAD);
     long a[4] = {0L,1L,2L,3L};
     int i = 0;
-    while (iteratorHasNext(iter)) {
-        long v = (long)iteratorNext(iter);
+    while (latte_iterator_has_next(iter)) {
+        long v = (long)latte_iterator_next(iter);
         assert(a[i] == v);
         i++;
     }
-    iteratorRelease(iter);
+    latte_iterator_delete(iter);
 
     iter = list_get_latte_iterator(l, LIST_ITERATOR_OPTION_TAIL);
     long b[4] = {3L,2L,1L,0L};
     i = 0;
-    while (iteratorHasNext(iter)) {
-        long v = (long)iteratorNext(iter);
+    while (latte_iterator_has_next(iter)) {
+        long v = (long)latte_iterator_next(iter);
         assert(b[i] == v);
         i++;
     }
-    iteratorRelease(iter);
+    latte_iterator_delete(iter);
 
     long c[4] = {1L,0L,2L,3L};
     i = 0;

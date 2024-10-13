@@ -201,22 +201,24 @@ int test_fs() {
 
 int test_dir() {
     assert(dirIs("./test_dir") == 1);
-    Iterator* iter = dir_scan_file("./test_dir", ".*\\.txt$");
+    latte_iterator_t* iter = dir_scan_file("./test_dir", ".*\\.txt$");
     int i = 0;
-    while(iteratorHasNext(iter)) {
-        sds_t file = iteratorNext(iter);
+    
+    while(latte_iterator_has_next(iter)) {
+        sds_t file = (sds)latte_iterator_next(iter);
         i++;
     }
     //a.txt b.txt
     assert(i == 2);
-    iteratorRelease(iter);
+    
+    latte_iterator_delete(iter);
 
     iter = dir_scan_file("./test_dir", ".*\\.t$");
-    while(iteratorHasNext(iter)) {
-        sds_t file = iteratorNext(iter);
+    while(latte_iterator_has_next(iter)) {
+        sds_t file = latte_iterator_next(iter);
         assert(sds_cmp(file, "a.t"));
     }
-    iteratorRelease(iter);
+    latte_iterator_delete(iter);
 
     iter = dir_scan_file("./test_dir1", ".*\\.txt$");
     assert(iter == NULL);

@@ -257,7 +257,7 @@ void avlTreeIteratorRelease(avlTreeIterator* iterator) {
     zfree(iterator);
 }
 
-void* avlTreeIteratorTypeNext(Iterator* it_) {
+void* avlTreeIteratorTypeNext(latte_iterator_t* it_) {
     
     avlNode* node = avlTreeIteratorNext(it_->data);
     avlTreeLatteIterator* iterator = (avlTreeLatteIterator*)it_;
@@ -266,21 +266,21 @@ void* avlTreeIteratorTypeNext(Iterator* it_) {
     return &iterator->pair;
 }
 
-void avlTreeIteratorTypeRelease(Iterator* iterator) {
+void avlTreeIteratorTypeRelease(latte_iterator_t* iterator) {
     avlTreeIteratorRelease(iterator->data);
     zfree(iterator);
 }
 
-bool avlTreeIteratorTypeHasNext(Iterator* iterator) {
+bool avlTreeIteratorTypeHasNext(latte_iterator_t* iterator) {
     return avlTreeIteratorHasNext(iterator->data);
 }
 
-IteratorType avlTreeIteratorType = {
+latte_iterator_func avlTreeIteratorType = {
      .next = avlTreeIteratorTypeNext,
      .release = avlTreeIteratorTypeRelease,
      .hasNext = avlTreeIteratorTypeHasNext
 };
-Iterator* avlTreeGetIterator(avlTree* tree) {
+latte_iterator_t* avlTreeGetIterator(avlTree* tree) {
     avlTreeLatteIterator* iterator = zmalloc(sizeof(avlTreeLatteIterator));
     iterator->iterator.type = &avlTreeIteratorType;
     iterator->iterator.data = avlTreeGetAvlTreeIterator(tree);

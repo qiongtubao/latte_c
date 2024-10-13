@@ -28,7 +28,7 @@ void vector_sort(vector_t* v, comparator_func c);
 #define vector_get_last(v) vector_get(v, v->count - 1)
 #define vector_get_frist(v) vector_get(v , 0)
 
-Iterator* vector_get_iterator(vector_t* v);
+latte_iterator_t* vector_get_iterator(vector_t* v);
 
 
 #endif
