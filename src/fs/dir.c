@@ -116,5 +116,5 @@ Iterator* dir_scan_file(char* dir_path, const char* filter_pattern) {
   if (filter_pattern)
     regfree(&reg);
   closedir(pdir);
-  return list_get_latte_iterator_free_list(files, 0);
+  return list_get_latte_iterator(files, LIST_ITERATOR_OPTION_HEAD | LIST_ITERATOR_OPTION_DELETE_LIST);
 }
