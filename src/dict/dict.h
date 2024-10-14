@@ -174,6 +174,10 @@ typedef struct dict_iterator_t {
 // dict_iterator_t *dict_get_iterator(dict_t*d);
 // dict_entry_t*dict_next(dict_iterator_t *iter);
 // void dict_iterator_delete(dict_iterator_t *iter);
+
+bool protected_dict_iterator_has_next(latte_iterator_t* it);
+void protected_dict_iterator_delete(latte_iterator_t* it);
+void* protected_dict_iterator_next(latte_iterator_t* it);
 latte_iterator_t* dict_get_latte_iterator(dict_t *d);
 
 #endif
