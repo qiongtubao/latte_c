@@ -710,7 +710,7 @@ int dict_delete_key(dict_t*ht, const void *key) {
 
 #define dict_iterator_dict_ptr(iter)  ((dict_t*)iter->sup.sup.data) 
 
-bool dict_iterator_has_next(latte_iterator_t* it) {
+bool protected_dict_iterator_has_next(latte_iterator_t* it) {
     dict_iterator_t* iter = (dict_iterator_t*)it;
     if (iter->index == -2) return false;
     while(1) {
@@ -746,11 +746,11 @@ bool dict_iterator_has_next(latte_iterator_t* it) {
     return false;
 }
 
-void* dict_iterator_next(latte_iterator_t* it) {
+void* protected_dict_iterator_next(latte_iterator_t* it) {
     dict_iterator_t* iter = (dict_iterator_t*)it;
     if (iter->index == -2) return NULL;
     if (iter->readed == true) { //防止用户不使用has_next 直接用next方法
-        if (!dict_iterator_has_next(it)) return NULL;
+        if (!protected_dict_iterator_has_next(it)) return NULL;
     }
     iterator_pair_key(iter) = dict_get_entry_key(iter->entry);
     iterator_pair_value(iter) = dict_get_entry_val(iter->entry);
@@ -758,7 +758,7 @@ void* dict_iterator_next(latte_iterator_t* it) {
     return iterator_pair_ptr(iter);
 }
 
-void dict_iterator_delete(latte_iterator_t* it) {
+void protected_dict_iterator_delete(latte_iterator_t* it) {
     dict_iterator_t* iter = (dict_iterator_t*)it;
     if (!(iter->index == -1 && iter->table == 0)) {
         if (iter->safe)
@@ -770,9 +770,9 @@ void dict_iterator_delete(latte_iterator_t* it) {
 }
 
 latte_iterator_func dict_iterator_func = {
-    .has_next = dict_iterator_has_next,
-    .next = dict_iterator_next,
-    .release = dict_iterator_delete
+    .has_next = protected_dict_iterator_has_next,
+    .next = protected_dict_iterator_next,
+    .release = protected_dict_iterator_delete
 };
 
 latte_iterator_t* dict_get_latte_iterator(dict_t *d) {
