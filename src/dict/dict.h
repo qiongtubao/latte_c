@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "iterator/iterator.h"
 
 #define DICT_OK 0
 #define DICT_ERR 1
@@ -65,18 +66,7 @@ struct dict_t {
     signed char ht_size_exp[2]; /* exponent of size. (size = 1<<exp) */
 };
 
-/* If safe is set to 1 this is a safe iterator, that means, you can call
- * dict_add, dict_find, and other functions against the dictionary even while
- * iterating. Otherwise it is a non safe iterator, and only dict_next()
- * should be called while iterating. */
-typedef struct dict_iterator_t {
-    dict_t *d;
-    long index;
-    int table, safe;
-    dict_entry_t *entry, *nextEntry;
-    /* unsafe iterator fingerprint for misuse detection. */
-    unsigned long long fingerprint;
-} dict_iterator_t;
+
 
 
 
@@ -142,15 +132,11 @@ void dict_destroy(dict_t*d);
 
 dict_entry_t*dict_add_raw(dict_t*d, void *key, dict_entry_t**existing);
 dict_entry_t*dict_add_or_find(dict_t*d, void *key);
+dict_entry_t* dict_add_get(dict_t* d, void* key, void* val);
 uint64_t dict_gen_case_hash_function(const unsigned char *buf, size_t len);
 
 dict_entry_t* dict_find(dict_t*d, const void *key);
 int dict_add(dict_t*d, void *key, void *val);
-
-
-dict_iterator_t *dict_get_iterator(dict_t*d);
-dict_entry_t*dict_next(dict_iterator_t *iter);
-void dict_iterator_delete(dict_iterator_t *iter);
 int dict_expand(dict_t*d, unsigned long size);
 
 
@@ -165,4 +151,29 @@ typedef enum {
 } dict_resize_enable_enum;
 int dict_resize(dict_t*d);
 int dict_delete_key(dict_t*ht, const void *key);
+
+
+
+
+//实现latte_iterator_t 替代原来的遍历
+/* If safe is set to 1 this is a safe iterator, that means, you can call
+ * dict_add, dict_find, and other functions against the dictionary even while
+ * iterating. Otherwise it is a non safe iterator, and only dict_next()
+ * should be called while iterating. */
+typedef struct dict_iterator_t {
+    latte_iterator_pair_t sup;
+    // dict_t *d;
+    long index;
+    int table, safe;
+    dict_entry_t *entry, *nextEntry;
+    /* unsafe iterator fingerprint for misuse detection. */
+    unsigned long long fingerprint;
+    int readed;
+} dict_iterator_t;
+
+// dict_iterator_t *dict_get_iterator(dict_t*d);
+// dict_entry_t*dict_next(dict_iterator_t *iter);
+// void dict_iterator_delete(dict_iterator_t *iter);
+latte_iterator_t* dict_get_latte_iterator(dict_t *d);
+
 #endif

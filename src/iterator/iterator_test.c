@@ -28,7 +28,7 @@ void arrayIteratorRelease(latte_iterator_t* it) {
 }
 
 latte_iterator_func arrayIteratorType = {
-    .hasNext = arrayIteratorHasNext,
+    .has_next = arrayIteratorHasNext,
     .next = arrayIteratorNext,
     .release = arrayIteratorRelease
 };

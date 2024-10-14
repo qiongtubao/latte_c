@@ -143,6 +143,44 @@ int test_dict_add_or_find() {
     return 1;
 }
 
+uint64_t testLongHashCallback(const void *key) {
+    return (uint64_t)key;
+}
+
+int testLongCompareCallback(dict_t*privdata, const void *key1, const void *key2) {
+    long l1,l2;
+    DICT_NOTUSED(privdata);
+    l1 = (long)key1;
+    l2 = (long)key2;
+    return l1 - l2;
+}
+
+dict_func_t dict_klong_vlong_func = {
+    testLongHashCallback,
+    NULL,
+    NULL,
+    testLongCompareCallback,
+    NULL,
+    NULL,
+    NULL
+};
+
+int test_dict_iterator() {
+    dict_t* dict = dict_new(&dict_klong_vlong_func);
+    dict_add(dict, (void*)1L, (void*)1L);
+    dict_add(dict, (void*)2L, (void*)2L);
+    dict_add(dict, (void*)3L, (void*)3L);
+    latte_iterator_t* it = dict_get_latte_iterator(dict);
+    while(latte_iterator_has_next(it)) {
+        latte_pair_t* pair = latte_iterator_next(it);
+        printf("key:%ld value:%ld \n", (long)latte_pair_key(pair),(long)latte_pair_value(pair));
+    }
+    latte_iterator_delete(it);
+
+    dict_add(dict, (void*)4L, (void*)4L);
+    
+    return 1;
+}
 
 int test_api(void) {
     {
@@ -161,6 +199,8 @@ int test_api(void) {
             test_dict_add_or_find() == 1);
         test_cond("dict_add speed",
             test_dict_add_speed() == 1);
+        test_cond("dict_iterator test function",
+            test_dict_iterator() == 1);
         
     } test_report()
     return 1;

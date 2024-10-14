@@ -28,10 +28,21 @@ Error* errnoIoCreate(char* format, ...) {
     
 
     va_start(args, format); // 初始化va_list
-    char buf[512];
-    int result = vsnprintf(buf, sizeof(buf), format, args);
+    char* buf = NULL;
+
+    char cache[512];
+    buf = cache;
+    int need_free = 0;
+    size_t result = vsnprintf(buf, sizeof(cache), format, args);
+    if (result >= sizeof(buf)) {
+        buf = zmalloc(sizeof(result + 1));
+        vsnprintf(cache, result + 1, format, args);
+        need_free = 1;
+    }
     va_end(args); // 清理va_list
-    return errorCreate(code, buf, strerror(errno));
+    Error* err = errorCreate(code, buf, strerror(errno));
+    if (need_free) zfree(buf);
+    return err;
 }
 
 void errorRelease(Error* error) {

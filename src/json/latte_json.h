@@ -106,7 +106,7 @@ typedef enum json_tokener_error_enum {
  */
 typedef enum json_tokener_state_enum
 {
-	json_tokener_state_enumatws,
+	json_tokener_state_eatws,
 	json_tokener_state_start,
 	json_tokener_state_finish,
 	json_tokener_state_null,
@@ -141,8 +141,8 @@ typedef enum json_tokener_state_enum
 typedef struct json_tokener_srec_t
 {
 	enum json_tokener_state_enum state, saved_state;
-	struct value *obj;
-	struct value *current;
+	value_t *obj;
+	value_t *current;
 	sds_t obj_field_name;
 } json_tokener_srec_t;
 json_tokener_srec_t* jsonTokenerSrecCreate();

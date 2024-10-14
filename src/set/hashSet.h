@@ -9,11 +9,11 @@
 typedef struct dict_t hashSet;
 typedef struct dict_func_t hashSetType; 
 #define hashSetIterator dict_iterator_t
-#define hashSetGetIterator dict_get_iterator
-#define hashSetNext dict_next
-#define hashSetReleaseIterator dict_iterator_delete
-#define hashSetNode dict_entry_t
-#define hashSetNodeGetKey dict_get_entry_key 
+// #define hashSetGetIterator dict_get_iterator
+// #define hashSetNext dict_next
+// #define hashSetReleaseIterator dict_iterator_delete
+// #define hashSetNode dict_entry_t
+// #define hashSetNodeGetKey dict_get_entry_key 
 extern hashSetType sdsHashSetDictType;
 
 hashSet* hashSetCreate(hashSetType* dt);

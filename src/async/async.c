@@ -129,13 +129,12 @@ void parallelTaskRun(taskThread* thread,asyncTask* task) {
         return;
     }
     ptask->task.status = DOING_TASK_STATUS;
-    dict_iterator_t *di = dict_get_iterator(ptask->tasks);
-    dict_entry_t*de;
-    while ((de = dict_next(di)) != NULL) {
-        seriesTask* stask = dict_get_val(de);
+    latte_iterator_t *di = dict_get_latte_iterator(ptask->tasks);
+    while (latte_iterator_has_next(di)) {
+        seriesTask* stask = (seriesTask*)latte_pair_value(latte_iterator_next(di));
         seriesTaskRun(thread, stask);
     }
-    dict_iterator_delete(di);
+    latte_iterator_delete(di);
     ptask->task.ctx = thread;
     
 }

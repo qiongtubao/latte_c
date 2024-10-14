@@ -290,7 +290,7 @@ void bPlusIteratorRelease(latte_iterator_t* it) {
     zfree(it);
 }
 latte_iterator_func bPlusIteratorType = {
-    .hasNext = bPlusIteratorHasNext,
+    .has_next = bPlusIteratorHasNext,
     .next = bPlusIteratorNext,
     .release = bPlusIteratorRelease,
 };
@@ -298,7 +298,7 @@ latte_iterator_func bPlusIteratorType = {
 latte_iterator_t* bPlusTreeGetIterator(bPlusTreeRoot* tree) {
     bPlusTreeIterator* it = zmalloc(sizeof(bPlusTreeIterator));
     if (it == NULL) return NULL;
-    it->iterator.type = &bPlusIteratorType;
+    it->iterator.func = &bPlusIteratorType;
     it->currentIndex = 0;
     bPlusTreeNode* node = tree->root;
     while (!node->isLeaf) {

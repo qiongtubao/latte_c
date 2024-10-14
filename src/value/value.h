@@ -17,7 +17,7 @@ typedef enum value_type_enum {
     VALUE_ARRAY,
     VALUE_MAP,
 } value_type_enum;
-typedef struct {
+typedef struct value_t {
     value_type_enum type;
     union {
         sds_t sds_value;
