@@ -435,11 +435,16 @@ dict_entry_t*dict_find(dict_t*d, const void *key)
     return NULL;
 }
 
-int dict_add(dict_t*d, void *key, void *val) {
+dict_entry_t* dict_add_get(dict_t* d, void* key, void* val) {
     dict_entry_t*entry = dict_add_raw(d,key,NULL);
-
-    if (!entry) return DICT_ERR;
+    if (!entry) return NULL;
     dict_set_val(d, entry, val);
+    return entry;
+}
+
+int dict_add(dict_t*d, void *key, void *val) {
+    dict_entry_t* entry =  dict_add_get(d, key, val);
+    if (!entry) return DICT_ERR;
     return DICT_OK;
 }
 
@@ -480,64 +485,6 @@ unsigned long long dictFingerprint(dict_t*d) {
         hash = hash + (hash << 31);
     }
     return hash;
-}
-
-dict_iterator_t *dict_get_iterator(dict_t*d)
-{
-    dict_iterator_t *iter = zmalloc(sizeof(*iter));
-
-    iter->d = d;
-    iter->table = 0;
-    iter->index = -1;
-    iter->safe = 0;
-    iter->entry = NULL;
-    iter->nextEntry = NULL;
-    return iter;
-}
-
-dict_entry_t*dict_next(dict_iterator_t *iter)
-{
-    while (1) {
-        if (iter->entry == NULL) {
-            if (iter->index == -1 && iter->table == 0) {
-                if (iter->safe)
-                    dict_pause_rehashing(iter->d);
-                else
-                    iter->fingerprint = dictFingerprint(iter->d);
-            }
-            iter->index++;
-            if (iter->index >= (long) DICTHT_SIZE(iter->d->ht_size_exp[iter->table])) {
-                if (dict_is_rehashing(iter->d) && iter->table == 0) {
-                    iter->table++;
-                    iter->index = 0;
-                } else {
-                    break;
-                }
-            }
-            iter->entry = iter->d->ht_table[iter->table][iter->index];
-        } else {
-            iter->entry = iter->nextEntry;
-        }
-        if (iter->entry) {
-            /* We need to save the 'next' here, the iterator user
-             * may delete the entry we are returning. */
-            iter->nextEntry = iter->entry->next;
-            return iter->entry;
-        }
-    }
-    return NULL;
-}
-
-
-void dict_iterator_delete(dict_iterator_t *iter)
-{
-    if (!(iter->index == -1 && iter->table == 0)) {
-        if (iter->safe)
-            dict_resume_rehashing(iter->d);
-        else
-            assert(iter->fingerprint == dictFingerprint(iter->d));
-    }
-    zfree(iter);
 }
 
 int hashTable_min_fill = HASHTABLE_MIN_FILL;
@@ -585,9 +532,9 @@ static inline int entryIsKey(const dict_entry_t*de) {
 
 /* Returns 1 if the pointer is actually a pointer to a dict_entry_tstruct. Returns
  * 0 otherwise. */
-static inline int entryIsNormal(const dict_entry_t*de) {
-    return ((uintptr_t)(void *)de & ENTRY_PTR_MASK) == ENTRY_PTR_NORMAL;
-}
+// static inline int entryIsNormal(const dict_entry_t*de) {
+//     return ((uintptr_t)(void *)de & ENTRY_PTR_MASK) == ENTRY_PTR_NORMAL;
+// }
 
 typedef struct {
     void *key;
@@ -693,4 +640,149 @@ static dict_entry_t*dict_generic_delete(dict_t*d, const void *key, int nofree) {
  * element was not found. */
 int dict_delete_key(dict_t*ht, const void *key) {
     return dict_generic_delete(ht,key,0) ? DICT_OK : DICT_ERR;
+}
+
+
+
+
+/**
+ * 
+ *   about iterator module
+ * 
+ */
+// dict_iterator_t *dict_get_iterator(dict_t*d)
+// {
+//     dict_iterator_t *iter = zmalloc(sizeof(*iter));
+
+//     iter->d = d;
+//     iter->table = 0;
+//     iter->index = -1;
+//     iter->safe = 0;
+//     iter->entry = NULL;
+//     iter->nextEntry = NULL;
+//     return iter;
+// }
+
+// dict_entry_t*dict_next(dict_iterator_t *iter)
+// {
+//     while (1) {
+//         if (iter->entry == NULL) {
+//             if (iter->index == -1 && iter->table == 0) {
+//                 if (iter->safe)
+//                     dict_pause_rehashing(iter->d);
+//                 else
+//                     iter->fingerprint = dictFingerprint(iter->d);
+//             }
+//             iter->index++;
+//             if (iter->index >= (long) DICTHT_SIZE(iter->d->ht_size_exp[iter->table])) {
+//                 if (dict_is_rehashing(iter->d) && iter->table == 0) {
+//                     iter->table++;
+//                     iter->index = 0;
+//                 } else {
+//                     break;
+//                 }
+//             }
+//             iter->entry = iter->d->ht_table[iter->table][iter->index];
+//         } else {
+//             iter->entry = iter->nextEntry;
+//         }
+//         if (iter->entry) {
+//             /* We need to save the 'next' here, the iterator user
+//              * may delete the entry we are returning. */
+//             iter->nextEntry = iter->entry->next;
+//             return iter->entry;
+//         }
+//     }
+//     return NULL;
+// }
+
+
+// void dict_iterator_delete(dict_iterator_t *iter)
+// {
+//     if (!(iter->index == -1 && iter->table == 0)) {
+//         if (iter->safe)
+//             dict_resume_rehashing(iter->d);
+//         else
+//             assert(iter->fingerprint == dictFingerprint(iter->d));
+//     }
+//     zfree(iter);
+// }
+
+#define dict_iterator_dict_ptr(iter)  ((dict_t*)iter->sup.sup.data) 
+
+bool dict_iterator_has_next(latte_iterator_t* it) {
+    dict_iterator_t* iter = (dict_iterator_t*)it;
+    if (iter->index == -2) return false;
+    while(1) {
+        if (iter->entry == NULL) {
+            if (iter->index == -1 && iter->table == 0) {
+                if (iter->safe)
+                    dict_pause_rehashing(dict_iterator_dict_ptr(iter));
+                else
+                    iter->fingerprint = dictFingerprint(dict_iterator_dict_ptr(iter));
+            }
+            iter->index++;
+            if (iter->index >= (long) DICTHT_SIZE(dict_iterator_dict_ptr(iter)->ht_size_exp[iter->table])) {
+                if (dict_is_rehashing(dict_iterator_dict_ptr(iter)) && iter->table == 0) {
+                    iter->table++;
+                    iter->index = 0;
+                } else {
+                    break;
+                }
+            }
+            iter->entry = dict_iterator_dict_ptr(iter)->ht_table[iter->table][iter->index];
+        } else {
+            iter->entry = iter->nextEntry;
+        }
+        if (iter->entry) {
+            /* We need to save the 'next' here, the iterator user
+             * may delete the entry we are returning. */
+            iter->nextEntry = iter->entry->next;
+            iter->readed = false;
+            return true;
+        }
+    }
+    iter->index = -2;
+    return false;
+}
+
+void* dict_iterator_next(latte_iterator_t* it) {
+    dict_iterator_t* iter = (dict_iterator_t*)it;
+    if (iter->index == -2) return NULL;
+    if (iter->readed == true) { //防止用户不使用has_next 直接用next方法
+        if (!dict_iterator_has_next(it)) return NULL;
+    }
+    iterator_pair_key(iter) = dict_get_entry_key(iter->entry);
+    iterator_pair_value(iter) = dict_get_entry_val(iter->entry);
+    iter->readed = true;
+    return iterator_pair_ptr(iter);
+}
+
+void dict_iterator_delete(latte_iterator_t* it) {
+    dict_iterator_t* iter = (dict_iterator_t*)it;
+    if (!(iter->index == -1 && iter->table == 0)) {
+        if (iter->safe)
+            dict_resume_rehashing(dict_iterator_dict_ptr(iter));
+        else
+            assert(iter->fingerprint == dictFingerprint(dict_iterator_dict_ptr(iter)));
+    }
+    zfree(iter);
+}
+
+latte_iterator_func dict_iterator_func = {
+    .has_next = dict_iterator_has_next,
+    .next = dict_iterator_next,
+    .release = dict_iterator_delete
+};
+
+latte_iterator_t* dict_get_latte_iterator(dict_t *d) {
+    dict_iterator_t* iter = zmalloc(sizeof(dict_iterator_t));
+    latte_iterator_pair_init(&iter->sup, &dict_iterator_func, d);
+    iter->table = 0;
+    iter->index = -1;
+    iter->safe = 0;
+    iter->entry = NULL;
+    iter->nextEntry = NULL;
+    iter->readed = false;
+    return (latte_iterator_t*)iter;
 }

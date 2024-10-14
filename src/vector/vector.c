@@ -136,7 +136,7 @@ void vector_iterator_delete(latte_iterator_t* iterator) {
 }
 
 latte_iterator_func vector_iterator_type = {
-    .hasNext = vector_iterator_has_next,
+    .has_next = vector_iterator_has_next,
     .next = vector_iterator_next,
     .release = vector_iterator_delete
 };
@@ -151,7 +151,7 @@ latte_iterator_t* vector_get_iterator(vector_t* v) {
     data->index = 0;
     data->v = v;
     iterator->data = data;
-    iterator->type = &vector_iterator_type;
+    iterator->func = &vector_iterator_type;
     return iterator;
 }
 

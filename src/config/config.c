@@ -43,14 +43,13 @@ struct config* createConfig() {
 }
 
 void releaseConfig(config* c) {
-    dict_iterator_t* di = dict_get_iterator(c->rules);
-    dict_entry_t*de;
-    while ((de = dict_next(di)) != NULL) {
-        configRule* rule = dict_get_val(de);
+    latte_iterator_t* di = dict_get_latte_iterator(c->rules);
+    while (latte_iterator_has_next(di)) {
+        configRule* rule = (configRule*)latte_pair_value((latte_iterator_next(di)));
         rule->releaseValue(rule->value);
         rule->value = NULL;
     }
-    dict_iterator_delete(di);
+    latte_iterator_delete(di);
     dict_delete(c->rules);
     zfree(c);
 }

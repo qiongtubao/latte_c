@@ -1,5 +1,6 @@
 
 ifneq ($(USED_DICT), yes) 
+include $(WORKSPACE)/src/iterator/lib.mk
 FINAL_CC_CFLAGS+= -I../dict 
 
 

@@ -4,7 +4,6 @@
 #include <string.h>
 /* -------------------------- hash functions -------------------------------- */
 
-static uint8_t dict_hash_function_seed[16];
 
 uint64_t dict_sds_hash(const void *key) {
     return dict_gen_hash_function((unsigned char*)key, sds_len((char*)key));

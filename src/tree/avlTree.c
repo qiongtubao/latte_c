@@ -278,11 +278,11 @@ bool avlTreeIteratorTypeHasNext(latte_iterator_t* iterator) {
 latte_iterator_func avlTreeIteratorType = {
      .next = avlTreeIteratorTypeNext,
      .release = avlTreeIteratorTypeRelease,
-     .hasNext = avlTreeIteratorTypeHasNext
+     .has_next = avlTreeIteratorTypeHasNext
 };
 latte_iterator_t* avlTreeGetIterator(avlTree* tree) {
     avlTreeLatteIterator* iterator = zmalloc(sizeof(avlTreeLatteIterator));
-    iterator->iterator.type = &avlTreeIteratorType;
+    iterator->iterator.func = &avlTreeIteratorType;
     iterator->iterator.data = avlTreeGetAvlTreeIterator(tree);
     iterator->tree  = tree;
     iterator->pair.key = NULL;

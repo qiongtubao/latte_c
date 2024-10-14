@@ -103,12 +103,8 @@ int test_encode() {
     json_array_put_bool(list, false);
 
     sds_t result = json_to_sds(root);
-    printf("json: %s\n", result);
+    printf("\njson: %s\n", result);
 
-    
-
-    
-    
     return 1;
 
 }
@@ -120,8 +116,10 @@ value_t* getMapTestValue(value_t* root) {
     return dict_get_val(entry);
 }
 int test_decode_int() {
+    printf("test 1\n");
     value_t* root1 = NULL;
     assert(1 == sds_to_json(sds_new("{\"test\":12345}"), &root1));
+    printf("test 2\n");
     assert(root1 != NULL);
     value_t* test = getMapTestValue(root1);
     assert(test != NULL);

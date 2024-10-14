@@ -414,7 +414,7 @@ void latte_list_iterator_delete(latte_iterator_t* iterator) {
 }
 
 latte_iterator_func latte_list_iterator_func = {
-    .hasNext = latte_list_iterator_has_next,
+    .has_next = latte_list_iterator_has_next,
     .next = latte_list_iterator_next,
     .release = latte_list_iterator_delete
 };
@@ -429,7 +429,7 @@ latte_iterator_t* list_get_latte_iterator(list_t* l, int opt) {
     } 
     if (opt & LIST_ITERATOR_OPTION_DELETE_LIST) it->list = l;
     it->it.data = t;
-    it->it.type = &latte_list_iterator_func;
+    it->it.func = &latte_list_iterator_func;
     it->next = NULL;
     it->list = NULL;
     if (opt & LIST_ITERATOR_OPTION_DELETE_LIST) it->list = l;

@@ -157,14 +157,23 @@ int test_hash_api() {
     assert(hashSetAdd(set, key1));
     assert(hashSetAdd(set, key2));
 
-    hashSetIterator* iterator =  hashSetGetIterator(set);
-    hashSetNode* node;
+    latte_iterator_t* iter = set_get_iterator((set_t*)set);
     int i = 0;
-    while ((node = hashSetNext(iterator)) != NULL) {
+    while(latte_iterator_has_next(iter)) {
+        latte_iterator_next(iter);
         i++;
-    }
+    } 
     assert(i == 3);
-    hashSetReleaseIterator(iterator);
+    latte_iterator_delete(iter);
+
+    // hashSetIterator* iterator =  hashSetGetIterator(set);
+    // hashSetNode* node;
+    // int i = 0;
+    // while ((node = hashSetNext(iterator)) != NULL) {
+    //     i++;
+    // }
+    // assert(i == 3);
+    // hashSetReleaseIterator(iterator);
     assert(hashSetRemove(set, key));
     assert(!hashSetContains(set, key));
     hashSetRelease(set);
@@ -175,8 +184,8 @@ int test_hash_api() {
 }
 
 sds_t getHashNodeKey(void* node) {
-    hashSetNode* n = (hashSetNode*)node;
-    return n->key;
+    latte_pair_t* n = (latte_pair_t*)node;
+    return (sds_t)n->key;
 }
 int test_hash_set_api() {
     set_t* s = set_newHash(&sdsHashSetDictType);
