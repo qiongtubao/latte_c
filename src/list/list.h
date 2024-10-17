@@ -68,11 +68,16 @@ void list_join(list_t *l, list_t *o);
 #define LIST_ITERATOR_OPTION_TAIL (1 << 0)
 #define LIST_ITERATOR_OPTION_DELETE_LIST (1 << 1)
 
+bool protected_latte_list_iterator_has_next(latte_iterator_t* iterator);
+void* protected_latte_list_iterator_next(latte_iterator_t* iterator);
+void protected_latte_list_iterator_delete(latte_iterator_t* iterator);
 latte_iterator_t* list_get_latte_iterator(list_t* l, int opt);
-latte_iterator_t* list_get_latte_iterator_free_list(list_t* l, int opt);
+
 
 void  list_move_head(list_t* l, list_node_t* node);
-void* list_pop(list_t* l) ;
+void* list_remove(list_t* l, list_node_t* node);
+void* list_lpop(list_t* l) ;
+void* list_rpop(list_t* l) ;
 #define AL_START_HEAD 0
 #define AL_START_TAIL 1
 #endif

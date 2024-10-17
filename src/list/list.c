@@ -387,7 +387,7 @@ typedef struct latte_list_iterator_t {
     list_t* list;
 } latte_list_iterator_t;
 
-bool latte_list_iterator_has_next(latte_iterator_t* iterator) {
+bool protected_latte_list_iterator_has_next(latte_iterator_t* iterator) {
     latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_node_t* node = list_next(((list_iterator_t*)it->it.data));
     if (node == NULL) {
@@ -397,14 +397,14 @@ bool latte_list_iterator_has_next(latte_iterator_t* iterator) {
     return true;
 }
 
-void* latte_list_iterator_next(latte_iterator_t* iterator) {
+void* protected_latte_list_iterator_next(latte_iterator_t* iterator) {
     latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_node_t* node = it->next;
     it->next = NULL;
     return list_node_value(node);
 }
 
-void latte_list_iterator_delete(latte_iterator_t* iterator) {
+void protected_latte_list_iterator_delete(latte_iterator_t* iterator) {
     latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_iterator_delete(it->it.data);
     if (it->list != NULL) {
@@ -414,9 +414,9 @@ void latte_list_iterator_delete(latte_iterator_t* iterator) {
 }
 
 latte_iterator_func latte_list_iterator_func = {
-    .has_next = latte_list_iterator_has_next,
-    .next = latte_list_iterator_next,
-    .release = latte_list_iterator_delete
+    .has_next = protected_latte_list_iterator_has_next,
+    .next = protected_latte_list_iterator_next,
+    .release = protected_latte_list_iterator_delete
 };
 
 latte_iterator_t* list_get_latte_iterator(list_t* l, int opt) {
@@ -458,9 +458,7 @@ void list_move_head(list_t* l, list_node_t* node) {
     l->head = node;
 }
 
-void* list_pop(list_t* l) {
-    list_node_t* node = l->head;
-    
+void* list_remove(list_t* l, list_node_t* node) {
     if (node == NULL) return NULL;
     void* result = list_node_value(node);
     if (l->free != NULL) {
@@ -468,4 +466,11 @@ void* list_pop(list_t* l) {
     }
     list_del_node(l, node);
     return result;
+}
+void* list_lpop(list_t* l) {
+    return list_remove(l, l->head);
+}
+
+void* list_rpop(list_t* l) {
+    return list_remove(l, l->tail);
 }
