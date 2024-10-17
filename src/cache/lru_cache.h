@@ -20,9 +20,11 @@ typedef struct lru_cache_func_t {
 } lru_cache_func_t;
 
 lru_cache_t* lru_cache_new(lru_cache_func_t* func);
+void lru_cache_delete(lru_cache_t* cache);
 void* lru_cache_get(lru_cache_t* cache, void* key);
 int lru_cache_put(lru_cache_t* cache, void* key, void* val);
 void lru_cache_remove(lru_cache_t* cache, void* key);
+void lru_cache_pop(lru_cache_t* cache);
 
 
 latte_iterator_t* lru_cache_get_iterator(lru_cache_t* cache);

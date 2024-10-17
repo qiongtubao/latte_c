@@ -39,7 +39,7 @@ latte_iterator_t* arrayIteratorCreate(void* data, int len, int one_size) {
     iterator->len = len;
     iterator->current_index = 0;
     iterator->one_size = one_size;
-    return iterator;
+    return (latte_iterator_t*)iterator;
 }
 int test_array_iterator() {
     char array[26];

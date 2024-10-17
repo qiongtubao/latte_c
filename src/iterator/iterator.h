@@ -21,6 +21,7 @@ typedef struct latte_pair_t {
     void* key;
     void* value;
 } latte_pair_t;
+latte_pair_t* latte_pair_new(void* key, void* val);
 #define latte_pair_key(pair) ((latte_pair_t*)pair)->key
 #define latte_pair_value(pair) ((latte_pair_t*)pair)->value
 typedef struct latte_iterator_t {

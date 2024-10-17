@@ -15,7 +15,6 @@ int test_list_iterator() {
     list_add_node_tail(l, sds_new("hello"));
     list_add_node_tail(l, sds_new("world"));
     latte_iterator_t* iter = list_get_latte_iterator(l, LIST_ITERATOR_OPTION_TAIL);
-    printf("???? : %p %p \n",iter->data, ((list_iterator_t*)(iter->data))->direction);
     int i = 0;
     while (latte_iterator_has_next(iter)) {
         latte_iterator_next(iter);
@@ -57,10 +56,10 @@ int test_list() {
     i = 0;
     list_move_head(l, l->head->next);
     for(int i = 0; i < 4; i++) {
-        assert(list_node_value(list_index(l, i)) == c[i]);
+        assert((long)list_node_value(list_index(l, i)) == c[i]);
     }
 
-    long r = ((long)list_pop(l));
+    long r = ((long)list_lpop(l));
     assert(r == 1L);
     assert(list_length(l) == 3);
 

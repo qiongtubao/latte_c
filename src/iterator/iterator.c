@@ -1,5 +1,15 @@
 #include "iterator.h"
 #include "zmalloc/zmalloc.h"
+//===== 
+latte_pair_t* latte_pair_new(void* key, void* val) {
+    latte_pair_t* p = zmalloc(sizeof(latte_pair_t));
+    p->key = key;
+    p->value = val;
+    return p;
+}
+
+
+//=====  iterator api ======
 bool latte_iterator_has_next(latte_iterator_t* iterator) {
     return iterator->func->has_next(iterator);
 }
