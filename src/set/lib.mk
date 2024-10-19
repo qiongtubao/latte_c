@@ -13,13 +13,13 @@ FINAL_CC_CFLAGS+= -I../set
 ../set/avlSet.o:
 	cd $(WORKSPACE)/src/set && make avlSet.o
 
-../set/hashSet.o:
-	cd $(WORKSPACE)/src/set && make hashSet.o
+../set/hash_set.o:
+	cd $(WORKSPACE)/src/set && make hash_set.o
 
 ../set/set.o:
 	cd $(WORKSPACE)/src/set && make set.o
 
-LIB_OBJ+=  ../set/lockSet.o ../set/avlSet.o ../set/hashSet.o ../set/set.o
+LIB_OBJ+=  ../set/lockSet.o ../set/avlSet.o ../set/hash_set.o ../set/set.o
 
 USED_SET=yes
 endif

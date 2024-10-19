@@ -140,6 +140,66 @@ void bPlusTreeUpdate(bPlusTreeRoot* tree, void* key, void* data) {
     *oldData = data;
 }
 
+void mergeWithSibling(bPlusTreeRoot *tree, bPlusTreeNode *node, int i) {
+    bPlusTreeNode *leftSibling = node->children[i - 1];
+    bPlusTreeNode *rightSibling = node->children[i];
+
+    // Merge right sibling into left sibling
+    leftSibling->keys[leftSibling->numKeys] = node->keys[i - 1];
+    leftSibling->data[leftSibling->numKeys] = node->data[i - 1];
+    for (int j = 0; j < rightSibling->numKeys; j++) {
+        leftSibling->keys[leftSibling->numKeys + 1 + j] = rightSibling->keys[j];
+        leftSibling->data[leftSibling->numKeys + 1 + j] = rightSibling->data[j];
+    }
+    for (int j = 0; j <= rightSibling->numKeys; j++) {
+        leftSibling->children[leftSibling->numKeys + 1 + j] = rightSibling->children[j];
+    }
+    leftSibling->numKeys += rightSibling->numKeys + 1;
+
+    // Remove merged sibling from parent
+    memmove(node->keys + i - 1, node->keys + i, sizeof(void *) * (node->numKeys - i));
+    memmove(node->data + i - 1, node->data + i, sizeof(void *) * (node->numKeys - i));
+    memmove(node->children + i - 1, node->children + i + 1, sizeof(bPlusTreeNode *) * (node->numKeys - i));
+    node->numKeys--;
+    
+    // Free the merged sibling
+    bPlusTreeNodeRelease(rightSibling);
+}
+
+void redistributeFromRightSibling(bPlusTreeRoot *tree, bPlusTreeNode *node, int i) {
+    bPlusTreeNode *leftSibling = node->children[i];
+    bPlusTreeNode *rightSibling = node->children[i + 1];
+
+    // Move one key from parent to left sibling and adjust pointers
+    leftSibling->keys[leftSibling->numKeys] = node->keys[i];
+    leftSibling->data[leftSibling->numKeys] = node->data[i];
+    leftSibling->children[leftSibling->numKeys + 1] = rightSibling->children[0];
+    leftSibling->numKeys++;
+
+    // Move parent's key and adjust pointers
+    memmove(node->keys + i, node->keys + i + 1, sizeof(void *) * (node->numKeys - i - 1));
+    memmove(node->data + i, node->data + i + 1, sizeof(void *) * (node->numKeys - i - 1));
+    memmove(node->children + i + 1, node->children + i + 2, sizeof(bPlusTreeNode *) * (node->numKeys - i - 1));
+    node->numKeys--;
+}
+
+void redistributeFromLeftSibling(bPlusTreeRoot *tree, bPlusTreeNode *node, int i) {
+    bPlusTreeNode *leftSibling = node->children[i - 1];
+    bPlusTreeNode *rightSibling = node->children[i];
+
+    // Move one key from parent to right sibling and adjust pointers
+    rightSibling->keys[0] = node->keys[i - 1];
+    rightSibling->data[0] = node->data[i - 1];
+    rightSibling->children[0] = leftSibling->children[leftSibling->numKeys];
+    rightSibling->numKeys++;
+
+    // Move parent's key and adjust pointers
+    memmove(node->keys + i - 1, node->keys + i, sizeof(void *) * (node->numKeys - i));
+    memmove(node->data + i - 1, node->data + i, sizeof(void *) * (node->numKeys - i));
+    memmove(node->children + i, node->children + i + 1, sizeof(bPlusTreeNode *) * (node->numKeys - i));
+    node->numKeys--;
+}
+
 void deleteKey(bPlusTreeRoot *tree, bPlusTreeNode **node_, void *key) {
     bPlusTreeNode* node = *node_;
     int minDegree = tree->order / 2;
@@ -191,65 +251,11 @@ void deleteKey(bPlusTreeRoot *tree, bPlusTreeNode **node_, void *key) {
 
 // Helper functions
 
-void redistributeFromLeftSibling(bPlusTreeRoot *tree, bPlusTreeNode *node, int i) {
-    bPlusTreeNode *leftSibling = node->children[i - 1];
-    bPlusTreeNode *rightSibling = node->children[i];
 
-    // Move one key from parent to right sibling and adjust pointers
-    rightSibling->keys[0] = node->keys[i - 1];
-    rightSibling->data[0] = node->data[i - 1];
-    rightSibling->children[0] = leftSibling->children[leftSibling->numKeys];
-    rightSibling->numKeys++;
 
-    // Move parent's key and adjust pointers
-    memmove(node->keys + i - 1, node->keys + i, sizeof(void *) * (node->numKeys - i));
-    memmove(node->data + i - 1, node->data + i, sizeof(void *) * (node->numKeys - i));
-    memmove(node->children + i, node->children + i + 1, sizeof(bPlusTreeNode *) * (node->numKeys - i));
-    node->numKeys--;
-}
 
-void redistributeFromRightSibling(bPlusTreeRoot *tree, bPlusTreeNode *node, int i) {
-    bPlusTreeNode *leftSibling = node->children[i];
-    bPlusTreeNode *rightSibling = node->children[i + 1];
 
-    // Move one key from parent to left sibling and adjust pointers
-    leftSibling->keys[leftSibling->numKeys] = node->keys[i];
-    leftSibling->data[leftSibling->numKeys] = node->data[i];
-    leftSibling->children[leftSibling->numKeys + 1] = rightSibling->children[0];
-    leftSibling->numKeys++;
 
-    // Move parent's key and adjust pointers
-    memmove(node->keys + i, node->keys + i + 1, sizeof(void *) * (node->numKeys - i - 1));
-    memmove(node->data + i, node->data + i + 1, sizeof(void *) * (node->numKeys - i - 1));
-    memmove(node->children + i + 1, node->children + i + 2, sizeof(bPlusTreeNode *) * (node->numKeys - i - 1));
-    node->numKeys--;
-}
-
-void mergeWithSibling(bPlusTreeRoot *tree, bPlusTreeNode *node, int i) {
-    bPlusTreeNode *leftSibling = node->children[i - 1];
-    bPlusTreeNode *rightSibling = node->children[i];
-
-    // Merge right sibling into left sibling
-    leftSibling->keys[leftSibling->numKeys] = node->keys[i - 1];
-    leftSibling->data[leftSibling->numKeys] = node->data[i - 1];
-    for (int j = 0; j < rightSibling->numKeys; j++) {
-        leftSibling->keys[leftSibling->numKeys + 1 + j] = rightSibling->keys[j];
-        leftSibling->data[leftSibling->numKeys + 1 + j] = rightSibling->data[j];
-    }
-    for (int j = 0; j <= rightSibling->numKeys; j++) {
-        leftSibling->children[leftSibling->numKeys + 1 + j] = rightSibling->children[j];
-    }
-    leftSibling->numKeys += rightSibling->numKeys + 1;
-
-    // Remove merged sibling from parent
-    memmove(node->keys + i - 1, node->keys + i, sizeof(void *) * (node->numKeys - i));
-    memmove(node->data + i - 1, node->data + i, sizeof(void *) * (node->numKeys - i));
-    memmove(node->children + i - 1, node->children + i + 1, sizeof(bPlusTreeNode *) * (node->numKeys - i));
-    node->numKeys--;
-    
-    // Free the merged sibling
-    bPlusTreeNodeRelease(rightSibling);
-}
 
 void bPlusTreeDelete(bPlusTreeRoot* tree, void* key) {
     deleteKey(tree, &(tree->root), key);
