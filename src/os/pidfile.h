@@ -2,13 +2,13 @@
 #define LATTE_C_PIDFILE_H
 #include "sds/sds.h"
 
-int writePidFile(const char *progName);
+int write_pid_file(const char *progName);
 
 //! Cleanup PID file for the current component
 /**
  * Removes the PID file for the current component
  *
  */
-void removePidFile(void);
-const char *getPidPath();
+void remove_pid_file(void);
+const char* get_pid_file();
 #endif
