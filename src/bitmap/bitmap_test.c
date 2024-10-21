@@ -30,6 +30,32 @@ int test_bitmap() {
 
     bitmap_print(map);
     assert( 1  == bitmap_get(map, 10));
+
+    latte_iterator_t* it = bitmap_get_setted_iterator(map, 1);
+    long r[3] = {10, 20, 30};
+    int i = 0;
+    while (latte_iterator_has_next(it)) {
+        long result = (long)latte_iterator_next(it);
+        // printf("it: %ld\n", result);
+        assert(r[i++] == result);
+    }
+    latte_iterator_delete(it);
+
+    it = bitmap_get_unsetted_iterator(map, 1);
+    
+    i = 1;
+    while (latte_iterator_has_next(it)) {
+        long result = (long)latte_iterator_next(it);
+        // printf("it: %ld\n", result);
+        assert(result != 10);
+        assert(result != 20);
+        assert(result != 30);
+        i++;
+
+    }
+    assert(i == 47);
+    latte_iterator_delete(it);
+
     bitmap_clear(map, 10);
     assert( 0 == bitmap_get(map, 10));
 
