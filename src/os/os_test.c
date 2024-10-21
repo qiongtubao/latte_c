@@ -125,9 +125,9 @@ int test_pid_file() {
   long long pid = (long long)getpid();
 
   const char *programName = "test";
-  writePidFile(programName);
+  write_pid_file(programName);
 
-  char* pidFile = getPidPath();
+  char* pidFile = get_pid_file();
 
   char  *p    = NULL;
   size_t size = 0;

@@ -11,22 +11,22 @@
 
 static char *pid_path = NULL; // 静态局部变量，保存PID路径
 // 获取PID路径
-const char *getPidPath() {
+const char *get_pid_file() {
     return pid_path;
 }
 
 // 假设 setPidPath 和 getPidPath 已经定义好了
-void setPidPath(const char *progName) {
+void set_pid_file(const char *progName) {
     pid_path = progName;
 }
 
 
 
-int writePidFile(const char *progName) {
+int write_pid_file(const char *progName) {
     assert(progName != NULL);
 
-    setPidPath(progName);
-    const char *path = getPidPath();
+    set_pid_file(progName);
+    const char *path = get_pid_file();
     FILE *file = fopen(path, "w"); // 以写入模式打开文件，覆盖旧内容
     int rv = -1;
 
@@ -45,9 +45,9 @@ int writePidFile(const char *progName) {
     return rv;
 }
 
-void removePidFile(void) {
+void remove_pid_file(void) {
     if (pid_path != NULL) {
         unlink(pid_path);
-        setPidPath(NULL);
+        set_pid_file(NULL);
     }
 }
