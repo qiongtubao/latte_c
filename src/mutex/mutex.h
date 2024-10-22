@@ -5,18 +5,15 @@
 // typedef pthread_mutex_t latte_mutex_t;
 typedef struct latte_mutex_t {
   pthread_mutex_t supper;
-  pthread_mutexattr_t* attr;
+  pthread_mutexattr_t* attr;  
 } latte_mutex_t;
+
+
 //new and init
 latte_mutex_t* latte_mutex_new();
 latte_mutex_t* latte_recursive_mutex_new();
-void latte_mutex_delete(latte_mutex_t*);
 
-/**
- * 
- * 
- * 
- */  
+void latte_mutex_delete(latte_mutex_t*);
 int latte_mutex_init(latte_mutex_t* mutex);
 /**
   OK (0)
@@ -36,6 +33,27 @@ void latte_mutex_lock(latte_mutex_t* mutex);
 void latte_mutex_unlock(latte_mutex_t* mutex);
 void latte_mutex_assert_held(latte_mutex_t* mutex);
 
+
+/**
+ * @brief 
+ *    支持写锁递归加锁的读写锁
+ *    读锁本身就可以递归加锁。但是某个线程加了读锁后，也不能再加写锁。
+ *    但是一个线程可以加多次写锁
+ *    与其它类型的锁一样，在CONCURRENCY编译模式下才会真正的生效
+ */
+typedef struct latte_shared_mutex_t {
+    latte_mutex_t supper;
+    pthread_cond_t shared_lock_cv;
+    int exclusive_lock_count;
+    int shared_lock_count;
+} latte_shared_mutex_t;
+latte_shared_mutex_t* latte_shared_mutex_new();
+void latte_shared_mutex_delete(latte_shared_mutex_t* share_mutex);
+void latte_shared_mutex_lock(latte_shared_mutex_t* share_mutex);
+void latte_shared_mutex_unlock(latte_shared_mutex_t* share_mutex);
+void latte_shared_mutex_lock_shared(latte_shared_mutex_t* share_mutex);
+void latte_shared_mutex_unlock_shared(latte_shared_mutex_t* share_mutex);
+int latte_shared_mutex_try_lock_shared(latte_shared_mutex_t* share_mutex);
 #define Mutex_Ok 0
 
 
