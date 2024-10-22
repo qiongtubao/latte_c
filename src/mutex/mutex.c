@@ -47,20 +47,20 @@ latte_mutex_t* latte_recursive_mutex_new() {
 }
 
 int latte_mutex_init(latte_mutex_t* mutex) {
-    return pthread_mutex_init(mutex, mutex->attr);
+    return pthread_mutex_init(&mutex->supper, mutex->attr);
 }
 
 void latte_mutex_lock(latte_mutex_t* mutex) {
-    pthread_mutex_lock(mutex); 
+    pthread_mutex_lock(&mutex->supper); 
 }
 void latte_mutex_unlock(latte_mutex_t* mutex) {
-    pthread_mutex_unlock(mutex);  
+    pthread_mutex_unlock(&mutex->supper);  
 }
 void latte_mutex_assert_held(latte_mutex_t* mutex) {
     (void) mutex;
 }
 int latte_mutex_destroy(latte_mutex_t* mutex) {
-    return pthread_mutex_destroy(mutex);
+    return pthread_mutex_destroy(&mutex->supper);
 }
 void latte_mutex_delete(latte_mutex_t* mutex) {
     assert(latte_mutex_destroy(mutex) == Mutex_Ok);
@@ -71,7 +71,7 @@ void latte_mutex_delete(latte_mutex_t* mutex) {
 }
 
 int latte_mutex_try_lock(latte_mutex_t* mutex) {
-    return pthread_mutex_trylock(mutex);
+    return pthread_mutex_trylock(&mutex->supper);
 }
 
 
