@@ -116,19 +116,19 @@ Error* writableFileAppendSds(WritableFile* file, sds_t data) {
 }  
 
 Error* writableFileAppend(WritableFile* file, char* buf, size_t len) {
-    return posixWriteableFileAppend(file, buf, len);
+    return posixWriteableFileAppend((PosixWritableFile*)file, buf, len);
 }
 
 Error* writableFileFlush(WritableFile* file) {
-    return posixWritableFileFlush(file);
+    return posixWritableFileFlush((PosixWritableFile*)file);
 }
 
 Error* writableFileSync(WritableFile* file) {
-    return posixWritableFileSync(file);
+    return posixWritableFileSync((PosixWritableFile*)file);
 }
 
 Error* writableFileClose(WritableFile* file) {
-    return posixWritableFileClose(file);
+    return posixWritableFileClose((PosixWritableFile*)file);
 }
 
 Error* writableFileAppendSlice(WritableFile* file, slice_t* data) {
@@ -136,7 +136,7 @@ Error* writableFileAppendSlice(WritableFile* file, slice_t* data) {
 }
 
 void writableFileRelease(WritableFile* file) {
-    return posixWritableFileRelease(file);
+    return posixWritableFileRelease((PosixWritableFile*)file);
 }
 
 
@@ -144,7 +144,7 @@ void writableFileRelease(WritableFile* file) {
 
 //创建顺序读文件
 Error* sequentialFileCreate(sds_t filename, SequentialFile** file) {
-    return posixSequentialFileCreate(filename, file);
+    return posixSequentialFileCreate(filename, (PosixSequentialFile**)file);
 }
 
 //sequentialFile
@@ -157,18 +157,18 @@ Error* sequentialFileCreate(sds_t filename, SequentialFile** file) {
 //
 // 需要：外部同步(不是线程安全的访问方式)
 Error* sequentialFileRead(SequentialFile* file,size_t n, slice_t* result) {
-    return posixSequentialFileRead(file, n, result);
+    return posixSequentialFileRead((PosixSequentialFile*)file, n, result);
 }
 
 // 从文件中跳过“n”个字节。这保证不会比读取相同数据慢，但可能会更快。
 // 如果到达文件末尾，跳过将在文件末尾停止，并且 Skip 将返回 OK。
 // 需要：外部同步(不是线程安全的访问方式)
 Error* sequentialFileSkip(SequentialFile* file,uint64_t n) {
-    return posixSequentialFileSkip(file, n);
+    return posixSequentialFileSkip((PosixSequentialFile*)file, n);
 }
 
 void sequentialFileRelease(SequentialFile* file) {
-    posixSequentialFileRelease(file);
+    posixSequentialFileRelease((PosixSequentialFile*)file);
 }
 
 Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* data) {
@@ -176,7 +176,7 @@ Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* data) {
         .p = sds_empty_len(n),
         .len = 0
     };
-    Error* error = posixSequentialFileRead(file, n, &slice);
+    Error* error = posixSequentialFileRead((PosixSequentialFile*)file, n, &slice);
     if (!isOk(error)) {
         return error;
     }

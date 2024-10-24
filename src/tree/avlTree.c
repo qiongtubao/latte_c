@@ -287,7 +287,7 @@ latte_iterator_t* avlTreeGetIterator(avlTree* tree) {
     iterator->tree  = tree;
     iterator->pair.key = NULL;
     iterator->pair.value = NULL;
-    return iterator;
+    return (latte_iterator_t*)iterator;
 }
 
 avlTree* avlTreeCreate(avlTreeType* type) {

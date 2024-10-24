@@ -8,7 +8,7 @@
 #include "flags.h"
 sds_t baseName(sds_t filename) {
     size_t pos = sds_find_lastof(filename, "/");
-    if (pos == -1) {
+    if (pos == C_NPOS) {
         return sds_new(filename);
     }
     // assert(find(filename, '/', pos + 1) == C_NPOS);
@@ -90,7 +90,7 @@ Error* posixWriteableFileAppend(PosixWritableFile* writer, char* data, int size)
 
     // Small writes go to buffer, large writes are written directly.
     //剩下数据小于buffer最大大小（64k） 就存入buffer
-    if (writer < kWritableFileBufferSize) {
+    if (write_size < kWritableFileBufferSize) {
       memcpy(writer->buffer, write_data, write_size);
       writer->pos = write_size;
       return &Ok;

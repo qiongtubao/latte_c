@@ -1,12 +1,14 @@
 
 #ifndef __LATTE_ENV_H
 #define __LATTE_ENV_H
-#include "set/lockSet.h"
+#include "set/set.h"
+#include "mutex/mutex.h"
 #include <utils/error.h>
 #include "file.h"
 #include "sds/sds.h"
 typedef struct Env {
-    lockSet locks_;
+    latte_mutex_t* set_lock;
+    set_t* set;
 } Env;
 
 

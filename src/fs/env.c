@@ -1,19 +1,24 @@
 #include "env.h"
 #include "file.h"
 #include <fcntl.h> // 包含必要的头文件
-#include "set/lockSet.h"
 #include "posix_file.h"
 #include "flags.h"
 #include "set/hash_set.h"
+#define UNUSED(x) (void)(x)
 
 Env* envCreate() {
     Env* env = zmalloc(sizeof(Env));
-    set_t* set = hash_set_new(&sds_hash_set_dict_func);
-    lockSetInit(&env->locks_, set);
+    env->set = hash_set_new(&sds_hash_set_dict_func);
+    env->set_lock = latte_mutex_new();
     return env;
 }
 void envRelease(Env* env) {
-    lockSetDestroy(&env->locks_);
+    latte_mutex_lock(env->set_lock);
+    set_t* s = env->set;
+    env->set = NULL;
+    latte_mutex_unlock(env->set_lock);
+    set_delete(s);
+    latte_mutex_delete(env->set_lock);
     zfree(env);
 }
 //锁定指定文件，避免引发多线程操作对同一个文件的竞争访问
@@ -25,14 +30,19 @@ Error* envLockFile(Env* venv, sds_t filename, FileLock** lock) {
         return error;
     }
     Env* env = venv;
-    if (!lockSetAdd(&env->locks_, filename)) {
+    latte_mutex_lock(env->set_lock);
+    int result = set_add(env->set, filename);
+    latte_mutex_unlock(env->set_lock);
+    if (!result) {
         closeFile(fd);
         return ioErrorCreate(filename, "lock file alreay held by process");
     }
     //lock
     if (lockFile(fd) == -1) {
         closeFile(fd);
-        lockSetRemove(&env->locks_, filename);
+        latte_mutex_lock(env->set_lock);
+        set_remove(env->set, filename);
+        latte_mutex_unlock(env->set_lock);
         return errnoIoCreate("lock file %s", filename);
     }
     *lock = fileLockCreate(fd, filename);
@@ -44,17 +54,21 @@ Error* envUnlockFile(Env* venv, FileLock* lock) {
         return errnoIoCreate("unlock %s", lock->filename);
     } 
     Env* env = venv;
-    lockSetRemove(&env->locks_, lock->filename);
+    latte_mutex_lock(env->set_lock);
+    set_remove(env->set, lock->filename);
+    latte_mutex_unlock(env->set_lock);
     closeFile(lock->fd);
     fileLockRelease(lock);
     return &Ok;
 }
 
 Error* envWritableFileCreate(Env* env, sds_t filename, WritableFile** file) {
+    UNUSED(env);
     return writableFileCreate(filename, file);
 }
 
 Error* envRemoveFile(Env* env, sds_t filename) {
+    UNUSED(env);
     if (removeFile(filename)) {
         return errnoIoCreate(filename);
     }
@@ -62,6 +76,7 @@ Error* envRemoveFile(Env* env, sds_t filename) {
 }
 
 Error* envRenameFile(Env* env, sds_t from, sds_t to) {
+    UNUSED(env);
     if (renameFile(from, to)) {
         return errnoIoCreate(from);
     }
@@ -69,7 +84,8 @@ Error* envRenameFile(Env* env, sds_t from, sds_t to) {
 }
 
 void envWritableFileRelease(Env* env, WritableFile* file) {
-    return posixWritableFileRelease(file);
+    UNUSED(env);
+    return posixWritableFileRelease((PosixWritableFile*)file);
 }
 
 
@@ -106,12 +122,14 @@ Error* envWriteSdsToFileSync(Env* env,
 
 
 Error* envSequentialFileCreate(Env* env, sds_t filename, SequentialFile** file) {
-    return posixSequentialFileCreate(filename, file);
+    UNUSED(env);
+    return posixSequentialFileCreate(filename, (PosixSequentialFile**)file);
 }
-Error* envReadFileToSds(Env* env, sds_t fname, sds* data) {
 
+Error* envReadFileToSds(Env* env, sds_t fname, sds* data) {
+    UNUSED(env);
     SequentialFile* file;
-    Error* error = posixSequentialFileCreate(fname, &file);
+    Error* error = posixSequentialFileCreate(fname, (PosixSequentialFile**)&file);
     if (!isOk(error)) {
         return error;
     }
@@ -123,7 +141,7 @@ Error* envReadFileToSds(Env* env, sds_t fname, sds* data) {
         .len = 0
     };
     while (true) {
-        slice_t fragment;
+        // slice_t fragment;
         error = sequentialFileRead(file, kBufferSize, &buffer);
         if (!isOk(error)) {
             break;

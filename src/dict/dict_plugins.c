@@ -52,7 +52,8 @@ int dict_char_key_compare(dict_t* privdata, const void *key1,
 uint64_t dict_ptr_hash(const void *key) {
     return dict_gen_hash_function(key, sizeof(long));
 }
-int dict_ptr_key_compare(dict_t*privdata, const void *key1,
+int dict_ptr_key_compare(dict_t* privdata, const void *key1,
         const void *key2) {
+    UNUSED(privdata);
     return key1 == key2;
 }

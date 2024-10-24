@@ -1,10 +1,10 @@
 WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?= lockSet.o avlSet.o hash_set.o set.o
+BUILD_OBJ?= avl_set.o hash_set.o set.o
 LIB_OBJ?=
 TEST_MAIN?=set_test
-LIB_MODULES?= zmalloc mutex sds dict dict_plugins tree iterator
+LIB_MODULES?= zmalloc mutex sds dict tree iterator
 MODULE?=set
-BUILD_INCLUDE= set.h lockSet.h avlSet.h hash_set.h
+BUILD_INCLUDE= set.h avl_set.h hash_set.h
 
 include $(WORKSPACE)/mks/sys.mk
 include $(WORKSPACE)/mks/final.mk
