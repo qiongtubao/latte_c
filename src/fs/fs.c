@@ -46,7 +46,7 @@ int writen(int fd, const void* buf, int size) {
 */
 int readn(int fd, void *buf, int size, int* len) {
   char *tmp = (char *)buf;
-  int l = 0;
+  // int l = 0;
   while (size > 0) {
     const ssize_t ret = read(fd, tmp, size);
     if (ret > 0) {

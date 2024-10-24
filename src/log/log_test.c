@@ -47,7 +47,7 @@ int test_set_log() {
 
 void t() {
     char buffer[BT_BUFFER_SIZE];
-    log_debug("test", "lbt %s", lbt(&buffer)); 
+    log_debug("test", "lbt %s", lbt((char*)&buffer)); 
 }
 int test_lbt() {
     t();

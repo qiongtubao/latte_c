@@ -132,10 +132,10 @@ int test_env_write_read() {
     error = sequentialFileCreate(file, &sf);
     
     assert(isOk(error));
-    slice_t slice = {
-        .p = sds_empty_len(100),
-        .len = 0
-    };
+    // slice_t slice = {
+    //     .p = sds_empty_len(100),
+    //     .len = 0
+    // };
     sds_t result;
     error = sequentialFileReadSds(sf, 100, &result);
     sequentialFileRelease(sf);
@@ -206,6 +206,7 @@ int test_dir() {
     
     while(latte_iterator_has_next(iter)) {
         sds_t file = (sds)latte_iterator_next(iter);
+        assert(file != NULL);
         i++;
     }
     //a.txt b.txt

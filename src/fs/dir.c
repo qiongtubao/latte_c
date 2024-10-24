@@ -46,7 +46,7 @@ Error* dirCreateRecursive(const char* path, mode_t mode) {
     char *buf = NULL;
     size_t len;
     Error* status = &Ok;
-    int i;
+    size_t i;
     buf = my_strdup(path);
     if (buf == NULL) {
         return errnoIoCreate("strdup");
@@ -80,7 +80,7 @@ int dirIs(char* path) {
     return S_ISDIR(st.st_mode);
 }
 
-#define PATH_MAX 4096
+#define LATTE_PATH_MAX 4096
 latte_iterator_t* dir_scan_file(char* dir_path, const char* filter_pattern) {
   regex_t reg;
   if (filter_pattern) {
@@ -102,7 +102,7 @@ latte_iterator_t* dir_scan_file(char* dir_path, const char* filter_pattern) {
   }
   struct dirent *pentry;
   list_t* files = list_new();
-  char tmp_path[PATH_MAX];
+  char tmp_path[LATTE_PATH_MAX];
   while ((pentry = readdir(pdir)) != NULL) {
     if ('.' == pentry->d_name[0]) // 跳过 ./ ..文件和隐藏文件
       continue;

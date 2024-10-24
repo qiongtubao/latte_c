@@ -60,7 +60,7 @@ void set_delete(set_t* s);
 latte_iterator_t* set_get_iterator(set_t* s);
 
 // in avlSet.h
-// set_t* set_newAvl(avlTreeType* type); 
+// set_t* avl_set_new(avlTreeType* type); 
 // in hash_set.h
 //set_t* hash_set_new(hash_set_func_t* type);
 #endif

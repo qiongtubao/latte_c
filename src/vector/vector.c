@@ -176,15 +176,15 @@ int partition(void* arr[], int low, int high, comparator_func c) {
     return (i + 1);
 }
 // 快速排序函数
-void quickSort(void* array[], int low, int hight, comparator_func c) {
+void quick_sort(void* array[], int low, int hight, comparator_func c) {
     if (low < hight) {
         // pi 是分区后的基准元素索引
         int pi = partition(array, low, hight, c);
         //单独对基准元素左右两边的子数组进行排序
-        quickSort(array, low, pi -1, c);
-        quickSort(array, pi + 1, hight, c);
+        quick_sort(array, low, pi -1, c);
+        quick_sort(array, pi + 1, hight, c);
     }
 }
 void vector_sort(vector_t* v, comparator_func c) {
-    quickSort(v->data, 0, v->count - 1, c);
+    quick_sort(v->data, 0, v->count - 1, c);
 }
