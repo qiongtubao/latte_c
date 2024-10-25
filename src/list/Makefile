@@ -2,7 +2,7 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=list.o
 LIB_OBJ?=
 TEST_MAIN?=list_test
-LIB_MODULES?=zmalloc sds iterator
+LIB_MODULES?=zmalloc iterator
 MODULE?=list
 BUILD_INCLUDE=list.h
 

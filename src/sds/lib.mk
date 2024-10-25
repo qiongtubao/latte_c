@@ -1,4 +1,5 @@
 ifneq ($(USED_SDS), yes) 
+include $(WORKSPACE)/src/zmalloc/lib.mk
 FINAL_CC_CFLAGS+= -I../sds 
 
 LIB_OBJ+= ../sds/sds.o ../sds/sds_plugins.o

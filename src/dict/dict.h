@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "iterator/iterator.h"
+#include "cmp/cmp.h"
 
 #define DICT_OK 0
 #define DICT_ERR 1
@@ -180,4 +181,9 @@ void protected_dict_iterator_delete(latte_iterator_t* it);
 void* protected_dict_iterator_next(latte_iterator_t* it);
 latte_iterator_t* dict_get_latte_iterator(dict_t *d);
 
+/** 
+ * 非对称性
+ *     比如 private_dict_cmp(a, b) + private_dict_cmp(b, a) != 0 
+ */
+int private_dict_cmp(dict_t* a, dict_t* b, cmp_func cmp);
 #endif

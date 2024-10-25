@@ -152,7 +152,7 @@ int testLongCompareCallback(dict_t*privdata, const void *key1, const void *key2)
     DICT_NOTUSED(privdata);
     l1 = (long)key1;
     l2 = (long)key2;
-    return l1 - l2;
+    return l1 == l2;
 }
 
 dict_func_t dict_klong_vlong_func = {
@@ -167,9 +167,9 @@ dict_func_t dict_klong_vlong_func = {
 
 int test_dict_iterator() {
     dict_t* dict = dict_new(&dict_klong_vlong_func);
-    dict_add(dict, (void*)1L, (void*)1L);
-    dict_add(dict, (void*)2L, (void*)2L);
-    dict_add(dict, (void*)3L, (void*)3L);
+    assert(dict_add(dict, (void*)1L, (void*)1L) == DICT_OK);
+    assert(dict_add(dict, (void*)2L, (void*)2L) == DICT_OK);
+    assert(dict_add(dict, (void*)3L, (void*)3L) == DICT_OK);
     latte_iterator_t* it = dict_get_latte_iterator(dict);
     while(latte_iterator_has_next(it)) {
         latte_pair_t* pair = latte_iterator_next(it);
@@ -179,6 +179,47 @@ int test_dict_iterator() {
 
     dict_add(dict, (void*)4L, (void*)4L);
     
+    return 1;
+}
+
+int test_dict_cmp() {
+    dict_t* a = dict_new(&dict_klong_vlong_func);
+    dict_add(a, (void*)1L, (void*)1L);
+    dict_add(a, (void*)2L, (void*)2L);
+    dict_add(a, (void*)3L, (void*)3L);
+
+    dict_t* b = dict_new(&dict_klong_vlong_func);
+    dict_add(b, (void*)1L, (void*)1L);
+    dict_add(b, (void*)2L, (void*)2L);
+    dict_add(b, (void*)3L, (void*)3L);
+
+    assert(private_dict_cmp(a, b, int64_cmp) == 0);
+    dict_t* c = dict_new(&dict_klong_vlong_func);
+    dict_add(c, (void*)1L, (void*)1L);
+    dict_add(c, (void*)2L, (void*)2L);
+     assert(private_dict_cmp(a, c, int64_cmp) > 0);
+    dict_delete(c);
+    c = dict_new(&dict_klong_vlong_func);
+    dict_add(c, (void*)1L, (void*)1L);
+    dict_add(c, (void*)2L, (void*)2L);
+    dict_add(c, (void*)3L, (void*)3L);
+    dict_add(c, (void*)4L, (void*)4L);
+    assert(private_dict_cmp(a, c, int64_cmp) < 0);
+    dict_t* d = dict_new(&dict_klong_vlong_func);
+    dict_add(d, (void*)1L, (void*)1L);
+    dict_add(d, (void*)2L, (void*)2L);
+    dict_add(d, (void*)4L, (void*)4L);
+    assert(private_dict_cmp(a, d, int64_cmp) == -1);
+    dict_t* e = dict_new(&dict_klong_vlong_func);
+    dict_add(e, (void*)1L, (void*)1L);
+    dict_add(e, (void*)2L, (void*)2L);
+    dict_add(e, (void*)3L, (void*)4L);
+    assert(private_dict_cmp(e, a, int64_cmp) > 0);
+    dict_delete(a);
+    dict_delete(b);
+    dict_delete(c);
+    dict_delete(d);
+    dict_delete(e);
     return 1;
 }
 
@@ -201,6 +242,8 @@ int test_api(void) {
             test_dict_add_speed() == 1);
         test_cond("dict_iterator test function",
             test_dict_iterator() == 1);
+        test_cond("dict_cmp test function",
+            test_dict_cmp() == 1);
         
     } test_report()
     return 1;

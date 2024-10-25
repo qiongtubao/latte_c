@@ -1,6 +1,5 @@
 
 ifneq ($(USED_CRC), yes) 
-include $(WORKSPACE)/src/zmalloc/lib.mk
 include $(WORKSPACE)/src/sds/lib.mk
 FINAL_CC_CFLAGS+= -I../crc 
 

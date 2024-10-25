@@ -141,7 +141,7 @@ int test_decode_int() {
     assert(root1 != NULL);
     test = getMapTestValue(root1);
     assert(test != NULL);
-    assert(value_is_longdouble(test));
+    assert(value_is_long_double(test));
     assert(test->value.ld_value - 1.2345 < 0.0001);
     value_delete(root1);
     root1 = NULL;

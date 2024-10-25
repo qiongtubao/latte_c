@@ -8,7 +8,7 @@ value_t* value_new() {
     return v;
 }
 
-void valueClean(value_t* v) {
+void value_clean(value_t* v) {
     switch (v->type) {
         case VALUE_SDS:
             sds_delete(v->value.sds_value);
@@ -34,47 +34,53 @@ void valueClean(value_t* v) {
     v->type = VALUE_UNDEFINED;
 }
 void value_delete(value_t* v) {
-    valueClean(v);
+    value_clean(v);
     zfree(v);
 }
 
 void value_set_sds(value_t* v, sds_t s) {
-    valueClean(v);
+    value_clean(v);
     v->type = VALUE_SDS;
     v->value.sds_value = s;
 }
 
 void value_set_int64(value_t* v, int64_t l) {
-    valueClean(v);
+    value_clean(v);
     v->type = VALUE_INT;
     v->value.i64_value = l;
 }
 
 void value_set_uint64(value_t* v, uint64_t l) {
-    valueClean(v);
+    value_clean(v);
     v->type = VALUE_UINT;
     v->value.u64_value = l;
 }
 
-void value_set_longdouble(value_t* v, long double d) {
-    valueClean(v);
+void value_set_long_double(value_t* v, long double d) {
+    value_clean(v);
     v->type = VALUE_DOUBLE;
     v->value.ld_value = d;
 }
 void value_set_bool(value_t* v, bool b) {
-    valueClean(v);
+    value_clean(v);
     v->type = VALUE_BOOLEAN;
     v->value.bool_value = b;
 }
 void value_set_array(value_t* v, vector_t* ve) {
-    valueClean(v);
+    value_clean(v);
     v->type = VALUE_ARRAY;
     v->value.array_value = ve;
 }
 void value_set_map(value_t* v, dict_t* d) {
-    valueClean(v);
+    value_clean(v);
     v->type = VALUE_MAP;
     v->value.map_value = d;
+}
+
+void value_set_constant_char(value_t* v, char* c) {
+    value_clean(v);
+    v->type = VALUE_CONSTANT_CHAR;
+    v->value.sds_value = c;
 }
 
 
@@ -93,8 +99,8 @@ uint64_t value_get_uint64(value_t* v) {
     return v->value.i64_value;
 }
 
-long double value_get_longdouble(value_t* v) {
-    latte_assert(value_is_longdouble(v), "value is not long double");
+long double value_get_long_double(value_t* v) {
+    latte_assert(value_is_long_double(v), "value is not long double");
     return v->value.ld_value;
 }
 bool value_get_bool(value_t* v) {
@@ -110,9 +116,16 @@ dict_t* value_get_map(value_t* v) {
     return v->value.map_value;
 }
 
+char* value_get_constant_char(value_t* v) {
+    latte_assert(value_is_constant_char(v), "value is not constant char");
+    return v->value.sds_value;
+}
+
 sds_t value_get_binary(value_t* v) {
     switch (v->type)
     {
+    case VALUE_CONSTANT_CHAR:
+        return sds_new(v->value.sds_value); 
     case VALUE_SDS:
         return v->value.sds_value;
         /* code */
@@ -150,7 +163,7 @@ int value_set_binary(value_t* v, value_type_enum type, char* data, int len) {
         value_set_uint64(v, *(uint64_t*)data);
         break;
     case VALUE_DOUBLE:
-        value_set_longdouble(v, *(long double*)data);
+        value_set_long_double(v, *(long double*)data);
         break;
     case VALUE_BOOLEAN:
         value_set_bool(v, *(int *)data != 0);
@@ -161,4 +174,40 @@ int value_set_binary(value_t* v, value_type_enum type, char* data, int len) {
         break;
     }
     return 1;
+}
+
+
+//cmp 
+int value_cmp(void* a, void* b) {
+    return private_value_cmp((value_t*)a, (value_t*)b);
+}
+int private_value_cmp(value_t* a, value_t* b) {
+    if (a->type != b->type) {
+        return a->type - b->type;
+    }
+    switch (a->type)
+    {
+    case VALUE_UNDEFINED:
+        return 0;
+        break;
+    case VALUE_CONSTANT_CHAR:
+        return private_str_cmp(value_get_constant_char(a), value_get_constant_char(b));
+    case VALUE_INT:
+        return private_int64_cmp(value_get_int64(a), value_get_int64(b));
+    case VALUE_UINT:
+        return private_uint64_cmp(value_get_uint64(a), value_get_uint64(b));
+    case VALUE_BOOLEAN:
+        return private_int64_cmp((int64_t)value_get_bool(a) , (int64_t)value_get_bool(b));
+    case VALUE_SDS:
+        return sds_cmp(value_get_sds(a), value_get_sds(b));
+    case VALUE_DOUBLE:
+        return private_long_double_cmp(value_get_long_double(a), value_get_long_double(b));
+    case VALUE_ARRAY:
+        return private_vector_cmp(value_get_array(a), value_get_array(b), value_cmp);
+    case VALUE_MAP:
+        return private_dict_cmp(value_get_map(a), value_get_map(b), value_cmp);
+    default:
+        LATTE_LIB_LOG(LOG_ERROR, "[value_cmp] unsupport or unknown data type: %d", a->type);
+        break;
+    }
 }
