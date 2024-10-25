@@ -40,10 +40,22 @@ struct latteClient *createLatteClient() {
 void freeLatteClient(struct latteClient* client) {
     zfree(client);
 }
+
+vector_t* test_bind_vector_new() {
+    vector_t* v = vector_new();
+    char* bind[2] = {"*", "-::*"};
+    for(int i = 0; i < 2; i++) {
+        value_t* val = value_new();
+        value_set_sds(val, sds_new(bind[i]));
+        vector_push(v, val);
+    }
+    return v;
+}
 void *server_thread(void *arg) {
     struct latteServer* server = zmalloc(sizeof(struct latteServer));
     server->port = PORT;
-    server->bind = NULL;
+    server->bind = test_bind_vector_new();
+    
     server->maxclients = 100;
     server->el = aeCreateEventLoop(1024);
     initInnerLatteServer(server);

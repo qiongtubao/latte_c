@@ -2,7 +2,7 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=server.o 
 LIB_OBJ?=
 TEST_MAIN?=server_test
-LIB_MODULES?=zmalloc sds list endianconv connection ae rax log
+LIB_MODULES?=zmalloc sds list endianconv connection ae rax log value
 MODULE?=server
 BUILD_INCLUDE=server.h
 
@@ -19,3 +19,4 @@ include $(WORKSPACE)/src/rax/lib.mk
 include $(WORKSPACE)/src/sds/lib.mk
 include $(WORKSPACE)/src/endianconv/lib.mk
 include $(WORKSPACE)/src/log/lib.mk
+include $(WORKSPACE)/src/value/lib.mk

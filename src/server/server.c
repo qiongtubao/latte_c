@@ -23,21 +23,12 @@ void closeSocketListeners(struct latteServer* server, socketFds *sfd) {
 }
 
 //监听端口
-int listenToPort(struct latteServer* server,char* neterr, struct arraySds* bind, int port, int tcp_backlog, socketFds *sfd) {
+int listenToPort(struct latteServer* server,char* neterr, vector_t* bind, int port, int tcp_backlog, socketFds *sfd) {
     int j;
-    char** bindaddr;
-    int bindaddr_count;
-    char *default_bindaddr[2] = {"*", "-::*"};
-    if (bind == NULL 
-        || (bind != NULL && bind->len == 0)) {
-        bindaddr = default_bindaddr;
-        bindaddr_count = 2;
-    } else {
-        bindaddr = (char**)bind->value;
-        bindaddr_count = bind->len;
-    }
-    for (j = 0; j < bindaddr_count; j++) {
-        char* addr = bindaddr[j];
+    latte_iterator_t* iterator = vector_get_iterator(bind);
+    while(latte_iterator_has_next(iterator)) {
+        value_t* v = latte_iterator_next(iterator);
+        char* addr = value_get_sds(v);
         int optional = *addr == '-';
         if (optional) addr++;
         if (strchr(addr, ':')) {
@@ -45,7 +36,6 @@ int listenToPort(struct latteServer* server,char* neterr, struct arraySds* bind,
         } else {
             sfd->fd[sfd->count] = anetTcpServer(neterr,port,addr,tcp_backlog);
         }
-
         if (sfd->fd[sfd->count] == ANET_ERR) {
             int net_errno = errno;
             log_error("latte_c",
@@ -66,6 +56,49 @@ int listenToPort(struct latteServer* server,char* neterr, struct arraySds* bind,
         anetCloexec(sfd->fd[sfd->count]);
         sfd->count++;
     }
+    latte_iterator_delete(iterator);
+
+    // char** bindaddr;
+    // int bindaddr_count;
+    // char *default_bindaddr[2] = {"*", "-::*"};
+    // if (bind == NULL 
+    //     || (bind != NULL && vector_size(bind) == 0)) {
+    //     bindaddr = default_bindaddr;
+    //     bindaddr_count = 2;
+    // } else {
+    //     bindaddr = (char**)bind->data;
+    //     bindaddr_count = vector_size(bind);
+    // }
+    // for (j = 0; j < bindaddr_count; j++) {
+    //     char* addr = bindaddr[j];
+    //     int optional = *addr == '-';
+    //     if (optional) addr++;
+    //     if (strchr(addr, ':')) {
+    //         sfd->fd[sfd->count] = anetTcp6Server(neterr,port,addr,tcp_backlog);
+    //     } else {
+    //         sfd->fd[sfd->count] = anetTcpServer(neterr,port,addr,tcp_backlog);
+    //     }
+
+    //     if (sfd->fd[sfd->count] == ANET_ERR) {
+    //         int net_errno = errno;
+    //         log_error("latte_c",
+    //             "Warning: Could not create_server TCP listening socket %s:%d: %s\n",
+    //             addr, port, neterr);
+    //         if (net_errno == EADDRNOTAVAIL && optional) {
+    //             continue;
+    //         } 
+    //         if (net_errno == ENOPROTOOPT     || net_errno == EPROTONOSUPPORT ||
+    //             net_errno == ESOCKTNOSUPPORT || net_errno == EPFNOSUPPORT ||
+    //             net_errno == EAFNOSUPPORT)
+    //             continue;
+            
+    //         closeSocketListeners(server, sfd);
+    //         return -1;
+    //     }
+    //     anetNonBlock(NULL, sfd->fd[sfd->count]);
+    //     anetCloexec(sfd->fd[sfd->count]);
+    //     sfd->count++;
+    // }
     return 1;
 }
 

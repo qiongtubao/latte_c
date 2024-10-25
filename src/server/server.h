@@ -43,7 +43,7 @@ typedef struct latteServer {
     aeEventLoop *el;
     long long port;
     socketFds ipfd;
-    struct arraySds* bind;
+    vector_t* bind;
     char neterr[ANET_ERR_LEN];   /* Error buffer for anet.c */
     long long tcp_backlog;
     tcpHandlerFunc acceptTcpHandler;
