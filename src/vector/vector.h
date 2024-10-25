@@ -2,7 +2,9 @@
 #define __LATTE_VECTOR_H
 #include <stdlib.h>
 #include <stdio.h>
+#include "cmp/cmp.h"
 #include "iterator/iterator.h"
+#include "cmp/cmp.h"
 /**
  *  非线程安全的
  */
@@ -22,13 +24,14 @@ void* vector_pop(vector_t* v);
 void* vector_get(const vector_t* v, size_t index);
 void vector_set(vector_t* v, size_t index, void* element);
 int vector_shrink(vector_t* v, int empty_slots);
-typedef int comparator_func(void* v1, void* v2);
-void vector_sort(vector_t* v, comparator_func c);
+void vector_sort(vector_t* v, cmp_func c);
 
 #define vector_get_last(v) vector_get(v, v->count - 1)
 #define vector_get_frist(v) vector_get(v , 0)
 
 latte_iterator_t* vector_get_iterator(vector_t* v);
 
+//cmp
+int private_vector_cmp(vector_t* a, vector_t* b, cmp_func cmp);
 
 #endif

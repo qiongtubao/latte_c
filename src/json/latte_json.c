@@ -64,7 +64,7 @@ int json_map_put_bool(json_t* root, sds_t key, bool b) {
 int json_map_put_longdouble(json_t* root, sds_t key, long double ld) {
     if (!value_is_map(root)) return 0;
     json_t* v = value_new();
-    value_set_longdouble(v, ld);
+    value_set_long_double(v, ld);
     return json_map_put_value(root, key, v);
 }
 
@@ -119,7 +119,7 @@ int json_array_put_int64(json_t* root, int64_t element) {
 int json_array_put_longdouble(json_t* root, long double element) {
     if (!value_is_array(root)) return 0;
     json_t* v = value_new();
-    value_set_longdouble(v, element);
+    value_set_long_double(v, element);
     return vector_push(value_get_array(root), v);
 }
 
@@ -659,7 +659,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                             tok->err = json_tokener_error_memory;
                             goto out;
                         }
-                        value_set_longdouble(current, is_negative ? -INFINITY: INFINITY);
+                        value_set_long_double(current, is_negative ? -INFINITY: INFINITY);
                         json_tokener_set_current(tok, current);
                         // current = json_object_new_double(is_negative ? -INFINITY : INFINITY);
                         json_tokener_set_saved_state(tok, json_tokener_state_finish);
@@ -704,7 +704,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                                 tok->err = json_tokener_error_memory;
                                 goto out;
                             }
-                            value_set_longdouble(current, NAN);
+                            value_set_long_double(current, NAN);
                             json_tokener_set_current(tok, current);
                             json_tokener_set_saved_state(tok, json_tokener_state_finish);
                             // saved_state = json_tokener_state_finish;
@@ -1296,7 +1296,7 @@ int sds_to_json_verbose(char* str, int len, json_t** result, json_tokener_t* tok
                                 tok->err = json_tokener_error_memory;
                                 goto out;
                             }
-                            value_set_longdouble(current, numd);
+                            value_set_long_double(current, numd);
                             json_tokener_set_current(tok, current);
                         }
                         else

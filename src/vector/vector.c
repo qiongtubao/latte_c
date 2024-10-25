@@ -161,7 +161,7 @@ void swap(void** a, void** b) {
     *b = c;
 }
 // 分区函数
-int partition(void* arr[], int low, int high, comparator_func c) {
+int partition(void* arr[], int low, int high, cmp_func c) {
     void* pivot = arr[high]; // 选择最后一个元素作为基准
     int i = (low - 1); // i指向小于pivot的元素的最后一个位置
 
@@ -176,7 +176,7 @@ int partition(void* arr[], int low, int high, comparator_func c) {
     return (i + 1);
 }
 // 快速排序函数
-void quick_sort(void* array[], int low, int hight, comparator_func c) {
+void quick_sort(void* array[], int low, int hight, cmp_func c) {
     if (low < hight) {
         // pi 是分区后的基准元素索引
         int pi = partition(array, low, hight, c);
@@ -185,6 +185,19 @@ void quick_sort(void* array[], int low, int hight, comparator_func c) {
         quick_sort(array, pi + 1, hight, c);
     }
 }
-void vector_sort(vector_t* v, comparator_func c) {
+void vector_sort(vector_t* v, cmp_func c) {
     quick_sort(v->data, 0, v->count - 1, c);
+}
+
+int private_vector_cmp(vector_t* a, vector_t* b, cmp_func cmp) {
+    if (vector_size(a) != vector_size(b)) {
+        return vector_size(a) - vector_size(b);
+    }
+    int cmp_result = 0;
+    for(size_t i = 0; i < vector_size(a); i++) {
+        if ((cmp_result = cmp(vector_get(a, i), vector_get(b, i))) != 0) {
+            return cmp_result;
+        }
+    }
+    return cmp_result;
 }

@@ -292,8 +292,9 @@ dict_entry_t*dict_add_raw(dict_t*d, void *key, dict_entry_t**existing)
 
     /* Get the index of the new element, or -1 if
      * the element already exists. */
-    if ((index = _dict_key_index(d, key, dict_hash_key(d,key), existing)) == -1)
+    if ((index = _dict_key_index(d, key, dict_hash_key(d,key), existing)) == -1) {
         return NULL;
+    }
 
     /* Allocate the memory and store the new entry.
      * Insert the element in top, with the assumption that in a database
@@ -395,8 +396,9 @@ static long _dict_key_index(dict_t*d, const void *key, uint64_t hash, dict_entry
     if (existing) *existing = NULL;
 
     /* Expand the hash table if needed */
-    if (_dict_expand_if_needed(d) == DICT_ERR)
+    if (_dict_expand_if_needed(d) == DICT_ERR) {
         return -1;
+    }
     for (table = 0; table <= 1; table++) {
         idx = hash & DICTHT_SIZE_MASK(d->ht_size_exp[table]);
         /* Search if this slot does not already contain the given key */
@@ -437,7 +439,9 @@ dict_entry_t*dict_find(dict_t*d, const void *key)
 
 dict_entry_t* dict_add_get(dict_t* d, void* key, void* val) {
     dict_entry_t*entry = dict_add_raw(d,key,NULL);
-    if (!entry) return NULL;
+    if (NULL == entry) {
+        return NULL;
+    }
     dict_set_val(d, entry, val);
     return entry;
 }
@@ -785,4 +789,27 @@ latte_iterator_t* dict_get_latte_iterator(dict_t *d) {
     iter->nextEntry = NULL;
     iter->readed = false;
     return (latte_iterator_t*)iter;
+}
+
+int private_dict_cmp(dict_t* a, dict_t* b, cmp_func cmp) {
+    if (dict_size(a) != dict_size(b)) {
+        return dict_size(a) - dict_size(b);
+    }
+    latte_iterator_t* it = dict_get_latte_iterator(a);
+    int result = 0;
+    while(latte_iterator_has_next(it)) {
+        latte_pair_t* pair = latte_iterator_next(it);
+        void* key = latte_pair_key(pair);
+        dict_entry_t* entry = dict_find(b, key);
+        if (entry == NULL) {
+            result = -1;
+            goto end;
+        }
+        if ( (result = cmp(latte_pair_value(pair),  dict_get_entry_val(entry))) != 0) {
+            goto end;
+        }
+    }
+end:
+    latte_iterator_delete(it);
+    return result;
 }

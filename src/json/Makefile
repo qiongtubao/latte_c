@@ -11,13 +11,7 @@ include $(WORKSPACE)/mks/final.mk
 include $(WORKSPACE)/mks/malloc.mk
 include $(WORKSPACE)/mks/latte.mk
 include $(WORKSPACE)/mks/info.mk
-include $(WORKSPACE)/src/zmalloc/lib.mk
-include $(WORKSPACE)/src/sds/lib.mk
-include $(WORKSPACE)/src/iterator/lib.mk
-include $(WORKSPACE)/src/vector/lib.mk
-include $(WORKSPACE)/src/dict/lib.mk
 include $(WORKSPACE)/src/value/lib.mk
-include $(WORKSPACE)/src/utils/lib.mk
 
 # FINAL_CC_CFLAGS+= -DUSE_JSONC -I../../deps/json-c/ -I../../deps/json-c/build
 # FINAL_CXX_CFLAGS+= -DUSE_JSONC -I../../deps/json-c/ -I../../deps/json-c/build
