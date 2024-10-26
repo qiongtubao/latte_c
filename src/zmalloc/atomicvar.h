@@ -3,20 +3,20 @@
  *
  * The exported interface is composed of three macros:
  *
- * atomicIncr(var,count) -- Increment the atomic counter
- * atomicGetIncr(var,oldvalue_var,count) -- Get and increment the atomic counter
- * atomicDecr(var,count) -- Decrement the atomic counter
- * atomicGet(var,dstvar) -- Fetch the atomic counter value
- * atomicSet(var,value)  -- Set the atomic counter value
- * atomicGetWithSync(var,value)  -- 'atomicGet' with inter-thread synchronization
- * atomicSetWithSync(var,value)  -- 'atomicSet' with inter-thread synchronization
+ * latte_atomic_incr(var,count) -- Increment the atomic counter
+ * latte_atomic_get_incr(var,oldvalue_var,count) -- Get and increment the atomic counter
+ * latte_atomic_decr(var,count) -- Decrement the atomic counter
+ * latte_atomic_get(var,dstvar) -- Fetch the atomic counter value
+ * latte_atomic_set(var,value)  -- Set the atomic counter value
+ * latte_atomic_get_with_sync(var,value)  -- 'latte_atomic_get' with inter-thread synchronization
+ * latte_atomic_set_with_sync(var,value)  -- 'latte_atomic_set' with inter-thread synchronization
  *
  * Never use return value from the macros, instead use the AtomicGetIncr()
  * if you need to get the current value and increment it atomically, like
  * in the following example:
  *
  *  long oldvalue;
- *  atomicGetIncr(myvar,oldvalue,1);
+ *  latte_atomic_get_incr(myvar,oldvalue,1);
  *  doSomethingWith(oldvalue);
  *
  * ----------------------------------------------------------------------------
@@ -55,8 +55,8 @@
 #ifndef __ATOMIC_VAR_H
 #define __ATOMIC_VAR_H
 
-/* Define redisAtomic for atomic variable. */
-#define redisAtomic
+/* Define latteAtomic for atomic variable. */
+#define latteAtomic
 
 /* To test Redis with Helgrind (a Valgrind tool) it is useful to define
  * the following macro, so that __sync macros are used: those can be detected
@@ -84,24 +84,24 @@
 #if !defined(__ATOMIC_VAR_FORCE_SYNC_MACROS) && defined(__STDC_VERSION__) && \
     (__STDC_VERSION__ >= 201112L) && !defined(__STDC_NO_ATOMICS__)
 /* Use '_Atomic' keyword if the compiler supports. */
-#undef  redisAtomic
-#define redisAtomic _Atomic
+#undef  latteAtomic
+#define latteAtomic _Atomic
 /* Implementation using _Atomic in C11. */
 
 #include <stdatomic.h>
-#define atomicIncr(var,count) atomic_fetch_add_explicit(&var,(count),memory_order_relaxed)
-#define atomicGetIncr(var,oldvalue_var,count) do { \
+#define latte_atomic_incr(var,count) atomic_fetch_add_explicit(&var,(count),memory_order_relaxed)
+#define latte_atomic_get_incr(var,oldvalue_var,count) do { \
     oldvalue_var = atomic_fetch_add_explicit(&var,(count),memory_order_relaxed); \
 } while(0)
-#define atomicDecr(var,count) atomic_fetch_sub_explicit(&var,(count),memory_order_relaxed)
-#define atomicGet(var,dstvar) do { \
+#define latte_atomic_decr(var,count) atomic_fetch_sub_explicit(&var,(count),memory_order_relaxed)
+#define latte_atomic_get(var,dstvar) do { \
     dstvar = atomic_load_explicit(&var,memory_order_relaxed); \
 } while(0)
-#define atomicSet(var,value) atomic_store_explicit(&var,value,memory_order_relaxed)
-#define atomicGetWithSync(var,dstvar) do { \
+#define latte_atomic_set(var,value) atomic_store_explicit(&var,value,memory_order_relaxed)
+#define latte_atomic_get_with_sync(var,dstvar) do { \
     dstvar = atomic_load_explicit(&var,memory_order_seq_cst); \
 } while(0)
-#define atomicSetWithSync(var,value) \
+#define latte_atomic_set_with_sync(var,value) \
     atomic_store_explicit(&var,value,memory_order_seq_cst)
 #define REDIS_ATOMIC_API "c11-builtin"
 
@@ -110,42 +110,42 @@
     defined(__ATOMIC_RELAXED) && defined(__ATOMIC_SEQ_CST)
 /* Implementation using __atomic macros. */
 
-#define atomicIncr(var,count) __atomic_add_fetch(&var,(count),__ATOMIC_RELAXED)
-#define atomicGetIncr(var,oldvalue_var,count) do { \
+#define latte_atomic_incr(var,count) __atomic_add_fetch(&var,(count),__ATOMIC_RELAXED)
+#define latte_atomic_get_incr(var,oldvalue_var,count) do { \
     oldvalue_var = __atomic_fetch_add(&var,(count),__ATOMIC_RELAXED); \
 } while(0)
-#define atomicDecr(var,count) __atomic_sub_fetch(&var,(count),__ATOMIC_RELAXED)
-#define atomicGet(var,dstvar) do { \
+#define latte_atomic_decr(var,count) __atomic_sub_fetch(&var,(count),__ATOMIC_RELAXED)
+#define latte_atomic_get(var,dstvar) do { \
     dstvar = __atomic_load_n(&var,__ATOMIC_RELAXED); \
 } while(0)
-#define atomicSet(var,value) __atomic_store_n(&var,value,__ATOMIC_RELAXED)
-#define atomicGetWithSync(var,dstvar) do { \
+#define latte_atomic_set(var,value) __atomic_store_n(&var,value,__ATOMIC_RELAXED)
+#define latte_atomic_get_with_sync(var,dstvar) do { \
     dstvar = __atomic_load_n(&var,__ATOMIC_SEQ_CST); \
 } while(0)
-#define atomicSetWithSync(var,value) \
+#define latte_atomic_set_with_sync(var,value) \
     __atomic_store_n(&var,value,__ATOMIC_SEQ_CST)
 #define REDIS_ATOMIC_API "atomic-builtin"
 
 #elif defined(HAVE_ATOMIC)
 /* Implementation using __sync macros. */
 
-#define atomicIncr(var,count) __sync_add_and_fetch(&var,(count))
-#define atomicGetIncr(var,oldvalue_var,count) do { \
+#define latte_atomic_incr(var,count) __sync_add_and_fetch(&var,(count))
+#define latte_atomic_get_incr(var,oldvalue_var,count) do { \
     oldvalue_var = __sync_fetch_and_add(&var,(count)); \
 } while(0)
-#define atomicDecr(var,count) __sync_sub_and_fetch(&var,(count))
-#define atomicGet(var,dstvar) do { \
+#define latte_atomic_decr(var,count) __sync_sub_and_fetch(&var,(count))
+#define latte_atomic_get(var,dstvar) do { \
     dstvar = __sync_sub_and_fetch(&var,0); \
 } while(0)
-#define atomicSet(var,value) do { \
+#define latte_atomic_set(var,value) do { \
     while(!__sync_bool_compare_and_swap(&var,var,value)); \
 } while(0)
 /* Actually the builtin issues a full memory barrier by default. */
-#define atomicGetWithSync(var,dstvar) { \
+#define latte_atomic_get_with_sync(var,dstvar) { \
     dstvar = __sync_sub_and_fetch(&var,0,__sync_synchronize); \
     ANNOTATE_HAPPENS_AFTER(&var); \
 } while(0)
-#define atomicSetWithSync(var,value) do { \
+#define latte_atomic_set_with_sync(var,value) do { \
     ANNOTATE_HAPPENS_BEFORE(&var);  \
     while(!__sync_bool_compare_and_swap(&var,var,value,__sync_synchronize)); \
 } while(0)

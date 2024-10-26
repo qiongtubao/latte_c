@@ -59,10 +59,7 @@ int config_set_array(config_manager_t* c, char* key, vector_t* value);
 // /* object attribute */
 // int config_update_object(config_rule_t* rule, void* old_value, void* new_value);
 
-/** equal */
-typedef int cmp_func(void* a, void* b);
-int cmp_sds(void* a, void* b);
-int cmp_sds_array(void* a, void* b);
+
 #define LL_CONFIG_INIT(v) \
     { .check_update = NULL, \
       .to_sds = write_config_int64,\

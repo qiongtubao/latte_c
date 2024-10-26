@@ -14,8 +14,8 @@ typedef struct User {
     int age;
 } User;
 
-void zfreeUser(User* user) {
-    zfree(user);
+void zfreeUser(void* user) {
+    zfree((User*)user);
 }
 
 int test_obj_local() {

@@ -5,7 +5,7 @@
 
 uint64_t getClientId(struct latteServer* server) {
     uint64_t client_id;
-    atomicGetIncr(server->next_client_id, client_id, 1);
+    latte_atomic_get_incr(server->next_client_id, client_id, 1);
     return client_id;
 }
 

@@ -101,18 +101,6 @@ int config_set_int64(config_manager_t* c, char* key, int64_t value) {
     return 0;
 }
 
-int cmp_sds(void* a, void* b) {
-    return sds_cmp((sds)a, (sds)b);
-}
-int array_is_equal(vector_t* a, vector_t* b, cmp_func cmp) {
-    if (vector_size(a) != vector_size(b)) return 0;
-    for(size_t i = 0; i < vector_size(a); i++) {
-        if (cmp(value_get_sds(vector_get(a, i)) , value_get_sds(vector_get(b, i))) != 0) {
-            return 0;
-        }
-    }
-    return 1;
-}
 
 int config_set_array(config_manager_t* c, char* key, vector_t* value) {
     config_rule_t* rule = config_get_rule(c, key);

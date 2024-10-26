@@ -18,9 +18,9 @@ typedef struct benchmarkContext {
     readConnFunc read;
 } benchmarkContext;
 
-typedef ssize_t *(*writeContextFunc)(void *client, void* ptr, ssize_t len);
-typedef ssize_t *(*readHandlerFunc)(void *client);
-typedef ssize_t *(*createWriteContentFunc)(void *client);
+typedef ssize_t (*writeContextFunc)(void *client, void* ptr, ssize_t len);
+typedef ssize_t (*readHandlerFunc)(void *client);
+typedef ssize_t (*createWriteContentFunc)(void *client);
 typedef struct _client {
     benchmarkContext *context;
     sds_t obuf; /* 发送的缓存 */
