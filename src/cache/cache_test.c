@@ -80,7 +80,6 @@ int test_lru_cache() {
     i = 0;
     while(latte_iterator_has_next(iterator)) {
         latte_pair_t* p = latte_iterator_next(iterator);
-        // printf("p: %p, index:%d key:%ld value:%ld\n", p, i, (long)latte_pair_key(p), (long)latte_pair_value(p));
         assert(key1s[i] == (long)latte_pair_key(p));
         assert(val1s[i] == (long)latte_pair_value(p));
         i++;

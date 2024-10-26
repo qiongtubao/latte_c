@@ -34,17 +34,17 @@ int test_ll_string(void) {
 int test_atomic() {
     latteAtomic int a = 0;
     int r ;
-    atomicGet(a, r);
+    latte_atomic_get(a, r);
     assert(r == 0);
-    atomicGetIncr(a , r, 1);
+    latte_atomic_get_incr(a , r, 1);
     assert(r == 0);
-    atomicGet(a, r);
+    latte_atomic_get(a, r);
     assert(r == 1);
-    atomicIncr(a ,1);
-    atomicGet(a, r);
+    latte_atomic_incr(a ,1);
+    latte_atomic_get(a, r);
     assert(r == 2);
-    atomicDecr(a, 1);
-    atomicGet(a, r);
+    latte_atomic_decr(a, 1);
+    latte_atomic_get(a, r);
     assert(r == 1);
     return 1;
 }

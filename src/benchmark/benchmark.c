@@ -119,7 +119,7 @@ static void writeHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     /* Initialize request when nothing was written. */
     if (c->written == 0) {
         c->createWriteContent(c);
-        atomicGet(config.slots_last_update, c->slots_last_update);
+        latte_atomic_get(config.slots_last_update, c->slots_last_update);
         c->start = ustime();
         c->latency = -1;
     } 
@@ -174,8 +174,8 @@ static client createClient(char *cmd, size_t len, client from, int thread_id) {
     }
     aeCreateFileEvent(el,c->context->fd,AE_WRITABLE,writeHandler,c);
     list_add_node_tail(config.clients,c);
-    atomicIncr(config.liveclients, 1);
-    atomicGet(config.slots_last_update, c->slots_last_update);
+    latte_atomic_incr(config.liveclients, 1);
+    latte_atomic_get(config.slots_last_update, c->slots_last_update);
 }
 
 
