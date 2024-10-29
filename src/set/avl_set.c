@@ -3,11 +3,11 @@
 
 
 int avl_set_add(avl_set_t* set, void* key) {
-    return avlTreePut(set, key, NULL);
+    return avl_tree_put(set, key, NULL);
 }
 
 int avl_set_contains(avl_set_t* set, void* element) {
-    avlNode* node = avlTreeGet(set, element);
+    avl_node_t* node = avl_tree_get(set, element);
     return node == NULL? 0 : 1;
 }
 
@@ -42,18 +42,19 @@ struct set_func_t avl_set_func = {
     .remove = avl_set_type_remove,
     .size = avl_set_type_size,
     .release = avl_set_type_delete,
-    .getIterator = avl_set_type_get_iterator
+    .getIterator = avl_set_type_get_iterator,
+    .clear = 
 };
 set_t* avl_set_new(avl_set_func_t* type) {
     set_t* s = zmalloc(sizeof(set_t));
-    s->data = avlTreeCreate(type);
+    s->data = avl_tree_new(type);
     s->type = &avl_set_func;
     return s;
 }
 #define UNUSED(x) (void)x
-avlNode* set_sds_node_new(void* key, void* value) {
+avl_node_t* set_sds_node_new(void* key, void* value) {
     UNUSED(value);
-    avlNode* node = zmalloc(sizeof(avlNode));
+    avl_node_t* node = zmalloc(sizeof(avl_node_t));
     node->left = NULL;
     node->right = NULL;
     node->key = sds_dup(key);
@@ -62,12 +63,12 @@ avlNode* set_sds_node_new(void* key, void* value) {
 }
 
 
-void UNSETVAL(avlNode* node, void* val) {
+void UNSETVAL(avl_node_t* node, void* val) {
     UNUSED(node);
     UNUSED(val);
 }
 
-void set_sds_node_delete(avlNode* node) {
+void set_sds_node_delete(avl_node_t* node) {
     sds_delete(node->key);
     zfree(node);
 }
@@ -77,9 +78,9 @@ int set_sds_operator(void* a, void* b) {
 }
 
 avl_set_func_t avl_set_sds_func = {
-    .createNode = set_sds_node_new,
-    .nodeSetVal = UNSETVAL,
+    .create_node = set_sds_node_new,
+    .node_set_val = UNSETVAL,
     .operator = set_sds_operator,
-    .releaseNode = set_sds_node_delete
+    .release_node = set_sds_node_delete
 };
 

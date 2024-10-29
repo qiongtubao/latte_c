@@ -67,7 +67,7 @@ int test_hash_set() {
 }
 
 sds_t get_avl_node(void* n) {
-    avlNode* node = (avlNode*)n;
+    avl_node_t* node = (avl_node_t*)n;
     return node->key;
 }
 
@@ -91,7 +91,7 @@ int test_api(void) {
             test_hash_set() == 1);
         test_cond("about avlSet function",
             test_avl_set() == 1);
-        
+
     } test_report()
     return 1;
 }

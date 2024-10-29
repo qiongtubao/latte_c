@@ -6,12 +6,12 @@ FINAL_CC_CFLAGS+= -I../tree
 
 
 USED_TREE=yes
-../tree/avlTree.o:
-	cd ../tree && make avlTree.o
+../tree/avl_tree.o:
+	cd ../tree && make avl_tree.o
 
-../tree/bPlusTree.o:
-	cd ../tree && make bPlusTree.o
+../tree/b_plus_tree.o:
+	cd ../tree && make b_plus_tree.o
 
-LIB_OBJ+= ../tree/avlTree.o ../tree/bPlusTree.o
+LIB_OBJ+= ../tree/avl_tree.o ../tree/b_plus_tree.o
 
 endif
