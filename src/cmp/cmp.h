@@ -2,6 +2,7 @@
 #define __LATTE_CMP_H
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 typedef int cmp_func(void* a, void* b);
 

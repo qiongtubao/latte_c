@@ -93,7 +93,6 @@ void hash_set_delete_func(set_t* set) {
 
 latte_iterator_t* hash_set_get_iteratro_func(set_t* set) {
     return dict_get_latte_iterator((dict_t*)set->data);
-    
 }
 
 set_func_t hash_set_func = {
@@ -102,7 +101,8 @@ set_func_t hash_set_func = {
     .size = hash_set_size_func,
     .remove = hash_set_remove_func,
     .release = hash_set_delete_func,
-    .getIterator = hash_set_get_iteratro_func
+    .getIterator = hash_set_get_iteratro_func,
+    .clear = private_hash_set_destroy 
 };
 set_t* hash_set_new(hash_set_func_t* type) {
     set_t* s = zmalloc(sizeof(set_t));

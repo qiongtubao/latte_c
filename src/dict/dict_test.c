@@ -222,6 +222,19 @@ int test_dict_cmp() {
     dict_delete(e);
     return 1;
 }
+long random_long(int min, int max) {
+    return (rand() % (max -min + 1)) + min;
+}
+int test_dict_random() {
+    dict_t* d = dict_new(&dict_klong_vlong_func);
+    for(long i = 0; i < 10000; i++) {
+        long r = random_long(100,10000);
+        if (dict_find(d, r) != NULL) continue;
+        assert(DICT_OK == dict_add(d, r, r));
+    }
+    dict_delete(d);
+    return 1;
+}
 
 int test_api(void) {
     {
@@ -244,6 +257,8 @@ int test_api(void) {
             test_dict_iterator() == 1);
         test_cond("dict_cmp test function",
             test_dict_cmp() == 1);
+        test_cond("dict_random test function",
+            test_dict_random() ==1 );
         
     } test_report()
     return 1;

@@ -22,6 +22,7 @@ typedef struct set_func_t {
     int (*contains)(set_t* set, void* element);
     size_t (*size)(set_t* set);
     void (*release)(set_t* set);
+    void (*clear)(set_t* set);
     latte_iterator_t* (*getIterator)(set_t* set);
 } set_func_t;
 //主要是用于不同set类型 如果无法明确用途就使用动态方式，
@@ -56,11 +57,12 @@ int set_remove(set_t* s, void* key);
 size_t set_size(set_t* s);
 
 void set_delete(set_t* s);
+void set_clear(set_t* s);
 
 latte_iterator_t* set_get_iterator(set_t* s);
 
 // in avlSet.h
-// set_t* avl_set_new(avlTreeType* type); 
+// set_t* avl_set_new(avl_tree_type_t* type); 
 // in hash_set.h
 //set_t* hash_set_new(hash_set_func_t* type);
 #endif
