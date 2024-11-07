@@ -12,28 +12,32 @@ int avl_set_contains(avl_set_t* set, void* element) {
 }
 
 int avl_set_type_add(set_t *set, void* key) {
-    return avl_set_add(set->data, key);
+    return avl_set_add((avl_tree_t *)set->data, key);
 }
 
 int avl_set_type_contains(set_t *set, void* key) {
-    return avl_set_contains(set->data, key);
+    return avl_set_contains((avl_tree_t *)set->data, key);
 }
 
 int avl_set_type_remove(set_t* set, void* key) {
-    return avl_set_remove(set->data, key);
+    return avl_tree_remove((avl_tree_t *)set->data, key);
 }
 
 size_t avl_set_type_size(set_t* set) {
-    return avl_set_size(set->data);
+    return avl_tree_size((avl_tree_t *)set->data);
 }
 
 void avl_set_type_delete(set_t* set) {
-    avl_set_delete(set->data);
+    avl_tree_delete((avl_tree_t *)set->data);
     zfree(set);
 }
 
+void avl_set_type_clear(set_t* set) {
+    avl_tree_clear((avl_tree_t *)set->data);
+}
+
 latte_iterator_t* avl_set_type_get_iterator(set_t* set) {
-    return avl_set_get_iterator(set->data);
+    return avl_tree_get_iterator((avl_tree_t *)set->data);
 }
 
 struct set_func_t avl_set_func = {
@@ -43,7 +47,7 @@ struct set_func_t avl_set_func = {
     .size = avl_set_type_size,
     .release = avl_set_type_delete,
     .getIterator = avl_set_type_get_iterator,
-    .clear = 
+    .clear = avl_set_type_clear
 };
 set_t* avl_set_new(avl_set_func_t* type) {
     set_t* s = zmalloc(sizeof(set_t));

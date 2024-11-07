@@ -2,6 +2,7 @@ ifneq ($(USED_TREE), yes)
 include $(WORKSPACE)/src/zmalloc/lib.mk
 include $(WORKSPACE)/src/utils/lib.mk
 include $(WORKSPACE)/src/log/lib.mk
+include $(WORKSPACE)/src/vector/lib.mk
 FINAL_CC_CFLAGS+= -I../tree
 
 
