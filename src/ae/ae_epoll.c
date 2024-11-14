@@ -14,13 +14,13 @@ static int aeApiCreate(aeEventLoop *eventLoop) {
         zfree(state);
         return -1;
     }
-    state->epfd = epoll_create(1024); /* 1024 is just a hint for the kernel */
+    state->epfd = epoll_create(1024); /* 1024 is just a hint for the kernel , 创建epoll fd*/ 
     if (state->epfd == -1) {
         zfree(state->events);
         zfree(state);
         return -1;
     }
-    anetCloexec(state->epfd);
+    anetCloexec(state->epfd); //启动epoll_fd的FD_CLOEXEC
     eventLoop->apidata = state;
     return 0;
 }
@@ -50,10 +50,10 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
 
     ee.events = 0;
     mask |= eventLoop->events[fd].mask; /* Merge old events */
-    if (mask & AE_READABLE) ee.events |= EPOLLIN;
-    if (mask & AE_WRITABLE) ee.events |= EPOLLOUT;
+    if (mask & AE_READABLE) ee.events |= EPOLLIN; //注册读事件
+    if (mask & AE_WRITABLE) ee.events |= EPOLLOUT; //注册写事件
     ee.data.fd = fd;
-    if (epoll_ctl(state->epfd,op,fd,&ee) == -1) return -1;
+    if (epoll_ctl(state->epfd,op,fd,&ee) == -1) return -1; //注册
     return 0;
 }
 
@@ -80,7 +80,7 @@ static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
     int retval, numevents = 0;
 
     retval = epoll_wait(state->epfd,state->events,eventLoop->setsize,
-            tvp ? (tvp->tv_sec*1000 + (tvp->tv_usec + 999)/1000) : -1);
+            tvp ? (tvp->tv_sec*1000 + (tvp->tv_usec + 999)/1000) : -1); //事件个数
     if (retval > 0) {
         int j;
 
