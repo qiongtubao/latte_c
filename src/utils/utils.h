@@ -59,6 +59,7 @@ int sds2d(sds_t value, double* dp);
 int d2string(char *buf, size_t len, double value);
 sds_t d2sds(double value);
 long long ustime(void);
+long long nstime(void);
 
 static long long nowustime;
 static long daylight_active;
@@ -66,4 +67,6 @@ static int start_update_cache_timed = 0;
 long getTimeZone();
 long getDaylightActive();
 long updateDaylightActive();
+
+unsigned long  current_monitonic_time();
 #endif

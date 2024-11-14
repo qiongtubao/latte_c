@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-
+#include <stddef.h>
 
 /* Convert a string into a long long. Returns 1 if the string could be parsed
  * into a (non-overflowing) long long, 0 otherwise. The value will be set to
@@ -194,7 +194,12 @@ long long ustime(void) {
     return ust;
 }
 
-
+unsigned long current_monitonic_time()
+{
+  struct timespec tp;
+  clock_gettime(CLOCK_MONOTONIC, &tp);
+  return tp.tv_sec * 1000 * 1000 * 1000UL + tp.tv_nsec;
+}
 
 /*
  * Gets the proper timezone in a more portable fashion
