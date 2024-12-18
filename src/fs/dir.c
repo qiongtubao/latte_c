@@ -21,7 +21,7 @@ Error* dirCreate(char* path) {
             //已经存在了，不报错
             return &Ok;
         } 
-        return errnoIoCreate("create dir fail");
+        return errno_io_new("create dir fail");
     }
     return &Ok;
 }
@@ -49,7 +49,7 @@ Error* dirCreateRecursive(const char* path, mode_t mode) {
     size_t i;
     buf = my_strdup(path);
     if (buf == NULL) {
-        return errnoIoCreate("strdup");
+        return errno_io_new("strdup");
     }
     
     len = strlen(buf) + 1;
@@ -57,14 +57,14 @@ Error* dirCreateRecursive(const char* path, mode_t mode) {
         if (buf[i] == '/' || buf[i] == '\\') {
             buf[i] = '\0';
             if (mkdir(buf, mode) == -1 && errno != EEXIST) {
-                status =  errnoIoCreate("mkdir");
+                status =  errno_io_new("mkdir");
                 break;
             }
             buf[i] = '/';
         }
     }
     if (mkdir(buf, mode) == -1 && errno != EEXIST) {
-        status =  errnoIoCreate("mkdir");
+        status =  errno_io_new("mkdir");
     }
     zfree(buf);
     return status;

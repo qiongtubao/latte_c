@@ -26,7 +26,7 @@ Error* envLockFile(Env* venv, sds_t filename, FileLock** lock) {
     *lock = NULL;
     int fd = 0;
     Error* error = openFile(filename, &fd, O_RDWR | O_CREAT | kOpenBaseFlags, 0644);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
         return error;
     }
     Env* env = venv;
@@ -43,7 +43,7 @@ Error* envLockFile(Env* venv, sds_t filename, FileLock** lock) {
         latte_mutex_lock(env->set_lock);
         set_remove(env->set, filename);
         latte_mutex_unlock(env->set_lock);
-        return errnoIoCreate("lock file %s", filename);
+        return errno_io_new("lock file %s", filename);
     }
     *lock = fileLockCreate(fd, filename);
     return &Ok;
@@ -51,7 +51,7 @@ Error* envLockFile(Env* venv, sds_t filename, FileLock** lock) {
 
 Error* envUnlockFile(Env* venv, FileLock* lock) {
     if (unlockFile(lock->fd) == -1) {
-        return errnoIoCreate("unlock %s", lock->filename);
+        return errno_io_new("unlock %s", lock->filename);
     } 
     Env* env = venv;
     latte_mutex_lock(env->set_lock);
@@ -70,7 +70,7 @@ Error* envWritableFileCreate(Env* env, sds_t filename, WritableFile** file) {
 Error* envRemoveFile(Env* env, sds_t filename) {
     UNUSED(env);
     if (removeFile(filename)) {
-        return errnoIoCreate(filename);
+        return errno_io_new(filename);
     }
     return &Ok;
 }
@@ -78,7 +78,7 @@ Error* envRemoveFile(Env* env, sds_t filename) {
 Error* envRenameFile(Env* env, sds_t from, sds_t to) {
     UNUSED(env);
     if (renameFile(from, to)) {
-        return errnoIoCreate(from);
+        return errno_io_new(from);
     }
     return &Ok;
 }
@@ -94,18 +94,18 @@ Error* envDoWriteSdsToFile(Env* env, sds_t fname,
                                 slice_t* data , bool should_sync) {
   WritableFile* file = NULL;
   Error* error = envWritableFileCreate(env, fname, &file);
-  if (!isOk(error)) {
+  if (!error_is_ok(error)) {
     return error;
   }
   error = writableFileAppendSlice(file, data);
-  if (isOk(error) && should_sync) {
+  if (error_is_ok(error) && should_sync) {
     error = writableFileSync(file);
   }
-  if (isOk(error)) {
+  if (error_is_ok(error)) {
     error = writableFileClose(file);
   }
   //writableFileRelease(file);  // Will auto-close if we did not close above
-  if (!isOk(error)) {
+  if (!error_is_ok(error)) {
     envRemoveFile(env, fname);
   }
   return error;
@@ -130,7 +130,7 @@ Error* envReadFileToSds(Env* env, sds_t fname, sds* data) {
     UNUSED(env);
     SequentialFile* file;
     Error* error = posixSequentialFileCreate(fname, (PosixSequentialFile**)&file);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
         return error;
     }
     static const int kBufferSize = 8192;
@@ -143,7 +143,7 @@ Error* envReadFileToSds(Env* env, sds_t fname, sds* data) {
     while (true) {
         // slice_t fragment;
         error = sequentialFileRead(file, kBufferSize, &buffer);
-        if (!isOk(error)) {
+        if (!error_is_ok(error)) {
             break;
         }
         if (buffer.len == 0) {

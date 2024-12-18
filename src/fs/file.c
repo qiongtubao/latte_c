@@ -14,7 +14,7 @@
 Error* openFile(char* filename, int* fd, int flag, mode_t mode) {
     *fd = open(filename, flag, mode);
     if (*fd < 0) {
-        return errnoIoCreate(filename); 
+        return errno_io_new(filename); 
     }
     return &Ok;
 }
@@ -99,12 +99,12 @@ Error* writableFileCreate(sds_t filename,
     int fd ;
     Error* error = openFile(filename, &fd,
                     O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
         return error;
     }
     if (fd < 0) {
       *result = NULL;
-      return errnoIoCreate(filename);
+      return errno_io_new(filename);
     }
 
     *result = (WritableFile*)posixWritableFileCreate(filename, fd);
@@ -177,7 +177,7 @@ Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* data) {
         .len = 0
     };
     Error* error = posixSequentialFileRead((PosixSequentialFile*)file, n, &slice);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
         return error;
     }
     *data = slice.p;

@@ -83,7 +83,7 @@ int check_dir_exists(char* dirname) {
 int test_create_dir() {
     assert(check_dir_exists("test_create_dir") == 0);
     Error* error = dirCreate("test_create_dir");
-    assert(isOk(error));
+    assert(error_is_ok(error));
     assert(check_dir_exists("test_create_dir") == 1);
     recursive_rmdir("test_create_dir");
     assert(check_dir_exists("test_create_dir") == 0);
@@ -91,7 +91,7 @@ int test_create_dir() {
 
     assert(dirIs("test_create_dir") == 0);
     error = dirCreateRecursive("test_create_dir", 0755);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     assert(dirIs("test_create_dir") == 1);
     recursive_rmdir("test_create_dir");
     assert(dirIs("test_create_dir") == 0);
@@ -103,9 +103,9 @@ int test_env_lockfile() {
     sds_t filename = sds_new("LOCK");
     FileLock* fileLock;
     Error* error = envLockFile(env, filename, &fileLock);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     error = envUnlockFile(env, fileLock);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     return 1;
 }
 
@@ -120,9 +120,9 @@ int test_env_write_read() {
     assert(read == NULL);
     sds_t data = sds_new("test");
     error = envWriteSdsToFileSync(env, file, data);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     error = envReadFileToSds(env, file, &read);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     assert(strncmp(read, "test", 4) == 0);
     //double free
     envRelease(env);
@@ -131,7 +131,7 @@ int test_env_write_read() {
     SequentialFile* sf;
     error = sequentialFileCreate(file, &sf);
     
-    assert(isOk(error));
+    assert(error_is_ok(error));
     // slice_t slice = {
     //     .p = sds_empty_len(100),
     //     .len = 0
@@ -139,16 +139,16 @@ int test_env_write_read() {
     sds_t result;
     error = sequentialFileReadSds(sf, 100, &result);
     sequentialFileRelease(sf);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     assert(sds_len(result) == 4);
     assert(strncmp("test", result, 4) == 0);
     sds_delete(result);
     
     error = envSequentialFileCreate(env, file, &sf);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     error = sequentialFileReadSds(sf, 100, &result);
     sequentialFileRelease(sf);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     assert(sds_len(result) == 4);
     assert(strncmp("test", result, 4) == 0);
     sds_delete(result);
@@ -159,7 +159,7 @@ int test_env_write_read() {
 
 int test_fs() {
     recursive_rmdir("test_fs");
-    assert(isOk(dirCreate("test_fs")));
+    assert(error_is_ok(dirCreate("test_fs")));
     int fd = open("test_fs/test.txt", O_CREAT | O_RDWR , 0644);
     assert(file_exists("test_fs/test.txt"));
     char buf[10];

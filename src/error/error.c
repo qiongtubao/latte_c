@@ -3,22 +3,23 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
-int error_is_not_found(Error* error) {
+int error_is_not_found(latte_error_t* error) {
     return error->code == CNotFound;
 }
-int error_is_ok(Error* error) {
+int error_is_ok(latte_error_t* error) {
     return error->code == COk;
 }
+
 //只有在error不是ok的情况下创建error
-Error* error_new(Code code, char* context, char* message, ...) {
-    Error* error = (Error*)zmalloc(sizeof(Error));
+latte_error_t* error_new(latte_error_code_enum code, char* context, char* message, ...) {
+    latte_error_t* error = (latte_error_t*)zmalloc(sizeof(latte_error_t));
     error->code = code;
     error->state = sds_cat_printf(sds_empty(),"%s: %s",context, message);;
     return error;
 }
 
-Error* errno_io_new(char* format, ...) {
-    Code code;
+latte_error_t* errno_io_new(char* format, ...) {
+    latte_error_code_enum code;
     if (errno == ENOENT) {
         code = CNotFound; 
     } else {
@@ -40,18 +41,18 @@ Error* errno_io_new(char* format, ...) {
         need_free = 1;
     }
     va_end(args); // 清理va_list
-    Error* err = error_new(code, buf, strerror(errno));
+    latte_error_t* err = error_new(code, buf, strerror(errno));
     if (need_free) zfree(buf);
     return err;
 }
 
-void error_delete(Error* error) {
+void error_delete(latte_error_t* error) {
     if (error->state != NULL) {
         sds_delete(error->state);
     }
     zfree(error);
 }
 
-Error* ioErrorCreate(char* context, char* message) {
+latte_error_t* io_error_new(char* context, char* message) {
     return error_new(CIOError, context, message);
 }
