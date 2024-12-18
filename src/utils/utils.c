@@ -205,7 +205,7 @@ unsigned long current_monitonic_time()
  * Gets the proper timezone in a more portable fashion
  * i.e timezone variables are linux specific.
  */
-long getTimeZone(void) {
+long get_time_zone(void) {
 #if defined(__linux__) || defined(__sun)
     return timezone;
 #else
@@ -227,11 +227,11 @@ long _updateGetDaylightActive(int updated) {
     if (updated) daylight_active = tm.tm_isdst;
     return tm.tm_isdst;
 }
-long getDaylightActive() {
+long get_day_light_active() {
     return _updateGetDaylightActive(0);
 }
 
-long updateDaylightActive() {
+long update_day_light_active() {
     return _updateGetDaylightActive(1);
 }
 

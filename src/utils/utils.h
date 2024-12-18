@@ -64,9 +64,9 @@ long long nstime(void);
 static long long nowustime;
 static long daylight_active;
 static int start_update_cache_timed = 0;
-long getTimeZone();
-long getDaylightActive();
-long updateDaylightActive();
+long get_time_zone();
+long get_day_light_active();
+long update_day_light_active();
 
 unsigned long  current_monitonic_time();
 #endif

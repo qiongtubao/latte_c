@@ -48,7 +48,7 @@ Error* writeUnbuffered(PosixWritableFile* writer, const char* data, size_t size)
         if (errno == EINTR) {
           continue;  // Retry
         }
-        return errnoIoCreate(writer->filename);
+        return errno_io_new(writer->filename);
       }
       data += write_result;
       size -= write_result;
@@ -84,7 +84,7 @@ Error* posixWriteableFileAppend(PosixWritableFile* writer, char* data, int size)
     // Can't fit in buffer, so need to do at least one write.
     // buffer满了 先write到文件
     Error* error = posixWritableFileFlushBuffer(writer);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
       return error;
     }
 
@@ -145,7 +145,7 @@ Error* posixWritableFileSyncFd(int fd, const sds_t fd_path) {
     if (sync_success) {
       return &Ok;
     }
-    return errnoIoCreate(fd_path);
+    return errno_io_new(fd_path);
 }
 
 Error* posixWritableFileSyncDirIfManifest(PosixWritableFile* writer) {
@@ -156,7 +156,7 @@ Error* posixWritableFileSyncDirIfManifest(PosixWritableFile* writer) {
 
     int fd = open(writer->dirname, O_RDONLY | kOpenBaseFlags);
     if (fd < 0) {
-      status = errnoIoCreate(writer->dirname);
+      status = errno_io_new(writer->dirname);
     } else {
       status = posixWritableFileSyncFd(fd, writer->dirname);
       close(fd);
@@ -175,12 +175,12 @@ Error* posixWritableFileSync(PosixWritableFile* file) {
     // 这需要在清单文件刷新到磁盘之前发生，以
     // 避免在清单引用尚未在磁盘上的文件的状态下崩溃。
     Error* error = posixWritableFileSyncDirIfManifest(file);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
       return error;
     }
 
     error = posixWritableFileFlushBuffer(file);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
       return error;
     }
 
@@ -192,8 +192,8 @@ Error* posixWritableFileClose(PosixWritableFile* file) {
     Error* error = posixWritableFileFlushBuffer(file);
     //关闭fd
     const int close_result = close(file->fd);
-    if (close_result < 0 && isOk(error)) {
-      error = errnoIoCreate(file->filename);
+    if (close_result < 0 && error_is_ok(error)) {
+      error = errno_io_new(file->filename);
     }
     file->fd = -1;
     return error;
@@ -213,7 +213,7 @@ Error* posixSequentialFileCreate(sds_t filename, PosixSequentialFile** file) {
     int fd = open(filename, O_RDONLY | kOpenBaseFlags);
     if (fd < 0) {
       *file = NULL;
-      return errnoIoCreate(filename);
+      return errno_io_new(filename);
     }
     PosixSequentialFile* seq = zmalloc(sizeof(PosixSequentialFile));
     seq->filename = filename;
@@ -231,7 +231,7 @@ Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, slice_t* slic
       if (errno == EINTR) {
         continue; //Retry
       }
-      error = errnoIoCreate(file->filename);
+      error = errno_io_new(file->filename);
       break;
     }
     slice->len += read_size;
@@ -242,7 +242,7 @@ Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, slice_t* slic
 
 Error* posixSequentialFileSkip(PosixSequentialFile* file,uint64_t n) {
   if (lseek(file->fd, n, SEEK_CUR) == (off_t)(-1)) {
-    return errnoIoCreate(file->filename);
+    return errno_io_new(file->filename);
   }
   return &Ok;
 }
