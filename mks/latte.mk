@@ -21,18 +21,18 @@ LATTE_INSTALL=$(QUIET_INSTALL)$(INSTALL)
 %.xo: %.cc .make-prerequisites
 	$(LATTE_CXX) $(DEBUG) -MMD -o $@ -c $<  $(FINAL_CXX_LIBS) 
 
-gtest: 
+gtest: $(TEST_OBJS)
 	$(MAKE) $(BUILD_OBJ) $(LIB_OBJ) LATTE_CFLAGS=$(LATTE_CFLAGS)"-fprofile-arcs -ftest-coverage"
 	$(MAKE) $(TEST_MAIN).xo LATTE_CFLAGS=$(LATTE_CFLAGS)"-fprofile-arcs -ftest-coverage -I$(WORKSPACE)/deps/googletest/googletest/include"
-	$(LATTE_CXX)  -fprofile-arcs -ftest-coverage $(DEBUG) -o $(TEST_MAIN) $(TEST_MAIN).xo $(BUILD_OBJ) $(FINAL_CXX_LIBS) -I$(WORKSPACE)/deps/googletest/googletest/include $(WORKSPACE)/deps/googletest/lib/libgtest.a $(WORKSPACE)/deps/googletest/lib/libgtest_main.a
+	$(LATTE_CXX)  -fprofile-arcs -ftest-coverage $(DEBUG) -o $(TEST_MAIN) $(TEST_MAIN).xo $(TEST_OBJS) $(BUILD_OBJ) $(FINAL_CXX_LIBS) -I$(WORKSPACE)/deps/googletest/googletest/include $(WORKSPACE)/deps/googletest/lib/libgtest.a $(WORKSPACE)/deps/googletest/lib/libgtest_main.a
 	./$(TEST_MAIN)
 	$(MAKE) latte_lcov
 	$(MAKE) latte_genhtml
 
-test: 
+test: $(TEST_OBJS)
 	$(MAKE) $(BUILD_OBJ) $(LIB_OBJ) LATTE_CFLAGS=$(LATTE_CFLAGS)" -fprofile-arcs -ftest-coverage" 
 	$(MAKE) $(TEST_MAIN).o LATTE_CFLAGS=$(LATTE_CFLAGS)" -fprofile-arcs -ftest-coverage" 
-	$(LATTE_CC)  -fprofile-arcs -ftest-coverage $(DEBUG) -o $(TEST_MAIN) $(TEST_MAIN).o $(BUILD_OBJ) $(LIB_OBJ) $(FINAL_CC_LIBS) 
+	$(LATTE_CC)  -fprofile-arcs -ftest-coverage $(DEBUG) -o $(TEST_MAIN) $(TEST_MAIN).o  $(BUILD_OBJ) $(TEST_OBJS) $(LIB_OBJ) $(FINAL_CC_LIBS) 
 	./$(TEST_MAIN)
 	$(MAKE) latte_lcov
 	$(MAKE) latte_genhtml

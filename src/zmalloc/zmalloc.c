@@ -54,6 +54,17 @@
 #include "zmalloc.h"
 #include "atomicvar.h"
 
+void* zlibc_malloc(size_t size) {
+    return malloc(size);
+}
+
+/* This function provide us access to the original libc free(). This is useful
+ * for instance to free results obtained by backtrace_symbols(). We need
+ * to define this function before including zmalloc.h that may shadow the
+ * free implementation if we use jemalloc or another non standard allocator. */
+void zlibc_free(void *ptr) {
+    free(ptr);
+}
 #ifdef HAVE_MALLOC_SIZE
 #define PREFIX_SIZE (0)
 #define ASSERT_NO_SIZE_OVERFLOW(sz)

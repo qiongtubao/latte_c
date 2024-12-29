@@ -35,7 +35,7 @@ int test_vector() {
     assert(vector_pop(v) == (void*)3);
 
     assert(vector_size(v) == 1);
-    vector_delete(v);
+    vector_delete(v, NULL);
 
     return 1;
 }

@@ -36,8 +36,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TESTHELP_H
-#define __TESTHELP_H
+#ifndef __LATTE_TESTHELP_H
+#define __LATTE_TESTHELP_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,5 +55,7 @@ int __test_num = 0;
         exit(1); \
     } \
 } while(0);
+
+
 
 #endif

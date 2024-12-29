@@ -19,7 +19,13 @@ vector_t* vector_new() {
     v->count = 0;
     return v;
 }
-void vector_delete(vector_t* v) {
+void vector_delete(vector_t* v, delete_func del) {
+    if (del != NULL) {
+        for(size_t i = 0; i < v->count; i++) {
+            del(v->data[i]);
+        }
+    }
+    
     zfree(v->data);
     zfree(v);
 }

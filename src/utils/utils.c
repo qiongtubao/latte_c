@@ -477,3 +477,9 @@ void latte_assert(int condition, const char *message, ...) {
         exit(1);
     }
 }
+
+
+//random 
+long random_long(int min, int max) {
+    return (rand() % (max -min + 1)) + min;
+}

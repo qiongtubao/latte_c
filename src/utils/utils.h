@@ -69,4 +69,5 @@ long get_day_light_active();
 long update_day_light_active();
 
 unsigned long  current_monitonic_time();
+long random_long(int min, int max);
 #endif

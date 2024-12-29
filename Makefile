@@ -20,6 +20,11 @@ LATTE_LIBS=
 ifeq ($(MALLOC),jemalloc)
 	LATTE_LIBS+= $(WORKSPACE)/deps/jemalloc/lib/libjemalloc.a
 endif
+
+ifneq ($(ROCKSDB),)
+	LATTE_LIBS+= $(WORKSPACE)/deps/rocksdb/librocksdb.a
+endif
+
 # $@：当前目标
 # $^：当前规则中的所有依赖
 # $<：依赖中的第一个

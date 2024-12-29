@@ -14,7 +14,8 @@ typedef struct vector_t {
     size_t count;
 } vector_t;
 vector_t* vector_new();
-void vector_delete(vector_t* v);
+typedef void delete_func(void *a);
+void vector_delete(vector_t* v, delete_func d);
 void vector_resize(vector_t* v, size_t new_capacity);
 int vector_push(vector_t* v, void* element);
 void* vector_pop(vector_t* v);

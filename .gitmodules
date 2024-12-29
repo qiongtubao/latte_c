@@ -1,3 +1,6 @@
 [submodule "deps/json-c"]
 	path = deps/json-c
 	url = git@github.com:qiongtubao/json-c.git
+[submodule "deps/rocksdb"]
+	path = deps/rocksdb
+	url = https://github.com/qiongtubao/rocksdb.git

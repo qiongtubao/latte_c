@@ -71,3 +71,16 @@ tmalloc:
 json-c: .make-prerequisites
 	cd json-c && rm -rf build && mkdir build 
 	cd json-c/build  && cmake ../ && make 
+
+rocksdb: 
+	@printf '%b %b\n' $(MAKECOLOR)MAKE$(ENDCOLOR) $(BINCOLOR)$@$(ENDCOLOR)
+	cd rocksdb && ROCKSDB_DISABLE_BZIP=1 ROCKSDB_DISABLE_LZ4=1 ROCKSDB_DISABLE_ZSTD=1 ROCKSDB_DISABLE_MALLOC_USABLE_SIZE=1 ROCKSDB_DISABLE_MEMKIND=1 USE_COROUTINES=1 $(MAKE) static_lib 
+
+.PHONY: rocksdb
+
+rocksdb-jemalloc: 
+	@printf '%b %b\n' $(MAKECOLOR)MAKE$(ENDCOLOR) $(BINCOLOR)$@$(ENDCOLOR)
+	export JEMALLOC_INCLUDE=/home/dong/Documents/github/jemalloc/build/include/
+	cd rocksdb && ROCKSDB_DISABLE_BZIP=1 ROCKSDB_DISABLE_LZ4=1 ROCKSDB_DISABLE_ZSTD=1 ROCKSDB_DISABLE_MALLOC_USABLE_SIZE=1 ROCKSDB_DISABLE_MEMKIND=1 PORTABLE=1 JEMALLOC=1 JEMALLOC_INCLUDE=-I/home/dong/Documents/github/jemalloc/build/include/ JEMALLOC_LIB=/home/dong/Documents/github/jemalloc/build/lib/libjemalloc_pic.a $(MAKE) static_lib 
+
+.PHONY: rocksdb

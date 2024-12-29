@@ -47,6 +47,7 @@ typedef struct latte_shared_mutex_t {
     int exclusive_lock_count;
     int shared_lock_count;
 } latte_shared_mutex_t;
+
 latte_shared_mutex_t* latte_shared_mutex_new();
 void latte_shared_mutex_delete(latte_shared_mutex_t* share_mutex);
 void latte_shared_mutex_lock(latte_shared_mutex_t* share_mutex);
