@@ -41,8 +41,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 int __failed_tests = 0;
 int __test_num = 0;
+// struct timespec start, end; \
+    clock_gettime(CLOCK_MONOTONIC, &start); 
+        // clock_gettime(CLOCK_MONOTONIC, &end); \
+    // double time_spent = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000000.0; \
+    // printf("Function [" #func "] executed in %f sec\n", time_spent); 
+#define latte_test_function_time(func, ...) ({ \
+    struct timespec start, end; \
+    clock_gettime(CLOCK_MONOTONIC, &start); \
+    typeof(func(__VA_ARGS__)) result = func(__VA_ARGS__); \
+    clock_gettime(CLOCK_MONOTONIC, &end); \
+    double time_spent = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000000.0; \
+    printf("Function [" #func "] executed in %f sec\n", time_spent); \
+    result; \
+})
 #define test_cond(descr,_c) do { \
     __test_num++; printf("%d - %s: ", __test_num, descr); \
     if(_c) printf("PASSED\n"); else {printf("FAILED\n"); __failed_tests++;} \

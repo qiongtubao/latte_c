@@ -49,11 +49,12 @@ typedef struct latte_thread_t {
     latteAtomic long current_tasks;
     list_t* task_queue;
     pthread_t thread_id;
-    size_t idle_time;
+    long long idle_time;
     latte_mutex_t* lock;
     pthread_cond_t cond;
     int id;
     latte_thread_pool_t* pool;
+    bool stop;
 } latte_thread_t;
 
 latte_thread_t* latte_thread_new(latte_thread_pool_t* pool);
@@ -68,5 +69,7 @@ latte_thread_pool_t* thread_pool_new(size_t core_pool_size,
     size_t remove_thread_min_kepp_alive_time,
     aeEventLoop* ae);
 latte_error_t* thread_pool_submit(latte_thread_pool_t* pool, latte_thread_task_t* task);
+void thread_pool_try_scaling(latte_thread_pool_t* pool);
+latte_error_t* thread_pool_try_delete(latte_thread_pool_t* pool, int index);
 
 #endif

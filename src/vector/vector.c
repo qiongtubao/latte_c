@@ -113,6 +113,17 @@ void vector_set(vector_t* v, size_t index, void* element) {
     v->data[index] = element;
 }
 
+void* vector_remove_at(vector_t* v, size_t index) {
+    if (index >= v->count) {
+        return NULL;
+    }
+    void* result = v->data[index];
+    for (size_t i = index; i < v->count - 1; i++) {
+        v->data[i] = v->data[i+1];
+    }
+    v->count--;
+    return result;
+}
 
 //====== iterator ======
 typedef struct vector_iterator_t {

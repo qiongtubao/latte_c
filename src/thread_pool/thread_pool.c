@@ -6,6 +6,7 @@
 #include "anet/anet.h"
 #include <errno.h>
 #include <string.h>
+#include "utils/utils.h"
 
 
 void latte_thread_task_delete(latte_thread_task_t *t) {
@@ -14,13 +15,11 @@ void latte_thread_task_delete(latte_thread_task_t *t) {
     zfree(task);
 }
 void latte_thread_callback_task(latte_thread_t* latte_thread, latte_thread_task_t* task) {
-    log_info(LATTE_LIB, "latte_thread_callback_task write");
+
     latte_mutex_lock(latte_thread->pool->callback_lock);
-    log_info(LATTE_LIB, "callback_queue %d", list_length(latte_thread->pool->callback_queue));
     list_add_node_tail(latte_thread->pool->callback_queue, task);
-    log_info(LATTE_LIB, "callback_queue111");
     latte_mutex_unlock(latte_thread->pool->callback_lock);
-    log_info(LATTE_LIB, "before write");
+
     if (write(latte_thread->pool->callback_fd, "x", 1) < 1 && errno != EAGAIN) {
         static int fail_count = 0;
         fail_count++;
@@ -35,31 +34,36 @@ void latte_thread_exec_task(latte_thread_t* latte_thread, latte_thread_task_t* t
     latte_error_t* error = task->exec(task->arg, &result);
     task->error = error;
     task->result = result;
-    log_info(LATTE_LIB, "init cacllback queue2 %d", list_length(latte_thread->pool->callback_queue));
-    
-    log_info(LATTE_LIB, "before callback task");
+    latte_atomic_decr(latte_thread->current_tasks, 1);
     latte_thread_callback_task(latte_thread, task);
-    log_info(LATTE_LIB, "after callback task");
 }
 
 void* latte_thread_create(void* arg) {
     latte_thread_t* latte_thread = (latte_thread_t*)arg;
     char thdname[16];
-    log_error(LATTE_LIB, "latte_thread_create %p %p", latte_thread, latte_thread->pool);
     
     snprintf(thdname, sizeof(thdname), "swap_thd_%d", latte_thread->id);
     latte_set_thread_title(thdname);
     latte_thread_task_t* task;
-     log_info(LATTE_LIB, "latte_thread_create %d", list_length(latte_thread->pool->callback_queue));
     
     while(1) {
         latte_mutex_lock(latte_thread->lock);
-        while (list_length(latte_thread->task_queue) == 0)
+        while (list_length(latte_thread->task_queue) == 0) {
+            if (latte_thread->stop) {
+                latte_mutex_unlock(latte_thread->lock);
+                return NULL;
+            }
+            if (latte_thread->idle_time == 0) {
+                latte_thread->idle_time = ustime();
+            }
             pthread_cond_wait(&latte_thread->cond, &latte_thread->lock->supper);
-
+            
+        }
+        latte_thread->idle_time = 0;
         task = list_lpop(latte_thread->task_queue);
         latte_mutex_unlock(latte_thread->lock);
         latte_thread_exec_task(latte_thread, task);
+
     }
     return NULL;
 }
@@ -70,7 +74,6 @@ int asyncCompleteQueueProcess(latte_thread_pool_t* pool) {
     list_node_t* ln;
     list_t* processing_reqs = list_new();
     // monotime process_timer = 0;
-    log_info(LATTE_LIB, "asyncCompleteQueueProcess %d", list_length(pool->callback_queue));
     
     latte_mutex_lock(pool->callback_lock);
     processing_reqs->head = pool->callback_queue->head;
@@ -139,7 +142,6 @@ latte_thread_pool_t* thread_pool_new(size_t core_pool_size,
     pool->callback_queue = list_new();
     pool->recv_fd = fds[0];
     pool->callback_fd = fds[1];
-    log_info(LATTE_LIB, "init cacllback queue %d", list_length(pool->callback_queue));
     
     
     if (aeCreateFileEvent(ae, fds[0], AE_READABLE, asyncCompleteQueueHandler, pool)  == AE_ERR ) {
@@ -152,9 +154,9 @@ latte_thread_pool_t* thread_pool_new(size_t core_pool_size,
 
 void latte_thread_delete(latte_thread_t* t) {
     assert(list_length(t->task_queue) == 0);
-    latte_mutex_lock(t->lock);
     list_delete(t->task_queue);
-    latte_mutex_unlock(t->lock);
+    latte_mutex_delete(t->lock);
+    pthread_cond_destroy(&t->cond);
     zfree(t);
 }
 
@@ -166,102 +168,112 @@ latte_thread_t* latte_thread_new(latte_thread_pool_t* pool) {
     thread->pool = pool;
     latte_atomic_set(thread->current_tasks, 0);
     pthread_cond_init(&thread->cond, NULL);
+    thread->stop = false;
+    thread->idle_time = 0;
     return thread;
 }
 
 latte_error_t* thread_pool_add_thread(latte_thread_pool_t* pool, int thread_size) {
-    log_error(LATTE_LIB, "thread_pool_add_thread %d", list_length(pool->callback_queue));
     for(int i = 0; i < thread_size; i++) {
         latte_thread_t* thread = latte_thread_new(pool);
         if (thread == NULL) {
             return error_new(CThread, "create thread struct fail", "thread_pool_add_thread");
         }
-        log_error(LATTE_LIB, "thread_pool_add_thread %p %p", thread, thread->pool);
-    
+        
         if (pthread_create(&thread->thread_id, NULL, latte_thread_create, thread)) {
             latte_thread_delete(thread);
             return error_new(CThread, "pthread_create fail", "create swap threads failed.");
         }
         vector_push(pool->threads, thread);
+        log_info(LATTE_LIB, "add thread pool_index %d", pool->thread_count);
         pool->thread_count++;
     }
     return &Ok;
 }
 
 latte_thread_t* thread_pool_select_thread(latte_thread_pool_t* pool) {
+    size_t i;
     if (pool->thread_count < pool->core_pool_size) {
         int pool_index = pool->thread_count;
-        log_error(LATTE_LIB, "add thread %d", pool->core_pool_size - pool->thread_count);
         if (error_is_ok(thread_pool_add_thread(pool, pool->core_pool_size - pool->thread_count))) {
+            log_debug(LATTE_LIB, "add thread pool_index %d", pool_index);
             return (latte_thread_t*)vector_get(pool->threads, pool_index);
         }
     }
-    size_t core_threads_min_task_size = INTMAX_MAX;
-    // size_t core_threads_min_task_index = -1;
+    long core_threads_min_task_size = LONG_MAX;
+    size_t core_threads_min_task_index = -1;
     latte_thread_t* core_threads_min_task_thread = NULL;
-    for(size_t i = 0; i < pool->core_pool_size; i++) {
+    for( i = 0; i < pool->core_pool_size; i++) {
         latte_thread_t* thread_info = vector_get(pool->threads, i);
-        size_t current_task_size;
+        long current_task_size;
         latte_atomic_get(thread_info->current_tasks, current_task_size);
         if (current_task_size < core_threads_min_task_size) {
             core_threads_min_task_size = current_task_size;
-            // core_threads_min_task_index = i;
+            core_threads_min_task_index = i;
             core_threads_min_task_thread = thread_info;
         }
     }
     if (core_threads_min_task_size < pool->create_thread_min_work_size) {
+        log_debug(LATTE_LIB, "select thread core min pool_index %d:%d", core_threads_min_task_index, core_threads_min_task_size);
         return core_threads_min_task_thread;
     }
-    size_t other_threads_enable_used_max_task_size = 0;
-    // size_t other_threads_enable_used_max_task_index = -1;
+    long other_threads_enable_used_max_task_size = -1;
+    size_t other_threads_enable_used_max_task_index;
     latte_thread_t* other_threads_enable_used_max_thread = NULL;
-    size_t other_threads_min_task_size = INTMAX_MAX;
-    // size_t other_threads_min_task_index = -1;
+    long other_threads_min_task_size = LONG_MAX;
+    size_t other_threads_min_task_index;
     latte_thread_t* other_threads_min_task_thread = NULL;
     
 
 
-    for(size_t i = pool->core_pool_size; i < pool->thread_count; i++) {
+    for(i = pool->core_pool_size; i < pool->thread_count; i++) {
         latte_thread_t* thread_info = vector_get(pool->threads, i);
-        size_t current_task_size;
+        long current_task_size;
         latte_atomic_get(thread_info->current_tasks, current_task_size);
         if (current_task_size < pool->create_thread_min_work_size) {
             if (other_threads_enable_used_max_task_size < current_task_size) {
                 //core线程已经满了之后, 优先提交到未满但是最多正在执行的线程
                 other_threads_enable_used_max_task_size = current_task_size;
-                // other_threads_enable_used_max_task_index = i;
+                other_threads_enable_used_max_task_index = i;
                 other_threads_enable_used_max_thread = thread_info;
             }
         }
         if (other_threads_min_task_size > current_task_size) {
             //如果满足创建线程条件 但已经到达最多线程数时 提交给任务最少的线程
             other_threads_min_task_size = current_task_size;
-            // other_threads_min_task_index = i;
+            other_threads_min_task_index = i;
             other_threads_min_task_thread = thread_info;
         }
     }
 
-    if (other_threads_enable_used_max_thread != NULL) return other_threads_enable_used_max_thread;
+    if (other_threads_enable_used_max_thread != NULL) {
+        log_debug(LATTE_LIB, "select other max thread  %d:%d", other_threads_enable_used_max_task_index, other_threads_enable_used_max_task_size);
+        return other_threads_enable_used_max_thread;
+    }
     if (pool->thread_count < pool->max_pool_size) {
         if (error_is_ok(thread_pool_add_thread(pool, 1))) {
+            log_debug(LATTE_LIB, "add other thread pool_index %d", pool->thread_count - 1);
             return vector_get(pool->threads, pool->thread_count - 1);
         } else {
             return NULL;
         }
     }
-    if (core_threads_min_task_size < other_threads_min_task_size) {
+    if (core_threads_min_task_size <= other_threads_min_task_size) {
+        log_debug(LATTE_LIB, "last select core thread min %d:%d", core_threads_min_task_index, core_threads_min_task_size);
         return core_threads_min_task_thread;
     } else {
+        log_debug(LATTE_LIB, "last select other thread min %d:%d", other_threads_min_task_index, other_threads_min_task_size);
         return other_threads_min_task_thread;
     }
 }
 
 latte_error_t* thread_submit(latte_thread_t* thread, latte_thread_task_t* task) {
+    assert(thread->stop == false);
     latte_mutex_lock(thread->lock);
     list_add_node_tail(thread->task_queue, task);
-    latte_atomic_incr(thread->current_tasks, 1);
     pthread_cond_signal(&thread->cond);
     latte_mutex_unlock(thread->lock);
+    latte_atomic_incr(thread->current_tasks, 1);
     return &Ok;
 }
 
@@ -269,6 +281,39 @@ latte_error_t* thread_pool_submit(latte_thread_pool_t* pool, latte_thread_task_t
     latte_thread_t* thread = thread_pool_select_thread(pool);
     assert(thread != NULL);
     return thread_submit(thread, task);
+}
+
+latte_error_t* thread_pool_try_delete(latte_thread_pool_t* pool, int index) {
+    latte_thread_t* thread = vector_get(pool->threads, index);
+    assert(thread->stop == false);
+    latte_mutex_lock(thread->lock);
+    thread->stop = true;
+    pthread_cond_signal(&thread->cond);
+    latte_mutex_unlock(thread->lock);
+    
+    int res = pthread_join(thread->thread_id, NULL);
+    if (res != 0) {
+        return error_new(CThread, "pthread join fail", "");
+    }
+
+    vector_remove_at(pool->threads, index);
+    pool->thread_count--;
+    latte_thread_delete(thread);
+    log_info(LATTE_LIB, "thread_pool_try_delete %d", index);
+    return &Ok;
+}
+
+void thread_pool_try_scaling(latte_thread_pool_t* pool) {
+    for(int i = pool->thread_count - 1; i >= pool->core_pool_size; i--) {
+        latte_thread_t* thread = vector_get(pool->threads, i);
+        if (thread->idle_time == 0) {
+            continue;
+        }
+        if ((ustime() - thread->idle_time) > pool->remove_thread_min_kepp_alive_time) {
+            thread_pool_try_delete(pool, i);
+        } 
+    }
+
 }
 
 
