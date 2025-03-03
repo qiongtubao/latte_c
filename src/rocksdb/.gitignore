@@ -1,0 +1,3 @@
+./batch_set_get/*
+./tmp/*
+perf.*

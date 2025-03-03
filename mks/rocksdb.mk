@@ -25,7 +25,7 @@ FINAL_CC_CFLAGS+=  -I../../deps/rocksdb/include
 FINAL_CXX_CFLAGS+= -I../../deps/rocksdb/include
 FOLLY_LIBS_PATH=../../deps/rocksdb/folly_libs
 
-FINAL_CC_LIBS := ../../deps/rocksdb/librocksdb.a $(FOLLY_LIBS_PATH)/folly/lib/libfolly.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_context.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_filesystem.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_atomic.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_program_options.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_regex.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_system.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_thread.a $(FOLLY_LIBS_PATH)/double-conversion/lib/libdouble-conversion.a  $(FOLLY_LIBS_PATH)/fmt/lib/libfmt.a $(FOLLY_LIBS_PATH)/glog/lib/libglog.so $(FOLLY_LIBS_PATH)/gflags/lib/libgflags.so.2.2  $(FOLLY_LIBS_PATH)/libevent/lib/libevent-2.1.so $(FOLLY_LIBS_PATH)/libiberty/lib/libiberty.a  -lstdc++ -lm -pthread -lz -lsnappy  $(FINAL_CC_LIBS)
+FINAL_CC_LIBS := ../../deps/rocksdb/librocksdb.a $(FOLLY_LIBS_PATH)/folly/lib/libfolly.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_context.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_filesystem.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_atomic.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_program_options.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_regex.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_system.a $(FOLLY_LIBS_PATH)/boost/lib/libboost_thread.a $(FOLLY_LIBS_PATH)/double-conversion/lib/libdouble-conversion.a  $(FOLLY_LIBS_PATH)/fmt/lib/libfmt.a $(FOLLY_LIBS_PATH)/glog/lib/libglog.so.0 $(FOLLY_LIBS_PATH)/gflags/lib/libgflags.so.2.2  $(FOLLY_LIBS_PATH)/libevent/lib/libevent-2.1.so $(FOLLY_LIBS_PATH)/libiberty/lib/libiberty.a  -lstdc++ -lm -pthread -lz -lsnappy -luring $(FINAL_CC_LIBS)
 FINAL_CXX_LIBS := ../../deps/rocksdb/librocksdb.a $(FINAL_CXX_LIBS)
 
 
