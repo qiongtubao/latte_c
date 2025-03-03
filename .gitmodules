@@ -4,3 +4,6 @@
 [submodule "deps/rocksdb"]
 	path = deps/rocksdb
 	url = https://github.com/qiongtubao/rocksdb.git
+[submodule "deps/folly"]
+	path = deps/folly
+	url = https://github.com/qiongtubao/folly.git

@@ -33,6 +33,7 @@ void init_default_rocksdb_db_opts(latte_rocksdb_t* rocks) {
 }
 
 void init_default_rocksdb_read_opts(latte_rocksdb_t* rocks) {
+    rocksdb_readoptions_set_async_io(rocks->ropts, 1);
     rocksdb_readoptions_set_verify_checksums(rocks->ropts, 0);
     rocksdb_readoptions_set_fill_cache(rocks->ropts, 1);
 }
@@ -160,7 +161,7 @@ void init_default_rocksdb_family(latte_rocksdb_family_t* family) {
     rocksdb_options_set_max_bytes_for_level_multiplier(family->cf_opts, 10);//设置每个级别之间的大小倍增因子为10，这意味着level-2的总大小将是level-1的10倍
     rocksdb_options_set_level_compaction_dynamic_level_bytes(family->cf_opts, 0);//设置是否根据数据分布动态调整各级别的字节数，设置为0 表示禁用动态调整
     
-    rocksdb_options_add_compact_on_deletion_collector_factory(family, 100000, 80000, 0.95);
+    // rocksdb_options_add_compact_on_deletion_collector_factory(family, 100000, 80000, 0.95);
 
     rocksdb_block_based_table_options_t *  block_opts = rocksdb_block_based_options_create();
     rocksdb_block_based_options_set_block_size(block_opts, 8192);

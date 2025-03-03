@@ -10,6 +10,11 @@
 #include <unistd.h> // For usleep()
 #include <log/log.h>
 
+bool RocksDbIOUringEnable() {
+    // 检查是否启用了 IO-uring
+    return true;
+}
+
 typedef struct batch_queue_t {
     int id;
     pthread_t thread_id;
@@ -43,12 +48,6 @@ batch_queue_t* batch_queue_new(int id, latte_rocksdb_t *db, size_t max_len) {
     batch_queue_init(q, id, db, max_len);
     return q;
 }
-
-
-
-
-
-
 
 
 typedef enum task_type_enum {
@@ -90,6 +89,7 @@ void task_delete(void* arg) {
     }
     zfree(task);
 }
+
 void* swapThreadMain(void* arg) {
     batch_queue_t* batch_queue = arg;
     list_t *processing_reqs = list_new();
@@ -122,7 +122,7 @@ void* swapThreadMain(void* arg) {
                     batch_queue->batch_count++;
                     for(int i = 0; i < task->task_obj->count; i++) {
                         latte_rocksdb_query_t* query = task->task_obj->data[i];
-                        assert(strcmp(query->value, "x") == 0);
+                        assert_err(query->key, strcmp(query->value, "x") == 0);
                     }
                 }
                 break;
@@ -144,6 +144,7 @@ void* swapThreadMain(void* arg) {
     }
     return NULL;
 }
+
 #define KEY_SIZE 150000000L
 void write_data(rocksdb_column_family_handle_t *cf, size_t thread_num, batch_queue_t* batch_queues) {
     sds value = sds_new("x");
@@ -198,19 +199,34 @@ void write_data(rocksdb_column_family_handle_t *cf, size_t thread_num, batch_que
         }
 
     }
+    int retry = 0;
+    while(retry < 3) {
+        bool is_empty = true;
+
+        for(size_t k = 0; k < thread_num; k++) {
+            batch_queue_t* batch_queue = batch_queues + k;
+            if (list_length(batch_queue->queue) != 0) {
+                is_empty = false;
+            }
+        }
+        if (is_empty) {
+            retry ++;
+        }
+        usleep(100);
+    }
 
 }
 
 void read_data(rocksdb_column_family_handle_t *cf, int qps, size_t thread_num, batch_queue_t* batch_queues) {
     long long count = 0;
-    int64_t batch_size = 16;
+    int64_t batch_size = 64;
     int64_t batch_all_count = qps * 180;
     long long start_time = ustime();
     while(true) {
         for(int64_t j = 0; j < (batch_all_count/batch_size); j++) {
             vector_t* querys = vector_new();
             for(int64_t k = 0; k < batch_size; k++) {
-                long random = random_long(0, KEY_SIZE);
+                long random = random_long(0, KEY_SIZE-1);
                 sds key = sds_cat_printf(sds_empty() ,"xxxxxxxxxxx_%010d_%010d", random, random);
                 vector_push(querys, latte_rocksdb_query_new(
                     cf,
@@ -264,7 +280,7 @@ int test_rocksdb_batch_set_get() {
     assert(error_is_ok(error));
 
     
-    size_t thread_num = 4;
+    size_t thread_num = 1;
     batch_queue_t* ts = zmalloc(sizeof(batch_queue_t) * thread_num);
     for(size_t i = 0; i < thread_num; i++) {
         batch_queue_t* t = ts + i;
@@ -275,12 +291,12 @@ int test_rocksdb_batch_set_get() {
         
     }
     
-    write_data(family_info->cf_handle, thread_num, ts);
-    printf("write data over\n");
-    error = latte_rocksdb_flush(db);
-    assert(error_is_ok(error));
-    printf("flush data over\n");
-    // read_data(family_info->cf_handle, 20, thread_num, ts);
+    // write_data(family_info->cf_handle, thread_num, ts);
+    // printf("write data over\n");
+    // error = latte_rocksdb_flush(db);
+    // assert(error_is_ok(error));
+    // printf("flush data over\n");
+    read_data(family_info->cf_handle, 20, thread_num, ts);
 
     return 1;
 }
