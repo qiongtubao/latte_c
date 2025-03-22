@@ -16,6 +16,7 @@
 
 typedef char *sds;
 #define sds_t sds
+extern const char *SDS_NOINIT;
 
 struct __attribute__ ((__packed__)) sdshdr5 {
     unsigned char flags; /* 3 lsb of type, and 5 msb of string length */
