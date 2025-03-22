@@ -3,35 +3,35 @@
 #include "listeners.h"
 #include <string.h>
 #define DICT_NOTUSED(V) ((void) V)
-uint64_t dictSdsHash(const void *key) {
-    return dictGenHashFunction((unsigned char*)key, sdslen((char*)key));
+uint64_t dict_sds_hash(const void *key) {
+    return dict_gen_hash_function((unsigned char*)key, sds_len((char*)key));
 }
 
-int dictSdsKeyCompare(void *privdata, const void *key1,
+int dict_sds_key_compare(void *privdata, const void *key1,
         const void *key2)
 {
     int l1,l2;
     DICT_NOTUSED(privdata);
 
-    l1 = sdslen((sds)key1);
-    l2 = sdslen((sds)key2);
+    l1 = sds_len((sds)key1);
+    l2 = sds_len((sds)key2);
     if (l1 != l2) return 0;
     return memcmp(key1, key2, l1) == 0;
 }
 
-void dictSdsDestructor(void *privdata, void *val)
+void dict_sds_destructor(void *privdata, void *val)
 {
     DICT_NOTUSED(privdata);
 
-    sdsfree(val);
+    sds_delete(val);
 }
 
-dictType requestListenersDictType = {
-    dictSdsHash,                    /* hash function */
+dict_func_t requestListenersDictType = {
+    dict_sds_hash,                    /* hash function */
     NULL,                           /* key dup */
     NULL,                           /* val dup */
-    dictSdsKeyCompare,              /* key compare */
-    dictSdsDestructor,              /* key destructor */
+    dict_sds_key_compare,              /* key compare */
+    dict_sds_destructor,              /* key destructor */
     NULL,                           /* val destructor */
     NULL                            /* allow to expand */
 };
@@ -53,7 +53,7 @@ requestListeners *requestListenersCreate(int level,  requestListeners *parent) {
 requestListeners *dbRequestListenersCreate(redisDb dbid, requestListeners *parent) {
     requestListeners* listeners = requestListenersCreate(REQUEST_LEVEL_DB, parent);
     listeners->db.db = dbid;
-    listeners->db.keys = dictCreate(&requestListenersDictType, NULL);
+    listeners->db.keys = dict_new(&requestListenersDictType);
     return listeners;
 }
 
@@ -61,7 +61,7 @@ requestListeners *keyRequestListenersCreate(robj* key, requestListeners *parent)
     requestListeners* listeners = requestListenersCreate(REQUEST_LEVEL_KEY, parent);
     // incrRefCount(key);
     listeners->key.key = key;
-    dictAdd(parent->db.keys, key, listeners);
+    dict_add(parent->db.keys, key, listeners);
     return listeners;
 }
 
@@ -103,7 +103,7 @@ static inline void requestListenersUnlink(requestListeners *listeners) {
     }
 }
 
-static void requestListenersPush(requestListeners *listeners,
+void requestListenersPush(requestListeners *listeners,
         requestListener *listener) {
     serverAssert(listeners);
     listAddNodeTail(listeners->listeners, listener);

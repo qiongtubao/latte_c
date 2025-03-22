@@ -1,10 +1,18 @@
 ifneq ($(USED_TREE), yes) 
 include $(WORKSPACE)/src/zmalloc/lib.mk
+include $(WORKSPACE)/src/utils/lib.mk
+include $(WORKSPACE)/src/log/lib.mk
+include $(WORKSPACE)/src/vector/lib.mk
 FINAL_CC_CFLAGS+= -I../tree
 
-LIB_OBJ+= ../tree/avlTree.o
+
 USED_TREE=yes
-../tree/avlTree.o:
-	cd ../tree && make avlTree.o
+../tree/avl_tree.o:
+	cd ../tree && make avl_tree.o
+
+../tree/b_plus_tree.o:
+	cd ../tree && make b_plus_tree.o
+
+LIB_OBJ+= ../tree/avl_tree.o ../tree/b_plus_tree.o
 
 endif

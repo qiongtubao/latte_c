@@ -181,8 +181,8 @@ int test_parallel(aeEventLoop* el, taskThread* task_thread) {
     latteThreadJob* job2 = createThreadJob(sleep2, stop, 2, "t2");
     asyncTask* task1 = createAsyncBasicTask(job);
     asyncTask* task2 = createAsyncBasicTask(job2);
-    addParallelTask(task,sdsnew("task1"), task1);
-    addParallelTask(task, sdsnew("task2"), task2);
+    addParallelTask(task,sds_new("task1"), task1);
+    addParallelTask(task, sds_new("task2"), task2);
     asyncRun(task_thread, task);
     assert(task1->status == DOING_TASK_STATUS);
     assert(task2->status == DOING_TASK_STATUS);
@@ -210,12 +210,12 @@ int test_parallel_add_some_task(aeEventLoop* el, taskThread* task_thread) {
     asyncTask* task1 = createAsyncBasicTask(job);
     asyncTask* task2 = createAsyncBasicTask(job2);
     asyncTask* task3 = createAsyncBasicTask(job3);
-    addParallelTask(task,sdsnew("task1"), task1);
-    addParallelTask(task, sdsnew("task2"), task2);
+    addParallelTask(task,sds_new("task1"), task1);
+    addParallelTask(task, sds_new("task2"), task2);
     asyncRun(task_thread, task);
     assert(task1->status == DOING_TASK_STATUS);
     assert(task2->status == DOING_TASK_STATUS);
-    addParallelTask(task, sdsnew("task1"), task3);
+    addParallelTask(task, sds_new("task1"), task3);
     assert(task3->status == WAIT_TASK_STATUS);
     sleep(3);
     aeProcessEvents(el, AE_ALL_EVENTS|
@@ -246,12 +246,12 @@ int test_parallel_add_differ_task(aeEventLoop* el, taskThread* task_thread) {
     asyncTask* task1 = createAsyncBasicTask(job);
     asyncTask* task2 = createAsyncBasicTask(job2);
     asyncTask* task3 = createAsyncBasicTask(job3);
-    addParallelTask(task,sdsnew("task1"), task1);
-    addParallelTask(task, sdsnew("task2"), task2);
+    addParallelTask(task,sds_new("task1"), task1);
+    addParallelTask(task, sds_new("task2"), task2);
     asyncRun(task_thread, task);
     assert(task1->status == DOING_TASK_STATUS);
     assert(task2->status == DOING_TASK_STATUS);
-    addParallelTask(task, sdsnew("task3"), task3);
+    addParallelTask(task, sds_new("task3"), task3);
     assert(task3->status == DOING_TASK_STATUS);
     sleep(1);
     aeProcessEvents(el, AE_ALL_EVENTS|

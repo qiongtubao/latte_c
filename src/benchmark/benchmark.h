@@ -18,12 +18,12 @@ typedef struct benchmarkContext {
     readConnFunc read;
 } benchmarkContext;
 
-typedef ssize_t *(*writeContextFunc)(void *client, void* ptr, ssize_t len);
-typedef ssize_t *(*readHandlerFunc)(void *client);
-typedef ssize_t *(*createWriteContentFunc)(void *client);
+typedef ssize_t (*writeContextFunc)(void *client, void* ptr, ssize_t len);
+typedef ssize_t (*readHandlerFunc)(void *client);
+typedef ssize_t (*createWriteContentFunc)(void *client);
 typedef struct _client {
     benchmarkContext *context;
-    sds obuf; /* 发送的缓存 */
+    sds_t obuf; /* 发送的缓存 */
     int thread_id;
     int slots_last_update;
     int written;
@@ -49,7 +49,7 @@ typedef struct benchmark {
     const char *hostip;
     int hostport;
     struct benchmarkThread **threads;
-    list *clients;
+    list_t *clients;
     latteAtomic int liveclients;
     latteAtomic int slots_last_update;/* 插槽最后更新 */
 } benchmark;

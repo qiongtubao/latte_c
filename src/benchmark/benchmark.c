@@ -18,7 +18,7 @@ static struct beancmarkConfig {
     const char *hostip;
     int hostport;
     struct benchmarkThread **threads;
-    list *clients;
+    list_t *clients;
     latteAtomic int liveclients;
     latteAtomic int slots_last_update;/* 插槽最后更新 */
 } config;
@@ -104,26 +104,26 @@ static void readHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
 ssize_t writeConn(benchmarkContext *c, const char *buf, size_t buf_len){
     return 0;
 }
-static long long ustime(void) {
-    struct timeval tv;
-    long long ust;
+// static long long ustime(void) {
+//     struct timeval tv;
+//     long long ust;
 
-    gettimeofday(&tv, NULL);
-    ust = ((long long)tv.tv_sec)*1000000;
-    ust += tv.tv_usec;
-    return ust;
-}
+//     gettimeofday(&tv, NULL);
+//     ust = ((long long)tv.tv_sec)*1000000;
+//     ust += tv.tv_usec;
+//     return ust;
+// }
 
 static void writeHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     client c = privdata;
     /* Initialize request when nothing was written. */
     if (c->written == 0) {
         c->createWriteContent(c);
-        atomicGet(config.slots_last_update, c->slots_last_update);
+        latte_atomic_get(config.slots_last_update, c->slots_last_update);
         c->start = ustime();
         c->latency = -1;
     } 
-    const ssize_t buflen = sdslen(c->obuf);
+    const ssize_t buflen = sds_len(c->obuf);
     const ssize_t writeLen = buflen-c->written;
     if (writeLen > 0) {
         void *ptr = c->obuf+c->written;
@@ -150,7 +150,7 @@ static void writeHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
 }
 static client createClient(char *cmd, size_t len, client from, int thread_id) {
     client c = zmalloc(sizeof(struct _client));
-    c->obuf = sdsempty();
+    c->obuf = sds_empty();
     // if (config.hostsocket == NULL) {
         c->context = createContext(config.hostip, config.hostport);
     // }
@@ -164,7 +164,7 @@ static client createClient(char *cmd, size_t len, client from, int thread_id) {
         exit(1);
     }
     c->thread_id = thread_id;
-    c->obuf = sdsempty();
+    c->obuf = sds_empty();
     c->written = 0;
     aeEventLoop *el = NULL;
     if (thread_id < 0) el = config.el;
@@ -173,16 +173,16 @@ static client createClient(char *cmd, size_t len, client from, int thread_id) {
         el = thread->el;
     }
     aeCreateFileEvent(el,c->context->fd,AE_WRITABLE,writeHandler,c);
-    listAddNodeTail(config.clients,c);
-    atomicIncr(config.liveclients, 1);
-    atomicGet(config.slots_last_update, c->slots_last_update);
+    list_add_node_tail(config.clients,c);
+    latte_atomic_incr(config.liveclients, 1);
+    latte_atomic_get(config.slots_last_update, c->slots_last_update);
 }
 
 
 
 /* benchmark method */
 int initBenchmark(struct benchmark* be) {
-    be->clients = listCreate();
+    be->clients = list_new();
     be->threads = NULL;
     be->liveclients = 0;
     be->el = aeCreateEventLoop(1024*10);

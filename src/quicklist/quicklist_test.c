@@ -11,7 +11,7 @@
 
 
 int test_quicklist() {
-    struct quicklist* list = quicklistCreate();
+    struct quicklist_t* list = quicklist_new();
 //    quicklistPushHead(list, "hello", 6);
 //    quicklistRepr(list , 1);
     return 1;

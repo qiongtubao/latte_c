@@ -33,14 +33,14 @@
 #include "list.h"
 #include "zmalloc/zmalloc.h"
 /* Create a new list. The created list can be freed with
- * listRelease(), but private value of every node need to be freed
- * by the user before to call listRelease(), or by setting a free method using
- * listSetFreeMethod.
+ * list_delete(), but private value of every node need to be freed
+ * by the user before to call list_delete(), or by setting a free method using
+ * list_set_free_method.
  *
  * On error, NULL is returned. Otherwise the pointer to the new list. */
-list *listCreate(void)
+list_t *list_new(void)
 {
-    struct list *list;
+    struct list_t *list;
 
     if ((list = zmalloc(sizeof(*list))) == NULL)
         return NULL;
@@ -53,10 +53,10 @@ list *listCreate(void)
 }
 
 /* Remove all the elements from the list without destroying the list itself. */
-void listEmpty(list *list)
+void list_empty(list_t *list)
 {
     unsigned long len;
-    listNode *current, *next;
+    list_node_t *current, *next;
 
     current = list->head;
     len = list->len;
@@ -73,9 +73,9 @@ void listEmpty(list *list)
 /* Free the whole list.
  *
  * This function can't fail. */
-void listRelease(list *list)
+void list_delete(list_t *list)
 {
-    listEmpty(list);
+    list_empty(list);
     zfree(list);
 }
 
@@ -85,9 +85,9 @@ void listRelease(list *list)
  * On error, NULL is returned and no operation is performed (i.e. the
  * list remains unaltered).
  * On success the 'list' pointer you pass to the function is returned. */
-list *listAddNodeHead(list *list, void *value)
+list_t *list_add_node_head(list_t *list, void *value)
 {
-    listNode *node;
+    list_node_t *node;
 
     if ((node = zmalloc(sizeof(*node))) == NULL)
         return NULL;
@@ -111,9 +111,9 @@ list *listAddNodeHead(list *list, void *value)
  * On error, NULL is returned and no operation is performed (i.e. the
  * list remains unaltered).
  * On success the 'list' pointer you pass to the function is returned. */
-list *listAddNodeTail(list *list, void *value)
+list_t *list_add_node_tail(list_t *list, void *value)
 {
-    listNode *node;
+    list_node_t *node;
 
     if ((node = zmalloc(sizeof(*node))) == NULL)
         return NULL;
@@ -131,8 +131,8 @@ list *listAddNodeTail(list *list, void *value)
     return list;
 }
 
-list *listInsertNode(list *list, listNode *old_node, void *value, int after) {
-    listNode *node;
+list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int after) {
+    list_node_t *node;
 
     if ((node = zmalloc(sizeof(*node))) == NULL)
         return NULL;
@@ -164,7 +164,7 @@ list *listInsertNode(list *list, listNode *old_node, void *value, int after) {
  * It's up to the caller to free the private value of the node.
  *
  * This function can't fail. */
-void listDelNode(list *list, listNode *node)
+void list_del_node(list_t *list, list_node_t *node)
 {
     if (node->prev)
         node->prev->next = node->next;
@@ -180,12 +180,12 @@ void listDelNode(list *list, listNode *node)
 }
 
 /* Returns a list iterator 'iter'. After the initialization every
- * call to listNext() will return the next element of the list.
+ * call to list_next() will return the next element of the list.
  *
  * This function can't fail. */
-listIter *listGetIterator(list *list, int direction)
+list_iterator_t* list_get_iterator(list_t *list, int direction)
 {
-    listIter *iter;
+    list_iterator_t*iter;
 
     if ((iter = zmalloc(sizeof(*iter))) == NULL) return NULL;
     if (direction == AL_START_HEAD)
@@ -197,38 +197,38 @@ listIter *listGetIterator(list *list, int direction)
 }
 
 /* Release the iterator memory */
-void listReleaseIterator(listIter *iter) {
+void list_iterator_delete(list_iterator_t*iter) {
     zfree(iter);
 }
 
 /* Create an iterator in the list private iterator structure */
-void listRewind(list *list, listIter *li) {
+void list_rewind(list_t *list, list_iterator_t*li) {
     li->next = list->head;
     li->direction = AL_START_HEAD;
 }
 
-void listRewindTail(list *list, listIter *li) {
+void list_rewind_tail(list_t *list, list_iterator_t*li) {
     li->next = list->tail;
     li->direction = AL_START_TAIL;
 }
 
 /* Return the next element of an iterator.
  * It's valid to remove the currently returned element using
- * listDelNode(), but not to remove other elements.
+ * list_del_node(), but not to remove other elements.
  *
  * The function returns a pointer to the next element of the list,
  * or NULL if there are no more elements, so the classical usage
  * pattern is:
  *
- * iter = listGetIterator(list,<direction>);
- * while ((node = listNext(iter)) != NULL) {
- *     doSomethingWith(listNodeValue(node));
+ * iter = list_get_iterator(list,<direction>);
+ * while ((node = list_next(iter)) != NULL) {
+ *     doSomethingWith(list_node_value(node));
  * }
  *
  * */
-listNode *listNext(listIter *iter)
+list_node_t *list_next(list_iterator_t*iter)
 {
-    listNode *current = iter->next;
+    list_node_t *current = iter->next;
 
     if (current != NULL) {
         if (iter->direction == AL_START_HEAD)
@@ -242,40 +242,40 @@ listNode *listNext(listIter *iter)
 /* Duplicate the whole list. On out of memory NULL is returned.
  * On success a copy of the original list is returned.
  *
- * The 'Dup' method set with listSetDupMethod() function is used
+ * The 'Dup' method set with list_set_dup_method() function is used
  * to copy the node value. Otherwise the same pointer value of
  * the original node is used as value of the copied node.
  *
  * The original list both on success or error is never modified. */
-list *listDup(list *orig)
+list_t *list_dup(list_t *orig)
 {
-    list *copy;
-    listIter iter;
-    listNode *node;
+    list_t *copy;
+    list_iterator_t iter;
+    list_node_t *node;
 
-    if ((copy = listCreate()) == NULL)
+    if ((copy = list_new()) == NULL)
         return NULL;
     copy->dup = orig->dup;
     copy->free = orig->free;
     copy->match = orig->match;
-    listRewind(orig, &iter);
-    while((node = listNext(&iter)) != NULL) {
+    list_rewind(orig, &iter);
+    while((node = list_next(&iter)) != NULL) {
         void *value;
 
         if (copy->dup) {
             value = copy->dup(node->value);
             if (value == NULL) {
-                listRelease(copy);
+                list_delete(copy);
                 return NULL;
             }
         } else {
             value = node->value;
         }
         
-        if (listAddNodeTail(copy, value) == NULL) {
-            /* Free value if dup succeed but listAddNodeTail failed. */
+        if (list_add_node_tail(copy, value) == NULL) {
+            /* Free value if dup succeed but list_add_node_tail failed. */
             if (copy->free) copy->free(value);
-            listRelease(copy);
+            list_delete(copy);
             return NULL;
         }
     }
@@ -284,20 +284,20 @@ list *listDup(list *orig)
 
 /* Search the list for a node matching a given key.
  * The match is performed using the 'match' method
- * set with listSetMatchMethod(). If no 'match' method
+ * set with list_set_match_method(). If no 'match' method
  * is set, the 'value' pointer of every node is directly
  * compared with the 'key' pointer.
  *
  * On success the first matching node pointer is returned
  * (search starts from head). If no matching node exists
  * NULL is returned. */
-listNode *listSearchKey(list *list, void *key)
+list_node_t *list_search_key(list_t *list, void *key)
 {
-    listIter iter;
-    listNode *node;
+    list_iterator_t iter;
+    list_node_t *node;
 
-    listRewind(list, &iter);
-    while((node = listNext(&iter)) != NULL) {
+    list_rewind(list, &iter);
+    while((node = list_next(&iter)) != NULL) {
         if (list->match) {
             if (list->match(node->value, key)) {
                 return node;
@@ -316,8 +316,8 @@ listNode *listSearchKey(list *list, void *key)
  * and so on. Negative integers are used in order to count
  * from the tail, -1 is the last element, -2 the penultimate
  * and so on. If the index is out of range NULL is returned. */
-listNode *listIndex(list *list, long index) {
-    listNode *n;
+list_node_t *list_index(list_t *list, long index) {
+    list_node_t *n;
 
     if (index < 0) {
         index = (-index)-1;
@@ -331,11 +331,11 @@ listNode *listIndex(list *list, long index) {
 }
 
 /* Rotate the list removing the tail node and inserting it to the head. */
-void listRotateTailToHead(list *list) {
-    if (listLength(list) <= 1) return;
+void list_rotate_tail_to_head(list_t *list) {
+    if (list_length(list) <= 1) return;
 
     /* Detach current tail */
-    listNode *tail = list->tail;
+    list_node_t *tail = list->tail;
     list->tail = tail->prev;
     list->tail->next = NULL;
     /* Move it as head */
@@ -346,10 +346,10 @@ void listRotateTailToHead(list *list) {
 }
 
 /* Rotate the list removing the head node and inserting it to the tail. */
-void listRotateHeadToTail(list *list) {
-    if (listLength(list) <= 1) return;
+void list_rotate_head_to_tail(list_t *list) {
+    if (list_length(list) <= 1) return;
 
-    listNode *head = list->head;
+    list_node_t *head = list->head;
     /* Detach current head */
     list->head = head->next;
     list->head->prev = NULL;
@@ -362,7 +362,7 @@ void listRotateHeadToTail(list *list) {
 
 /* Add all the elements of the list 'o' at the end of the
  * list 'l'. The list 'other' remains empty but otherwise valid. */
-void listJoin(list *l, list *o) {
+void list_join(list_t *l, list_t *o) {
     if (o->len == 0) return;
 
     o->head->prev = l->tail;
@@ -378,4 +378,99 @@ void listJoin(list *l, list *o) {
     /* Setup other as an empty list. */
     o->head = o->tail = NULL;
     o->len = 0;
+}
+
+
+typedef struct latte_list_iterator_t {
+    latte_iterator_t it;
+    list_node_t* next;
+    list_t* list;
+} latte_list_iterator_t;
+
+bool protected_latte_list_iterator_has_next(latte_iterator_t* iterator) {
+    latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
+    list_node_t* node = list_next(((list_iterator_t*)it->it.data));
+    if (node == NULL) {
+        return false;
+    }
+    it->next = node;
+    return true;
+}
+
+void* protected_latte_list_iterator_next(latte_iterator_t* iterator) {
+    latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
+    list_node_t* node = it->next;
+    it->next = NULL;
+    return list_node_value(node);
+}
+
+void protected_latte_list_iterator_delete(latte_iterator_t* iterator) {
+    latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
+    list_iterator_delete(it->it.data);
+    if (it->list != NULL) {
+        list_delete(it->list);
+        it->list = NULL;
+    }
+}
+
+latte_iterator_func latte_list_iterator_func = {
+    .has_next = protected_latte_list_iterator_has_next,
+    .next = protected_latte_list_iterator_next,
+    .release = protected_latte_list_iterator_delete
+};
+
+latte_iterator_t* list_get_latte_iterator(list_t* l, int opt) {
+    latte_list_iterator_t* it = zmalloc(sizeof(latte_list_iterator_t));
+    list_iterator_t* t;
+    if (opt & LIST_ITERATOR_OPTION_TAIL) {
+        t = list_get_iterator(l, AL_START_TAIL);
+    } else {
+        t = list_get_iterator(l, AL_START_HEAD);
+    } 
+    if (opt & LIST_ITERATOR_OPTION_DELETE_LIST) it->list = l;
+    it->it.data = t;
+    it->it.func = &latte_list_iterator_func;
+    it->next = NULL;
+    it->list = NULL;
+    if (opt & LIST_ITERATOR_OPTION_DELETE_LIST) it->list = l;
+    return (latte_iterator_t*)it;
+}
+
+
+
+void list_move_head(list_t* l, list_node_t* node) {
+    if ( NULL == node->prev) {
+        return;
+    }
+    node->prev->next = node->next;
+
+    if (node->next != NULL) {
+        node->next->prev = node->prev;
+    } else {
+        l->tail = node->prev;
+    }
+
+    node->prev = NULL;
+    node->next = l->head;
+    if (l->head != NULL) {
+        l->head->prev = node;
+    }
+    l->head = node;
+}
+
+void* list_remove(list_t* l, list_node_t* node) {
+    if (node == NULL) return NULL;
+    void* result = list_node_value(node);
+    if (l->free != NULL) {
+        node->value = NULL;
+    }
+    list_del_node(l, node);
+    return result;
+}
+void* list_lpop(list_t* l) {
+    return list_remove(l, l->head);
+}
+
+void* list_rpop(list_t* l) {
+    return list_remove(l, l->tail);
 }

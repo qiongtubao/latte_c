@@ -27,8 +27,8 @@ typedef struct latteThread {
     pthread_mutex_t mutex;
     pthread_cond_t job_cond;
     pthread_cond_t step_cond;
-    list* send_queue;
-    list* recv_queue;
+    list_t* send_queue;
+    list_t* recv_queue;
     int pending;
     int tid;
     int notify_recv_fd;

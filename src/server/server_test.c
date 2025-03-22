@@ -25,10 +25,10 @@ int echoHandler(struct latteClient* lc) {
         stopServer(lc->server);
         return 1;
     }
-    if (connWrite(lc->conn, lc->querybuf, sdslen(lc->querybuf)) == -1) {
+    if (connWrite(lc->conn, lc->querybuf, sds_len(lc->querybuf)) == -1) {
         printf("write fail");
     }
-    lc->qb_pos = sdslen(lc->querybuf);
+    lc->qb_pos = sds_len(lc->querybuf);
     return 1;
 }
 struct latteClient *createLatteClient() {
@@ -40,10 +40,22 @@ struct latteClient *createLatteClient() {
 void freeLatteClient(struct latteClient* client) {
     zfree(client);
 }
+
+vector_t* test_bind_vector_new() {
+    vector_t* v = vector_new();
+    char* bind[2] = {"*", "-::*"};
+    for(int i = 0; i < 2; i++) {
+        value_t* val = value_new();
+        value_set_sds(val, sds_new(bind[i]));
+        vector_push(v, val);
+    }
+    return v;
+}
 void *server_thread(void *arg) {
     struct latteServer* server = zmalloc(sizeof(struct latteServer));
     server->port = PORT;
-    server->bind = NULL;
+    server->bind = test_bind_vector_new();
+    
     server->maxclients = 100;
     server->el = aeCreateEventLoop(1024);
     initInnerLatteServer(server);
@@ -53,7 +65,7 @@ void *server_thread(void *arg) {
 }
 
 int test_server() {
-    initLogger();
+    log_init();
     log_add_stdout("latte_c", LOG_DEBUG);
     pthread_t server_thread_id;
 

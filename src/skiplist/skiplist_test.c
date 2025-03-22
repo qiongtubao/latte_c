@@ -2,7 +2,7 @@
 #include "../test/testhelp.h"
 #include "../test/testassert.h"
 #include "skiplist.h"
-int doubleComparator(sds a_ele, void* a_, sds b_ele, void* b_) {
+int doubleComparator(sds_t a_ele, void* a_, sds_t b_ele, void* b_) {
     double a = *(double*)a_; 
     double b = *(double*)b_;
     if (a < b) {
@@ -17,7 +17,7 @@ int doubleComparator(sds a_ele, void* a_, sds b_ele, void* b_) {
         } else if (b_ele == NULL) {
             return 1;
         } else {
-            return sdscmp(a_ele, b_ele);
+            return sds_cmp(a_ele, b_ele);
         }
     }
 
@@ -27,15 +27,15 @@ void freeDouble(void* v) {
     UNUSED(v);
 }
 int test_skiplistNew() {
-    skiplist* sl = skipListNew(&doubleComparator);
+    skiplist_t* sl = skipListNew(&doubleComparator);
     assert(sl->length == 0);
     skipListFree(sl, &freeDouble);
     return 1;
 }
 
 int test_skiplistInsert() {
-    skiplist* sl = skipListNew(&doubleComparator);
-    sds a = sdsnew("a");
+    skiplist_t* sl = skipListNew(&doubleComparator);
+    sds_t a = sds_new("a");
     double a_score  = 1.0;
     skipListInsert(sl, &a_score, a);
     assert(sl->length == 1);
@@ -51,10 +51,10 @@ int test_skiplistInsert() {
     //0.9 <= 1 <= 1.9 
     //0.9 <= 1 (first 1)
     //1.0 <= 1.9 (last 1)
-    skiplistNode* first = skiplistFirstInRange(sl, &range);
+    skiplist_node_t* first = skiplist_firstInRange(sl, &range);
     assert(first != NULL);
     assert(doubleComparator(NULL, first->score, NULL, &a_score) == 0);
-    skiplistNode* last = skiplistLastInRange(sl, &range);
+    skiplist_node_t* last = skiplist_lastInRange(sl, &range);
     assert(last != NULL);
     assert(doubleComparator(NULL, last->score, NULL, &a_score) == 0);
 
@@ -66,10 +66,10 @@ int test_skiplistInsert() {
     max = 0.8;
     range.min = &min;
     range.max = &max;
-    first = skiplistFirstInRange(sl, &range);
+    first = skiplist_firstInRange(sl, &range);
     assert(first == NULL);
     // assert(doubleComparator(NULL, first->score, NULL, &a_score) == 0);
-    last = skiplistLastInRange(sl, &range);
+    last = skiplist_lastInRange(sl, &range);
     assert(last == NULL);
 
     //1 point (3)
@@ -80,14 +80,14 @@ int test_skiplistInsert() {
     max = 2.1;
     range.min = &min;
     range.max = &max;
-    first = skiplistFirstInRange(sl, &range);
+    first = skiplist_firstInRange(sl, &range);
     assert(first == NULL);
-    last = skiplistLastInRange(sl, &range);
+    last = skiplist_lastInRange(sl, &range);
     assert(last == NULL);
 
 
     // test 2 point 
-    sds b = sdsnew("b");
+    sds_t b = sds_new("b");
     double b_score  = 5.0;
     skipListInsert(sl, &b_score, b);
     assert(sl->length == 2);
@@ -98,11 +98,11 @@ int test_skiplistInsert() {
     max = 0.9;
     range.min = &min;
     range.max = &max;
-    first = skiplistFirstInRange(sl, &range);
+    first = skiplist_firstInRange(sl, &range);
     assert(first == NULL);
 
     // assert(doubleComparator(NULL, first->score, NULL, &b_score) == 0);
-    last = skiplistLastInRange(sl, &range);
+    last = skiplist_lastInRange(sl, &range);
     assert(last == NULL);
 
 
@@ -113,10 +113,10 @@ int test_skiplistInsert() {
     max = 1.2;
     range.min = &min;
     range.max = &max;
-    first = skiplistFirstInRange(sl, &range);
+    first = skiplist_firstInRange(sl, &range);
     assert(first != NULL);
     assert(doubleComparator(NULL, first->score, NULL, &a_score) == 0);
-    last = skiplistLastInRange(sl, &range);
+    last = skiplist_lastInRange(sl, &range);
     assert(last != NULL);
     assert(doubleComparator(NULL, last->score, NULL, &a_score) == 0);
 
@@ -127,10 +127,10 @@ int test_skiplistInsert() {
     max = 5.2;
     range.min = &min;
     range.max = &max;
-    first = skiplistFirstInRange(sl, &range);
+    first = skiplist_firstInRange(sl, &range);
     assert(first != NULL);
     assert(doubleComparator(NULL, first->score, NULL, &a_score) == 0);
-    last = skiplistLastInRange(sl, &range);
+    last = skiplist_lastInRange(sl, &range);
     assert(last != NULL);
     assert(doubleComparator(NULL, last->score, NULL, &b_score) == 0);
 
@@ -140,10 +140,10 @@ int test_skiplistInsert() {
     max = 4.9;
     range.min = &min;
     range.max = &max;
-    first = skiplistFirstInRange(sl, &range);
+    first = skiplist_firstInRange(sl, &range);
     assert(first == NULL);
     // assert(doubleComparator(NULL, first->score, NULL, &b_score) == 0);
-    last = skiplistLastInRange(sl, &range);
+    last = skiplist_lastInRange(sl, &range);
     assert(last == NULL);
 
 
@@ -153,10 +153,10 @@ int test_skiplistInsert() {
     max = 5.9;
     range.min = &min;
     range.max = &max;
-    first = skiplistFirstInRange(sl, &range);
+    first = skiplist_firstInRange(sl, &range);
     assert(first != NULL);
     assert(doubleComparator(NULL, first->score, NULL, &b_score) == 0);
-    last = skiplistLastInRange(sl, &range);
+    last = skiplist_lastInRange(sl, &range);
     assert(last != NULL);
     assert(doubleComparator(NULL, last->score, NULL, &b_score) == 0);
 
@@ -167,9 +167,9 @@ int test_skiplistInsert() {
     max = 5.9;
     range.min = &min;
     range.max = &max;
-    first = skiplistFirstInRange(sl, &range);
+    first = skiplist_firstInRange(sl, &range);
     assert(first == NULL);
-    last = skiplistLastInRange(sl, &range);
+    last = skiplist_lastInRange(sl, &range);
     assert(last == NULL);
     
 
@@ -179,10 +179,10 @@ int test_skiplistInsert() {
 }
 
 int test_skiplistDel() {
-    skiplist* sl = skipListNew(&doubleComparator);
-    sds a = sdsnew("a");
+    skiplist_t* sl = skipListNew(&doubleComparator);
+    sds_t a = sds_new("a");
     double a_score  = 1.0;
-    sds b = sdsnew("b");
+    sds_t b = sds_new("b");
     double b_score  = 5.0;
     skipListInsert(sl, &a_score, a);
     assert(sl->length == 1);

@@ -21,37 +21,41 @@
  */
 
 #include "log.h"
+#include <execinfo.h>  // 提供 backtrace 和 backtrace_symbols
+#include <dlfcn.h>     // 提供 dladdr
+#include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
-struct Logger* getLoggerByTag(char* tag) {
-  dictEntry* entry = dictFind(loggerFactory.loggers, tag);
+struct logger_t* get_logger_by_tag(char* tag) {
+  dict_entry_t* entry = dict_find(global_logger_factory.loggers, tag);
   if (entry == NULL) return NULL;
-  return dictGetVal(entry);
+  return dict_get_val(entry);
 }
 
-struct Logger* loggerCreate() {
-  struct Logger* logger = zmalloc(sizeof(struct Logger));
+struct logger_t* logger_new() {
+  struct logger_t* logger = zmalloc(sizeof(struct logger_t));
   return logger; 
 }
 
-struct Logger* getOrCreateLoggerByTag(char* tag) {
-    struct Logger* logger = getLoggerByTag(tag);
+struct logger_t* get_or_new_logger_by_tag(char* tag) {
+    struct logger_t* logger = get_logger_by_tag(tag);
     if (logger == NULL) {
-        logger = loggerCreate();
-        dictAdd(loggerFactory.loggers, tag, logger);
+        logger = logger_new();
+        dict_add(global_logger_factory.loggers, tag, logger);
     }
     return logger;
 }
 
-void loggerFree(struct Logger* logger) {
+void logger_delete(struct logger_t* logger) {
     zfree(logger);
 }
 
-uint64_t LoggerHashCallback(const void *key) {
-    return dictGenCaseHashFunction((unsigned char*)key, strlen((char*)key));
+uint64_t logger_hash_callback(const void *key) {
+    return dict_gen_case_hash_function((unsigned char*)key, strlen((char*)key));
 }
 
-int LoggerCompareCallback(dict *privdata, const void *key1, const void *key2) {
+int logger_compare_callback(dict_t*privdata, const void *key1, const void *key2) {
     int l1,l2;
     DICT_NOTUSED(privdata);
     l1 = strlen((char*) key1);
@@ -62,24 +66,24 @@ int LoggerCompareCallback(dict *privdata, const void *key1, const void *key2) {
 
 
 
-void LoggerFreeCallback(dict* privdata, void* val) {
+void logger_free_callback(dict_t* privdata, void* val) {
     DICT_NOTUSED(privdata);
     // printf("delete :%p\n", val);
     if(val != NULL) {
-        loggerFree(val);
+        logger_delete(val);
     }
 }
-static dictType LoggerDict = {
-    LoggerHashCallback,
+static dict_func_t logger_dict_type = {
+    logger_hash_callback,
     NULL,
     NULL,
-    LoggerCompareCallback,
-    LoggerFreeCallback,
+    logger_compare_callback,
+    logger_free_callback,
     NULL,
     NULL
 };
-void initLogger() {
-  loggerFactory.loggers = dictCreate(&LoggerDict);
+void log_init() {
+  global_logger_factory.loggers = dict_new(&logger_dict_type);
 }
 
 static const char *level_strings[] = {
@@ -93,7 +97,7 @@ static const char *level_colors[] = {
 #endif
 
 
-static void stdout_callback(log_Event *ev) {
+static void stdout_callback(log_event_t *ev) {
   char buf[16];
   buf[strftime(buf, sizeof(buf), "%H:%M:%S", ev->time)] = '\0';
 #ifdef LOG_USE_COLOR
@@ -112,7 +116,7 @@ static void stdout_callback(log_Event *ev) {
 }
 
 
-static void file_callback(log_Event *ev) {
+static void file_callback(log_event_t *ev) {
   char buf[64];
   buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
   FILE* fp = fopen((sds)ev->udata, "w+");
@@ -126,12 +130,12 @@ static void file_callback(log_Event *ev) {
 }
 
 
-static void lock(struct Logger* logger)   {
+static void lock(struct logger_t* logger)   {
   if (logger->lock) { logger->lock(true, logger->udata); }
 }
 
 
-static void unlock(struct Logger* logger) {
+static void unlock(struct logger_t* logger) {
   if (logger->lock) { logger->lock(false, logger->udata); }
 }
 
@@ -141,8 +145,8 @@ const char* log_level_string(int level) {
 }
 
 
-void log_set_lock(char* tag, log_LockFn fn, void *udata) {
-  struct Logger* logger = getLoggerByTag(tag);
+void log_set_lock(char* tag, log_lock_func fn, void *udata) {
+  struct logger_t* logger = get_logger_by_tag(tag);
 //   assert(logger != NULL);
   logger->lock = fn;
   logger->udata = udata;
@@ -150,25 +154,25 @@ void log_set_lock(char* tag, log_LockFn fn, void *udata) {
 
 
 void log_set_level(char* tag, int level) {
-  struct Logger* logger = getLoggerByTag(tag);
+  struct logger_t* logger = get_logger_by_tag(tag);
 //   assert(logger != NULL);
   logger->level = level;
 }
 
 
 void log_set_quiet(char* tag, bool enable) {
-  struct Logger* logger = getLoggerByTag(tag);
+  struct logger_t* logger = get_logger_by_tag(tag);
 //   assert(logger != NULL);
   logger->quiet = enable;
 }
 
 
 
-int log_add_callback(char* tag, log_LogFn fn, void *udata, int level) {
-  struct Logger* logger = getOrCreateLoggerByTag(tag);
+int log_add_callback(char* tag, log_func fn, void *udata, int level) {
+  struct logger_t* logger = get_or_new_logger_by_tag(tag);
   for (int i = 0; i < MAX_CALLBACKS; i++) {
     if (!logger->callbacks[i].fn) {
-      logger->callbacks[i] = (Callback) { fn, udata, level };
+      logger->callbacks[i] = (log_callback_t) { fn, udata, level };
       return 1;
     }
   }
@@ -177,7 +181,7 @@ int log_add_callback(char* tag, log_LogFn fn, void *udata, int level) {
 
 
 int log_add_file(char* tag, char* file, int level) {
-  return log_add_callback(tag, file_callback, sdsnew(file), level);
+  return log_add_callback(tag, file_callback, sds_new(file), level);
 }
 
 int log_add_stdout(char* tag, int level) {
@@ -185,7 +189,7 @@ int log_add_stdout(char* tag, int level) {
 }
 
 
-static void init_event(log_Event *ev, void *udata) {
+static void init_event(log_event_t *ev, void *udata) {
   if (!ev->time) {
     time_t t = time(NULL);
     ev->time = localtime(&t);
@@ -194,8 +198,9 @@ static void init_event(log_Event *ev, void *udata) {
 }
 
 
-void log_log(char* tag, int level, const char *file, char* func, int line, const char *fmt, ...) {
-  log_Event ev = {
+void log_log(char* tag, int level, char *file, const char* func, int line, char *fmt, ...) {
+  if (global_logger_factory.loggers == NULL) return;
+  log_event_t ev = {
     .fmt   = fmt,
     .file  = file,
     .line  = line,
@@ -203,7 +208,7 @@ void log_log(char* tag, int level, const char *file, char* func, int line, const
     .func = func,
   };
  
-  struct Logger* logger = getLoggerByTag(tag);
+  struct logger_t* logger = get_logger_by_tag(tag);
   if (logger == NULL) return;
   lock(logger);
 
@@ -215,7 +220,7 @@ void log_log(char* tag, int level, const char *file, char* func, int line, const
 //   }
 
   for (int i = 0; i < MAX_CALLBACKS && logger->callbacks[i].fn; i++) {
-    Callback *cb = &logger->callbacks[i];
+    log_callback_t *cb = &logger->callbacks[i];
     if (level >= cb->level) {
       init_event(&ev, cb->udata);
       va_start(ev.ap, fmt);
@@ -226,3 +231,41 @@ void log_log(char* tag, int level, const char *file, char* func, int line, const
 
   unlock(logger);
 }
+
+
+char *lbt(char* backtrace_buffer)
+{
+  int buffer_size = 100;
+  void* buffer[buffer_size];
+
+  // int     bt_buffer_size = 8192;
+  // char backtrace_buffer[bt_buffer_size];
+
+  int size = backtrace(buffer, buffer_size);
+  printf("\n lbt  %d\n", size);
+  char **symbol_array = NULL;
+// #ifdef LBT_SYMBOLS
+  /* 有些环境下，使用addr2line 无法根据地址输出符号 */
+  symbol_array = backtrace_symbols(buffer, size);
+// #endif  // LBT_SYMBOLS
+
+  int offset = 0;
+  for (int i = 0; i < size && offset < BT_BUFFER_SIZE - 1; i++) {
+    if (i != 0) {
+      offset += snprintf(backtrace_buffer + offset, BT_BUFFER_SIZE - offset, "\n");
+    }
+    const char *format = (0 == i) ? "0x%lx" : " 0x%lx";
+    offset += snprintf(
+        backtrace_buffer + offset, BT_BUFFER_SIZE - offset, format, (buffer[i]));
+
+    if (symbol_array != NULL) {
+      offset += snprintf(backtrace_buffer + offset, BT_BUFFER_SIZE - offset, " %s", symbol_array[i]);
+    }
+  }
+
+  if (symbol_array != NULL) {
+    free(symbol_array);
+  }
+  return backtrace_buffer;
+}
+

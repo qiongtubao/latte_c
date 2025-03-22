@@ -34,17 +34,17 @@ void releaseThreadJob(latteThreadJob* job) {
 
 void notifyCallbackHandler(latteThread* thread) {
      /* Pop the job from the queue. */
-    listNode *ln = listFirst(thread->recv_queue);
+    list_node_t *ln = list_first(thread->recv_queue);
     while (ln != NULL) {
         struct latteThreadJob *job = ln->value;
         if (job->cb != NULL) {
             job->cb(job);
         }
         pthread_mutex_lock(&thread->mutex);
-        listDelNode(thread->recv_queue,ln);
+        list_del_node(thread->recv_queue,ln);
         pthread_mutex_unlock(&thread->mutex);
         releaseThreadJob(job);
-        ln = listFirst(thread->recv_queue);
+        ln = list_first(thread->recv_queue);
     }
 }
 
@@ -71,10 +71,10 @@ void releaseOneTaskThread(latteThread* thread) {
     pthread_cond_destroy(&thread->job_cond);
     pthread_cond_destroy(&thread->step_cond);
     if (thread->send_queue != NULL) {
-        listRelease(thread->send_queue);
+        list_delete(thread->send_queue);
     }
     if (thread->recv_queue != NULL) {
-        listRelease(thread->recv_queue);
+        list_delete(thread->recv_queue);
     }
 
     close(thread->notify_recv_fd);
@@ -85,8 +85,8 @@ int taskThreadInit(int id, latteThread* thread, aeEventLoop* el) {
     pthread_mutex_init(&thread->mutex, NULL);
     pthread_cond_init(&thread->job_cond, NULL);
     pthread_cond_init(&thread->step_cond, NULL);
-    thread->send_queue = listCreate();
-    thread->recv_queue = listCreate();
+    thread->send_queue = list_new();
+    thread->recv_queue = list_new();
     thread->pending = 0;
     thread->tid = id;
     int fds[2];
@@ -172,22 +172,22 @@ void *taskProcess(void *arg) {
             printf("Warning: can't mask SIGALRM in bio.c thread: %s\n", strerror(errno));
 
     while(1) {
-        listNode *ln;
-        if (listLength(thread->send_queue) == 0) {
+        list_node_t *ln;
+        if (list_length(thread->send_queue) == 0) {
             pthread_cond_wait(&thread->job_cond, &thread->mutex);
             continue;
         }
          /* Pop the job from the queue. */
-        ln = listFirst(thread->send_queue);
+        ln = list_first(thread->send_queue);
         job = ln->value;
 
         pthread_mutex_unlock(&thread->mutex);
         int error = 0;
         job->exec(job);
         pthread_mutex_lock(&thread->mutex);
-        listAddNodeTail(thread->recv_queue, job);
+        list_add_node_tail(thread->recv_queue, job);
         notifyCallback(thread);
-        listDelNode(thread->send_queue,ln);
+        list_del_node(thread->send_queue,ln);
         thread->pending--;
         pthread_cond_broadcast(&thread->step_cond);
 
@@ -255,7 +255,7 @@ int trySubmitTask(taskThread* thread, int i, latteThreadJob* t) {
         return 0;
     }
     pthread_mutex_lock(&l->mutex);
-    listAddNodeTail(l->send_queue, t);
+    list_add_node_tail(l->send_queue, t);
     l->pending++;
     pthread_cond_signal(&l->job_cond);
     pthread_mutex_unlock(&l->mutex);

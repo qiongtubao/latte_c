@@ -2,6 +2,12 @@
 #include <limits.h>
 #include <time.h>
 #include <sys/time.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+#include <stddef.h>
+
 /* Convert a string into a long long. Returns 1 if the string could be parsed
  * into a (non-overflowing) long long, 0 otherwise. The value will be set to
  * the parsed value when appropriate.
@@ -78,6 +84,10 @@ int string2ll(const char *s, size_t slen, long long *value) {
         if (value != NULL) *value = v;
     }
     return 1;
+}
+
+int sds2ll(sds_t value, long long * result) {
+    return string2ll(value, sds_len(value), result);
 }
 
 /* Return the number of digits of 'v' when converted to string in radix 10.
@@ -167,6 +177,12 @@ int ll2string(char *dst, size_t dstlen, long long svalue) {
     return length;
 }
 
+sds_t ll2sds(long long ll) {
+    sds_t buffer = sds_new_len("", MAX_ULL_CHARS);
+    int len = ll2string(buffer, MAX_ULL_CHARS, ll);
+    sds_set_len(buffer, len);
+    return buffer;
+}
 
 long long ustime(void) {
     struct timeval tv;
@@ -178,13 +194,18 @@ long long ustime(void) {
     return ust;
 }
 
-
+unsigned long current_monitonic_time()
+{
+  struct timespec tp;
+  clock_gettime(CLOCK_MONOTONIC, &tp);
+  return tp.tv_sec * 1000 * 1000 * 1000UL + tp.tv_nsec;
+}
 
 /*
  * Gets the proper timezone in a more portable fashion
  * i.e timezone variables are linux specific.
  */
-long getTimeZone(void) {
+long get_time_zone(void) {
 #if defined(__linux__) || defined(__sun)
     return timezone;
 #else
@@ -206,10 +227,253 @@ long _updateGetDaylightActive(int updated) {
     if (updated) daylight_active = tm.tm_isdst;
     return tm.tm_isdst;
 }
-long getDaylightActive() {
+long get_day_light_active() {
     return _updateGetDaylightActive(0);
 }
 
-long updateDaylightActive() {
+long update_day_light_active() {
     return _updateGetDaylightActive(1);
+}
+
+
+/* Convert a string into a double. Returns 1 if the string could be parsed
+ * into a (non-overflowing) double, 0 otherwise. The value will be set to
+ * the parsed value when appropriate.
+ *
+ * Note that this function demands that the string strictly represents
+ * a double: no spaces or other characters before or after the string
+ * representing the number are accepted. */
+int string2d(const char *s, size_t slen, double *dp) {
+    errno = 0;
+    char *eptr;
+    *dp = strtod(s, &eptr);
+    if (slen == 0 ||
+        isspace(((const char*)s)[0]) ||
+        (size_t)(eptr-(char*)s) != slen ||
+        (errno == ERANGE &&
+            (*dp == HUGE_VAL || *dp == -HUGE_VAL || *dp == 0)) ||
+        isnan(*dp))
+        return 0;
+    return 1;
+}
+
+int sds2d(sds_t v, double *dp) {
+    return string2d(v, sds_len(v), dp);
+}
+
+/* Convert a double to a string representation. Returns the number of bytes
+ * required. The representation should always be parsable by strtod(3).
+ * This function does not support human-friendly formatting like ld2string
+ * does. It is intended mainly to be used inside t_zset.c when writing scores
+ * into a ziplist representing a sorted set. */
+int d2string(char *buf, size_t len, double value) {
+    if (isnan(value)) {
+        len = snprintf(buf,len,"nan");
+    } else if (isinf(value)) {
+        if (value < 0)
+            len = snprintf(buf,len,"-inf");
+        else
+            len = snprintf(buf,len,"inf");
+    } else if (value == 0) {
+        /* See: http://en.wikipedia.org/wiki/Signed_zero, "Comparisons". */
+        if (1.0/value < 0)
+            len = snprintf(buf,len,"-0");
+        else
+            len = snprintf(buf,len,"0");
+    } else {
+#if (DBL_MANT_DIG >= 52) && (LLONG_MAX == 0x7fffffffffffffffLL)
+        /* Check if the float is in a safe range to be casted into a
+         * long long. We are assuming that long long is 64 bit here.
+         * Also we are assuming that there are no implementations around where
+         * double has precision < 52 bit.
+         *
+         * Under this assumptions we test if a double is inside an interval
+         * where casting to long long is safe. Then using two castings we
+         * make sure the decimal part is zero. If all this is true we use
+         * integer printing function that is much faster. */
+        double min = -4503599627370495; /* (2^52)-1 */
+        double max = 4503599627370496; /* -(2^52) */
+        if (value > min && value < max && value == ((double)((long long)value)))
+            len = ll2string(buf,len,(long long)value);
+        else
+#endif
+            len = snprintf(buf,len,"%.17g",value);
+    }
+
+    return len;
+}
+
+ 
+sds_t d2sds(double d) {
+    char s[MAX_LONG_DOUBLE_CHARS];
+    int size = d2string(s, MAX_LONG_DOUBLE_CHARS, d);
+    return sds_new_len(s, size);
+}
+
+/* Create a string object from a long double.
+ * If mode is humanfriendly it does not use exponential format and trims trailing
+ * zeroes at the end (may result in loss of precision).
+ * If mode is default exp format is used and the output of snprintf()
+ * is not modified (may result in loss of precision).
+ * If mode is hex hexadecimal format is used (no loss of precision)
+ *
+ * The function returns the length of the string or zero if there was not
+ * enough buffer room to store it. */
+int ld2string(char *buf, size_t len, long double value, ld2string_mode mode) {
+    size_t l = 0;
+
+    if (isinf(value)) {
+        /* Libc in odd systems (Hi Solaris!) will format infinite in a
+         * different way, so better to handle it in an explicit way. */
+        if (len < 5) return 0; /* No room. 5 is "-inf\0" */
+        if (value > 0) {
+            memcpy(buf,"inf",3);
+            l = 3;
+        } else {
+            memcpy(buf,"-inf",4);
+            l = 4;
+        }
+    } else {
+        switch (mode) {
+        case LD_STR_AUTO:
+            l = snprintf(buf,len,"%.17Lg",value);
+            if (l+1 > len) return 0; /* No room. */
+            break;
+        case LD_STR_HEX:
+            l = snprintf(buf,len,"%La",value);
+            if (l+1 > len) return 0; /* No room. */
+            break;
+        case LD_STR_HUMAN:
+            /* We use 17 digits precision since with 128 bit floats that precision
+             * after rounding is able to represent most small decimal numbers in a
+             * way that is "non surprising" for the user (that is, most small
+             * decimal numbers will be represented in a way that when converted
+             * back into a string are exactly the same as what the user typed.) */
+            l = snprintf(buf,len,"%.17Lf",value);
+            if (l+1 > len) return 0; /* No room. */
+            /* Now remove trailing zeroes after the '.' */
+            if (strchr(buf,'.') != NULL) {
+                char *p = buf+l-1;
+                while(*p == '0') {
+                    p--;
+                    l--;
+                }
+                if (*p == '.') l--;
+            }
+            break;
+        default: return 0; /* Invalid mode. */
+        }
+    }
+    buf[l] = '\0';
+    return l;
+}
+
+sds_t ld2sds(long double value, ld2string_mode mode) {
+    sds_t buffer = sds_new_len("", MAX_LONG_DOUBLE_CHARS);
+    int len = ld2string(buffer, MAX_LONG_DOUBLE_CHARS, value, mode);
+    sds_set_len(buffer, len);
+    return buffer;
+}
+
+
+/* Convert a string into a double. Returns 1 if the string could be parsed
+ * into a (non-overflowing) double, 0 otherwise. The value will be set to
+ * the parsed value when appropriate.
+ *
+ * Note that this function demands that the string strictly represents
+ * a double: no spaces or other characters before or after the string
+ * representing the number are accepted. */
+int string2ld(const char *s, size_t slen, long double *dp) {
+    char buf[MAX_LONG_DOUBLE_CHARS];
+    long double value;
+    char *eptr;
+
+    if (slen == 0 || slen >= sizeof(buf)) return 0;
+    memcpy(buf,s,slen);
+    buf[slen] = '\0';
+
+    errno = 0;
+    value = strtold(buf, &eptr);
+    if (isspace(buf[0]) || eptr[0] != '\0' ||
+        (size_t)(eptr-buf) != slen ||
+        (errno == ERANGE &&
+            (value == HUGE_VAL || value == -HUGE_VAL || value == 0)) ||
+        errno == EINVAL ||
+        isnan(value))
+        return 0;
+
+    if (dp) *dp = value;
+    return 1;
+}
+
+int sds2ld(sds_t s, long double *dp) {
+    return string2ld(s, sds_len(s), dp);
+}
+
+/* Helper function to convert a string to an unsigned long long value.
+ * The function attempts to use the faster string2ll() function inside
+ * Redis: if it fails, strtoull() is used instead. The function returns
+ * 1 if the conversion happened successfully or 0 if the number is
+ * invalid or out of range. */
+int string2ull(const char *s, unsigned long long *value) {
+    long long ll;
+    if (string2ll(s,strlen(s),&ll)) {
+        if (ll < 0) return 0; /* Negative values are out of range. */
+        *value = ll;
+        return 1;
+    }
+    errno = 0;
+    char *endptr = NULL;
+    *value = strtoull(s,&endptr,10);
+    if (errno == EINVAL || errno == ERANGE || !(*s != '\0' && *endptr == '\0'))
+        return 0; /* strtoull() failed. */
+    return 1; /* Conversion done! */
+}
+
+int ull2string(char* s, size_t len, unsigned long long v) {
+    char *p, aux;
+    size_t l;
+
+    /* Generate the string representation, this method produces
+     * an reversed string. */
+    p = s;
+    do {
+        *p++ = '0'+(v%10);
+        v /= 10;
+    } while(v);
+
+    /* Compute length and add null term. */
+    l = p-s;
+    if (len < l) return 0;
+    *p = '\0';
+
+    /* Reverse the string. */
+    p--;
+    while(s < p) {
+        aux = *s;
+        *s = *p;
+        *p = aux;
+        s++;
+        p--;
+    }
+    return l;
+}
+
+sds_t ull2sds(unsigned long long ull) {
+    sds_t buffer = sds_new_len("", MAX_ULL_CHARS);
+    int len = ull2string(buffer, MAX_ULL_CHARS, ull);
+    sds_set_len(buffer, len);
+    return buffer;
+}
+
+
+void latte_assert(int condition, const char *message, ...) {
+    if (!condition) {
+        va_list args;
+        va_start(args, message);
+        fprintf(stderr, "Assertion failed: ");
+        vfprintf(stderr, message, args);
+        va_end(args);
+        exit(1);
+    }
 }

@@ -3,21 +3,21 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
-int isNotFound(Error* error) {
+int error_is_not_found(Error* error) {
     return error->code == CNotFound;
 }
-int isOk(Error* error) {
+int error_is_ok(Error* error) {
     return error->code == COk;
 }
 //只有在error不是ok的情况下创建error
-Error* errorCreate(Code code, char* context, char* message, ...) {
+Error* error_new(Code code, char* context, char* message, ...) {
     Error* error = (Error*)zmalloc(sizeof(Error));
     error->code = code;
-    error->state = sdscatprintf(sdsempty(),"%s: %s",context, message);;
+    error->state = sds_cat_printf(sds_empty(),"%s: %s",context, message);;
     return error;
 }
 
-Error* errnoIoCreate(char* format, ...) {
+Error* errno_io_new(char* format, ...) {
     Code code;
     if (errno == ENOENT) {
         code = CNotFound; 
@@ -28,19 +28,30 @@ Error* errnoIoCreate(char* format, ...) {
     
 
     va_start(args, format); // 初始化va_list
-    char buf[512];
-    int result = vsnprintf(buf, sizeof(buf), format, args);
+    char* buf = NULL;
+
+    char cache[512];
+    buf = cache;
+    int need_free = 0;
+    size_t result = vsnprintf(buf, sizeof(cache), format, args);
+    if (result >= sizeof(buf)) {
+        buf = zmalloc(sizeof(result + 1));
+        vsnprintf(cache, result + 1, format, args);
+        need_free = 1;
+    }
     va_end(args); // 清理va_list
-    return errorCreate(code, buf, strerror(errno));
+    Error* err = error_new(code, buf, strerror(errno));
+    if (need_free) zfree(buf);
+    return err;
 }
 
-void errorRelease(Error* error) {
+void error_delete(Error* error) {
     if (error->state != NULL) {
-        sdsfree(error->state);
+        sds_delete(error->state);
     }
     zfree(error);
 }
 
 Error* ioErrorCreate(char* context, char* message) {
-    return errorCreate(CIOError, context, message);
+    return error_new(CIOError, context, message);
 }

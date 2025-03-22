@@ -57,35 +57,35 @@ typedef struct {
   int line;
   int level;
   const char* func;
-} log_Event;
+} log_event_t;
 
-typedef void (*log_LogFn)(log_Event *ev);
-typedef void (*log_LockFn)(bool lock, void *udata);
+typedef void (*log_func)(log_event_t *ev);
+typedef void (*log_lock_func)(bool lock, void *udata);
 
 #define MAX_CALLBACKS 32
 
 typedef struct {
-  log_LogFn fn;
+  log_func fn;
   void *udata;
   int level;
-} Callback;
+} log_callback_t;
 
-struct Logger {
+struct logger_t {
   void *udata;
-  log_LockFn lock;
+  log_lock_func lock;
   int level;
   bool quiet;
-  Callback callbacks[MAX_CALLBACKS];
+  log_callback_t callbacks[MAX_CALLBACKS];
 } ;
 
-static struct LoggerFactory {
-    dict* loggers;
-} loggerFactory;
+static struct logger_factory_t {
+    dict_t* loggers;
+} global_logger_factory;
 
-void initLogger();
+void log_init();
 
 
-
+void log_log(char* tag, int level, char *file, const char* function, int line, char *fmt, ...);
 // enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 
 #define log_trace(tag, ...) log_log(tag, LOG_TRACE, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
@@ -97,13 +97,19 @@ void initLogger();
 
 
 const char* log_level_string(int level);
-void log_set_lock(char* tag, log_LockFn fn, void *udata);
+void log_set_lock(char* tag, log_lock_func fn, void *udata);
 void log_set_level(char* tag, int level);
 void log_set_quiet(char* tag, bool enable);
-int log_add_callback(char* tag, log_LogFn fn, void *udata, int level);
+int log_add_callback(char* tag, log_func fn, void *udata, int level);
 int log_add_file(char* tag, char *fp, int level);
 int log_add_stdout(char* tag, int level);
 
-void log_log(char* tag, int level, const char *file, char* function, int line, const char *fmt, ...);
 
+
+#define LATTE_LIB "latte_lib" 
+#define LATTE_LIB_LOG(level, ...) log_log(LATTE_LIB, level, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__) 
+
+
+#define BT_BUFFER_SIZE 8192
+char *lbt(char* backtrace_buffer);
 #endif

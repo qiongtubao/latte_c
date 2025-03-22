@@ -14,6 +14,7 @@
 #include "zmalloc/zmalloc.h"
 #include "utils/config.h"
 #include "anet/anet.h"
+#include "log/log.h"
 
 /* Include the best multiplexing layer supported by this system.
  * The following should be ordered by performances, descending. */

@@ -2,6 +2,8 @@
 #ifndef __QUICKLIST_H__
 #define __QUICKLIST_H__
 #include "zmalloc/zmalloc.h"
+#include <stdint.h>
+
 /* quicklist node container formats */
 #define QUICKLIST_NODE_CONTAINER_PLAIN 1
 #define QUICKLIST_NODE_CONTAINER_PACKED 2
@@ -39,9 +41,9 @@
 * recompress: 1位，bool，如果节点被临时解压以供使用，则为true。
 * attempted_compress: 1位，布尔值，用于测试时验证。
 * 额外:10位，免费供以后使用;填充32位的剩余部分*/
-typedef struct quicklistNode {
-    struct quicklistNode *prev;
-    struct quicklistNode *next;
+typedef struct quicklist_node_t {
+    struct quicklist_node_t *prev;
+    struct quicklist_node_t *next;
     unsigned char *entry;
     size_t sz;             /* entry size in bytes */
     unsigned int count : 16;     /* count of items in listpack */
@@ -51,7 +53,7 @@ typedef struct quicklistNode {
     unsigned int attempted_compress : 1; /* node can't compress; too small */
     unsigned int dont_compress : 1; /* prevent compression of entry that will be used later */
     unsigned int extra : 9; /* more bits to steal for future usage */
-} quicklistNode;
+} quicklist_node_t;
 /*
  * 书签在快速列表结构体的末尾填充realloc。
  * 它们应该只用于非常大的列表，如果数千个节点是
@@ -63,7 +65,7 @@ typedef struct quicklistNode {
    删除节点时的开销(搜索要更新的书签)。
 */
 typedef struct quicklistBookmark {
-    quicklistNode *node;
+    quicklist_node_t *node;
     char *name;
 } quicklistBookmark;
 /*
@@ -74,16 +76,16 @@ typedef struct quicklistBookmark {
    'fill' 是用户请求的(或默认的)填充因子。
    'bookmarks' 是realloc this结构体使用的可选功能,使它们在不使用时不会消耗内存。
  */
-typedef struct quicklist {
-    quicklistNode *head;
-    quicklistNode *tail;
+typedef struct quicklist_t {
+    quicklist_node_t *head;
+    quicklist_node_t *tail;
     unsigned long count;
     unsigned long len;
     signed int fill: QL_FILL_BITS;
     unsigned int compress: QL_COMP_BITS;
     unsigned int bookmark_count: QL_BM_BITS;
     quicklistBookmark bookmarks[];
-} quicklist;
+} quicklist_t;
 
 typedef struct quicklistLZF {
     size_t sz; /* LZF size in bytes*/
@@ -93,13 +95,13 @@ typedef struct quicklistLZF {
 
 
 //quicklist methods
-struct quicklist* quicklistCreate(void);
+struct quicklist_t* quicklist_new(void);
 //quicklistNode methods
-struct quicklistNode *quicklistCreateNode(void);
+struct quicklist_node_t *quicklist_newNode(void);
 //
-void quicklistPush(quicklist *quicklist, void *value, const size_t sz,
+void quicklistPush(quicklist_t *quicklist, void *value, const size_t sz,
                    int where);
 
-int quicklistPushHead(quicklist *quicklist, void *value, size_t sz);
+int quicklistPushHead(quicklist_t *quicklist, void *value, size_t sz);
 void quicklistRepr(unsigned  char* ql, int full);
 #endif /* __QUICKLIST_H__ */

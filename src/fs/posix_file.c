@@ -6,33 +6,33 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include "flags.h"
-sds baseName(sds filename) {
-    size_t pos = sdsFindLastOf(filename, "/");
-    if (pos == -1) {
-        return sdsnew(filename);
+sds_t baseName(sds_t filename) {
+    size_t pos = sds_find_lastof(filename, "/");
+    if (pos == C_NPOS) {
+        return sds_new(filename);
     }
     // assert(find(filename, '/', pos + 1) == C_NPOS);
-    return sdsnewlen(filename + pos + 1, 
-        sdslen(filename) - pos - 1);
+    return sds_new_len(filename + pos + 1, 
+        sds_len(filename) - pos - 1);
 }
-bool isManifest(sds filename) {
-    sds base = baseName(filename);
-    int result = sdsStartsWith(base, "MANIFEST");
-    sdsfree(base);
+bool isManifest(sds_t filename) {
+    sds_t base = baseName(filename);
+    int result = sds_starts_with(base, "MANIFEST");
+    sds_delete(base);
     return result;
 }
-sds getDirName(sds path) {
-    size_t pos = sdsFindLastOf(path, "/");
+sds_t getDirName(sds_t path) {
+    size_t pos = sds_find_lastof(path, "/");
     if (pos == C_NPOS) {
-        return sdsnew(".");
+        return sds_new(".");
     }
     // assert(find(filename, '/', pos + 1) == C_NPOS);
-    return sdsnewlen(path, pos);
+    return sds_new_len(path, pos);
 }
 
 PosixWritableFile* posixWritableFileCreate(char* filename, int fd) {
     PosixWritableFile* file = zmalloc(sizeof(PosixWritableFile));
-    file->filename = sdsnew(filename);
+    file->filename = sds_new(filename);
     file->fd = fd;
     file->is_manifest = isManifest(file->filename);
     file->pos = 0;
@@ -48,7 +48,7 @@ Error* writeUnbuffered(PosixWritableFile* writer, const char* data, size_t size)
         if (errno == EINTR) {
           continue;  // Retry
         }
-        return errnoIoCreate(writer->filename);
+        return errno_io_new(writer->filename);
       }
       data += write_result;
       size -= write_result;
@@ -84,13 +84,13 @@ Error* posixWriteableFileAppend(PosixWritableFile* writer, char* data, int size)
     // Can't fit in buffer, so need to do at least one write.
     // buffer满了 先write到文件
     Error* error = posixWritableFileFlushBuffer(writer);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
       return error;
     }
 
     // Small writes go to buffer, large writes are written directly.
     //剩下数据小于buffer最大大小（64k） 就存入buffer
-    if (writer < kWritableFileBufferSize) {
+    if (write_size < kWritableFileBufferSize) {
       memcpy(writer->buffer, write_data, write_size);
       writer->pos = write_size;
       return &Ok;
@@ -106,7 +106,7 @@ Error* posixWritableFileFlush(PosixWritableFile* writer) {
     return posixWritableFileFlushBuffer(writer);
 }
 
-Error* posixWritableFileSyncFd(int fd, const sds fd_path) {
+Error* posixWritableFileSyncFd(int fd, const sds_t fd_path) {
 #if HAVE_FULLFSYNC
     // On macOS and iOS, fsync() doesn't guarantee durability past power
     // failures. fcntl(F_FULLFSYNC) is required for that purpose. Some
@@ -145,7 +145,7 @@ Error* posixWritableFileSyncFd(int fd, const sds fd_path) {
     if (sync_success) {
       return &Ok;
     }
-    return errnoIoCreate(fd_path);
+    return errno_io_new(fd_path);
 }
 
 Error* posixWritableFileSyncDirIfManifest(PosixWritableFile* writer) {
@@ -156,7 +156,7 @@ Error* posixWritableFileSyncDirIfManifest(PosixWritableFile* writer) {
 
     int fd = open(writer->dirname, O_RDONLY | kOpenBaseFlags);
     if (fd < 0) {
-      status = errnoIoCreate(writer->dirname);
+      status = errno_io_new(writer->dirname);
     } else {
       status = posixWritableFileSyncFd(fd, writer->dirname);
       close(fd);
@@ -175,12 +175,12 @@ Error* posixWritableFileSync(PosixWritableFile* file) {
     // 这需要在清单文件刷新到磁盘之前发生，以
     // 避免在清单引用尚未在磁盘上的文件的状态下崩溃。
     Error* error = posixWritableFileSyncDirIfManifest(file);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
       return error;
     }
 
     error = posixWritableFileFlushBuffer(file);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
       return error;
     }
 
@@ -192,8 +192,8 @@ Error* posixWritableFileClose(PosixWritableFile* file) {
     Error* error = posixWritableFileFlushBuffer(file);
     //关闭fd
     const int close_result = close(file->fd);
-    if (close_result < 0 && isOk(error)) {
-      error = errnoIoCreate(file->filename);
+    if (close_result < 0 && error_is_ok(error)) {
+      error = errno_io_new(file->filename);
     }
     file->fd = -1;
     return error;
@@ -203,17 +203,17 @@ void posixWritableFileRelease(PosixWritableFile* file) {
   if (file->fd >= 0) {
     posixWritableFileClose(file);
   }
-  sdsfree(file->dirname);
-  sdsfree(file->filename);
+  sds_delete(file->dirname);
+  sds_delete(file->filename);
   zfree(file);
 }
 
 //============ posixSequentialFile ============ 
-Error* posixSequentialFileCreate(sds filename, PosixSequentialFile** file) {
+Error* posixSequentialFileCreate(sds_t filename, PosixSequentialFile** file) {
     int fd = open(filename, O_RDONLY | kOpenBaseFlags);
     if (fd < 0) {
       *file = NULL;
-      return errnoIoCreate(filename);
+      return errno_io_new(filename);
     }
     PosixSequentialFile* seq = zmalloc(sizeof(PosixSequentialFile));
     seq->filename = filename;
@@ -222,7 +222,7 @@ Error* posixSequentialFileCreate(sds filename, PosixSequentialFile** file) {
     return &Ok;
 }
 
-Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, Slice* slice) {
+Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, slice_t* slice) {
   Error* error = &Ok;
   while (true) {
     //read适合顺序读
@@ -231,7 +231,7 @@ Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, Slice* slice)
       if (errno == EINTR) {
         continue; //Retry
       }
-      error = errnoIoCreate(file->filename);
+      error = errno_io_new(file->filename);
       break;
     }
     slice->len += read_size;
@@ -242,7 +242,7 @@ Error* posixSequentialFileRead(PosixSequentialFile* file,size_t n, Slice* slice)
 
 Error* posixSequentialFileSkip(PosixSequentialFile* file,uint64_t n) {
   if (lseek(file->fd, n, SEEK_CUR) == (off_t)(-1)) {
-    return errnoIoCreate(file->filename);
+    return errno_io_new(file->filename);
   }
   return &Ok;
 }

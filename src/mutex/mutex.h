@@ -1,24 +1,26 @@
 
-#ifndef __LATTE_MUTEX_H
-#define __LATTE_MUTEX_H
+#ifndef LATTE_MUTEX_H
+#define LATTE_MUTEX_H
 #include <pthread.h>
-typedef pthread_mutex_t latte_mutex;
-//new and init
-latte_mutex* mutexCreate();
-void mutexRelease(latte_mutex*);
+// typedef pthread_mutex_t latte_mutex_t;
+typedef struct latte_mutex_t {
+  pthread_mutex_t supper;
+  pthread_mutexattr_t* attr;  
+} latte_mutex_t;
 
-/**
- * 
- * 
- * 
- */  
-int mutexInit(latte_mutex* mutex);
+
+//new and init
+latte_mutex_t* latte_mutex_new();
+latte_mutex_t* latte_recursive_mutex_new();
+
+void latte_mutex_delete(latte_mutex_t*);
+int latte_mutex_init(latte_mutex_t* mutex);
 /**
   OK (0)
   EINVAL 如果传给pthread_mutex_destroy的锁指针为NULL，或者锁对象没有被正确初始化（例如，不是通过pthread_mutex_init初始化的），某些实现可能会设置errno为EINVAL。但实际上，这种行为是未定义的，因为标准并没有规定在这些条件下必须设置errno。
   EBUSY
 */
-int mutexDestroy(latte_mutex* mutex);
+int latte_mutex_destroy(latte_mutex_t* mutex);
 /**
  * OK (0)
  * EBUSY（忙碌）：如果互斥锁已经被其他线程锁定，函数会立即返回EBUSY，表示锁无法获取。
@@ -26,11 +28,32 @@ int mutexDestroy(latte_mutex* mutex);
  * EINVAL（无效参数）：如果提供的互斥锁指针为NULL，或者它不是一个有效的、由pthread_mutex_init初始化的互斥锁，函数可能返回EINVAL。
  * EPERM（权限不足）：尽管不常见，但某些情况下，如果调用线程没有足够的权限来操作锁，可能会返回EPERM。
  */
-int mutexTrylock(latte_mutex* mutex);
-void mutexLock(latte_mutex* mutex);
-void mutexUnlock(latte_mutex* mutex);
-void mutexAssertHeld(latte_mutex* mutex);
+int latte_mutex_try_lock(latte_mutex_t* mutex);
+void latte_mutex_lock(latte_mutex_t* mutex);
+void latte_mutex_unlock(latte_mutex_t* mutex);
+void latte_mutex_assert_held(latte_mutex_t* mutex);
 
+
+/**
+ * @brief 
+ *    支持写锁递归加锁的读写锁
+ *    读锁本身就可以递归加锁。但是某个线程加了读锁后，也不能再加写锁。
+ *    但是一个线程可以加多次写锁
+ *    与其它类型的锁一样，在CONCURRENCY编译模式下才会真正的生效
+ */
+typedef struct latte_shared_mutex_t {
+    latte_mutex_t supper;
+    pthread_cond_t shared_lock_cv;
+    int exclusive_lock_count;
+    int shared_lock_count;
+} latte_shared_mutex_t;
+latte_shared_mutex_t* latte_shared_mutex_new();
+void latte_shared_mutex_delete(latte_shared_mutex_t* share_mutex);
+void latte_shared_mutex_lock(latte_shared_mutex_t* share_mutex);
+void latte_shared_mutex_unlock(latte_shared_mutex_t* share_mutex);
+void latte_shared_mutex_lock_shared(latte_shared_mutex_t* share_mutex);
+void latte_shared_mutex_unlock_shared(latte_shared_mutex_t* share_mutex);
+int latte_shared_mutex_try_lock_shared(latte_shared_mutex_t* share_mutex);
 #define Mutex_Ok 0
 
 

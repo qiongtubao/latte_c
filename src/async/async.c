@@ -1,6 +1,7 @@
 #include "async.h"
 #include <assert.h>
 #include <string.h>
+#include "dict/dict_plugins.h"
 
 asyncTask* createAsyncBasicTask(latteThreadJob* job) {
     asyncBasicTask* task = zmalloc(sizeof(asyncBasicTask));
@@ -55,9 +56,9 @@ void basicTaskRun(taskThread* thread, asyncTask* task) {
 
 void nextSeriesTask(asyncTask* task) {
     seriesTask* parent =  task->parent;
-    listNode* node = listSearchKey(parent->tasks, task);
+    list_node_t* node = list_search_key(parent->tasks, task);
     if (node->next != NULL) {
-        asyncTask* nextChild = listNodeValue(node->next);
+        asyncTask* nextChild = list_node_value(node->next);
         asyncRun(parent->task.ctx, nextChild);
     } else {
         taskDone(parent);
@@ -96,7 +97,7 @@ void notifyParent(asyncTask* task) {
 
 int checkSeriesTaskFinished(asyncTask* task) {
     seriesTask* parent = task->parent;
-    asyncTask* last = listNodeValue(listLast(parent->tasks));
+    asyncTask* last = list_node_value(list_last(parent->tasks));
     return last == task;
 }
 
@@ -106,12 +107,12 @@ int checkSeriesTaskFinished(asyncTask* task) {
 void seriesTaskRun(taskThread* thread, asyncTask* task) {
     // if (!checkTask(task)) return;
     seriesTask* series = (seriesTask*)task;
-    if (listLength(series->tasks) == 0) {
+    if (list_length(series->tasks) == 0) {
         taskDone(series);
         return;
     }
     series->task.status = DOING_TASK_STATUS;
-    asyncTask* childTask = listNodeValue(listFirst(series->tasks));
+    asyncTask* childTask = list_node_value(list_first(series->tasks));
     // assert(childTask->cb == NULL);
     // childTask->cb = seriesCallback;
     task->ctx = thread;
@@ -123,18 +124,17 @@ void seriesTaskRun(taskThread* thread, asyncTask* task) {
 
 void parallelTaskRun(taskThread* thread,asyncTask* task) {
     parallelTask* ptask = (parallelTask*)task;
-    if (dictSize(ptask->tasks) == 0) {
+    if (dict_size(ptask->tasks) == 0) {
         taskDone(ptask);
         return;
     }
     ptask->task.status = DOING_TASK_STATUS;
-    dictIterator *di = dictGetIterator(ptask->tasks);
-    dictEntry *de;
-    while ((de = dictNext(di)) != NULL) {
-        seriesTask* stask = dictGetVal(de);
+    latte_iterator_t *di = dict_get_latte_iterator(ptask->tasks);
+    while (latte_iterator_has_next(di)) {
+        seriesTask* stask = (seriesTask*)latte_pair_value(latte_iterator_next(di));
         seriesTaskRun(thread, stask);
     }
-    dictReleaseIterator(di);
+    latte_iterator_delete(di);
     ptask->task.ctx = thread;
     
 }
@@ -187,12 +187,12 @@ asyncTask* createSeriesTask() {
     seriesTask* task = zmalloc(sizeof(seriesTask));
     initTask(task);
     task->task.type = SERIES_TASK_TYPE;
-    task->tasks = listCreate();
+    task->tasks = list_new();
     return task;
 }
 
 int addSeriesTask(seriesTask* task, asyncTask* child) {
-    listAddNodeTail(task->tasks, child);
+    list_add_node_tail(task->tasks, child);
     child->parent = task;
     return 1;
 }
@@ -225,35 +225,35 @@ void continueNextTask(asyncTask* task) {
 }
 
 
-uint64_t dictSdsHash(const void *key) {
-    return dictGenHashFunction((unsigned char*)key, sdslen((char*)key));
-}
+// uint64_t dict_sds_hash(const void *key) {
+//     return dict_gen_hash_function((unsigned char*)key, sds_len((char*)key));
+// }
 
-int dictSdsKeyCompare(void *privdata, const void *key1,
-        const void *key2)
-{
-    int l1,l2;
-    DICT_NOTUSED(privdata);
+// int dict_sds_key_compare(void *privdata, const void *key1,
+//         const void *key2)
+// {
+//     int l1,l2;
+//     DICT_NOTUSED(privdata);
 
-    l1 = sdslen((sds)key1);
-    l2 = sdslen((sds)key2);
-    if (l1 != l2) return 0;
-    return memcmp(key1, key2, l1) == 0;
-}
+//     l1 = sds_len((sds_t)key1);
+//     l2 = sds_len((sds_t)key2);
+//     if (l1 != l2) return 0;
+//     return memcmp(key1, key2, l1) == 0;
+// }
 
-void dictSdsDestructor(void *privdata, void *val)
-{
-    DICT_NOTUSED(privdata);
+// void dict_sds_destructor(void *privdata, void *val)
+// {
+//     DICT_NOTUSED(privdata);
 
-    sdsfree(val);
-}
+//     sds_delete(val);
+// }
 
-static dictType parallelTaskDictType = {
-    dictSdsHash,                    /* hash function */
+static dict_func_t parallelTaskDictType = {
+    dict_sds_hash,                    /* hash function */
     NULL,                           /* key dup */
     NULL,                           /* val dup */
-    dictSdsKeyCompare,              /* key compare */
-    dictSdsDestructor,              /* key destructor */
+    dict_sds_key_compare,              /* key compare */
+    dict_sds_destructor,              /* key destructor */
     NULL,                           /* val destructor */
     NULL                            /* allow to expand */
 };
@@ -261,24 +261,24 @@ asyncTask* createParallelTask() {
     parallelTask* ptask = zmalloc(sizeof(parallelTask));
     initTask(ptask);
     ptask->task.type = PARALLEL_TASK_TYPE;
-    ptask->tasks = dictCreate(&parallelTaskDictType);
+    ptask->tasks = dict_new(&parallelTaskDictType);
     ptask->num = 0;
     return ptask;
 }
 
-int addParallelTask(parallelTask* ptask, sds name, asyncTask* child) {
+int addParallelTask(parallelTask* ptask, sds_t name, asyncTask* child) {
     if (ptask->task.status == DONE_TASK_STATUS) {
         return 0;
     }
-    dictEntry* entry = dictFind(ptask->tasks, name);
+    dict_entry_t* entry = dict_find(ptask->tasks, name);
     asyncTask* task;
     if (entry == NULL) {
         task = createSeriesTask();
         task->parent = ptask;
-        assert(DICT_OK == dictAdd(ptask->tasks, name, task));
+        assert(DICT_OK == dict_add(ptask->tasks, name, task));
         ptask->num++;
     } else {
-        task = dictGetVal(entry);
+        task = dict_get_val(entry);
     }
     addSeriesTask(task, child);
     if (entry == NULL && ptask->task.status == DOING_TASK_STATUS) {

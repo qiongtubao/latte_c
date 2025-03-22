@@ -43,14 +43,14 @@ typedef struct latteServer {
     aeEventLoop *el;
     long long port;
     socketFds ipfd;
-    struct arraySds* bind;
+    vector_t* bind;
     char neterr[ANET_ERR_LEN];   /* Error buffer for anet.c */
     long long tcp_backlog;
     tcpHandlerFunc acceptTcpHandler;
     createClientFunc createClient;
     freeClientFunc freeClient;
     latteAtomic uint64_t next_client_id;
-    list *clients;
+    list_t *clients;
     unsigned int maxclients;
     rax *clients_index;         /* Active clients dictionary by client ID. */
 } latteServer;
@@ -70,13 +70,13 @@ typedef int *(*ExecHandler)(struct latteClient* client);
 typedef struct latteClient {
     uint64_t id;
     connection *conn;
-    sds querybuf;    /* 我们用来累积客户端查询的缓冲区 */
+    sds_t querybuf;    /* 我们用来累积客户端查询的缓冲区 */
     size_t qb_pos;
     size_t querybuf_peak;   /* 最近（100毫秒或更长时间）查询缓冲区大小的峰值 */
     ExecFunc exec;
     int flags;
     struct latteServer* server;
-    struct listNode* client_list_node;
+    struct list_node_t* client_list_node;
 } latteClient;
 
 void initInnerLatteClient(struct latteClient* client);

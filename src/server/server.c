@@ -5,7 +5,7 @@
 
 uint64_t getClientId(struct latteServer* server) {
     uint64_t client_id;
-    atomicGetIncr(server->next_client_id, client_id, 1);
+    latte_atomic_get_incr(server->next_client_id, client_id, 1);
     return client_id;
 }
 
@@ -23,21 +23,12 @@ void closeSocketListeners(struct latteServer* server, socketFds *sfd) {
 }
 
 //监听端口
-int listenToPort(struct latteServer* server,char* neterr, struct arraySds* bind, int port, int tcp_backlog, socketFds *sfd) {
+int listenToPort(struct latteServer* server,char* neterr, vector_t* bind, int port, int tcp_backlog, socketFds *sfd) {
     int j;
-    char** bindaddr;
-    int bindaddr_count;
-    char *default_bindaddr[2] = {"*", "-::*"};
-    if (bind == NULL 
-        || (bind != NULL && bind->len == 0)) {
-        bindaddr = default_bindaddr;
-        bindaddr_count = 2;
-    } else {
-        bindaddr = (char**)bind->value;
-        bindaddr_count = bind->len;
-    }
-    for (j = 0; j < bindaddr_count; j++) {
-        char* addr = bindaddr[j];
+    latte_iterator_t* iterator = vector_get_iterator(bind);
+    while(latte_iterator_has_next(iterator)) {
+        value_t* v = latte_iterator_next(iterator);
+        char* addr = value_get_sds(v);
         int optional = *addr == '-';
         if (optional) addr++;
         if (strchr(addr, ':')) {
@@ -45,7 +36,6 @@ int listenToPort(struct latteServer* server,char* neterr, struct arraySds* bind,
         } else {
             sfd->fd[sfd->count] = anetTcpServer(neterr,port,addr,tcp_backlog);
         }
-
         if (sfd->fd[sfd->count] == ANET_ERR) {
             int net_errno = errno;
             log_error("latte_c",
@@ -66,6 +56,49 @@ int listenToPort(struct latteServer* server,char* neterr, struct arraySds* bind,
         anetCloexec(sfd->fd[sfd->count]);
         sfd->count++;
     }
+    latte_iterator_delete(iterator);
+
+    // char** bindaddr;
+    // int bindaddr_count;
+    // char *default_bindaddr[2] = {"*", "-::*"};
+    // if (bind == NULL 
+    //     || (bind != NULL && vector_size(bind) == 0)) {
+    //     bindaddr = default_bindaddr;
+    //     bindaddr_count = 2;
+    // } else {
+    //     bindaddr = (char**)bind->data;
+    //     bindaddr_count = vector_size(bind);
+    // }
+    // for (j = 0; j < bindaddr_count; j++) {
+    //     char* addr = bindaddr[j];
+    //     int optional = *addr == '-';
+    //     if (optional) addr++;
+    //     if (strchr(addr, ':')) {
+    //         sfd->fd[sfd->count] = anetTcp6Server(neterr,port,addr,tcp_backlog);
+    //     } else {
+    //         sfd->fd[sfd->count] = anetTcpServer(neterr,port,addr,tcp_backlog);
+    //     }
+
+    //     if (sfd->fd[sfd->count] == ANET_ERR) {
+    //         int net_errno = errno;
+    //         log_error("latte_c",
+    //             "Warning: Could not create_server TCP listening socket %s:%d: %s\n",
+    //             addr, port, neterr);
+    //         if (net_errno == EADDRNOTAVAIL && optional) {
+    //             continue;
+    //         } 
+    //         if (net_errno == ENOPROTOOPT     || net_errno == EPROTONOSUPPORT ||
+    //             net_errno == ESOCKTNOSUPPORT || net_errno == EPFNOSUPPORT ||
+    //             net_errno == EAFNOSUPPORT)
+    //             continue;
+            
+    //         closeSocketListeners(server, sfd);
+    //         return -1;
+    //     }
+    //     anetNonBlock(NULL, sfd->fd[sfd->count]);
+    //     anetCloexec(sfd->fd[sfd->count]);
+    //     sfd->count++;
+    // }
     return 1;
 }
 
@@ -136,12 +169,12 @@ int stopServer(struct latteServer* server) {
  */
 void unlinkClient(struct latteClient* c) {
     struct latteServer* server = c->server;
-    listNode *ln;
+    list_node_t *ln;
     if (c->conn) {
         if (c->client_list_node) {
             uint64_t id = htonu64(c->id);
             raxRemove(server->clients_index,(unsigned char*)&id,sizeof(id),NULL);
-            listDelNode(server->clients,c->client_list_node);
+            list_del_node(server->clients,c->client_list_node);
             c->client_list_node = NULL;
         }
         connClose(server->el, c->conn);
@@ -198,12 +231,12 @@ void initClient(struct aeEventLoop* el,struct latteClient* c, struct connection*
 }
 
 void linkClient(struct latteServer* server, struct latteClient* c) {
-    listAddNodeTail(server->clients, c);
+    list_add_node_tail(server->clients, c);
     /* Note that we remember the linked list node where the client is stored,
      * this way removing the client in unlinkClient() will not require
      * a linear scan, but just a constant time operation. */
     /* 请注意，我们记住了存储客户端的链表节点，这样在 unlinkClient() 中移除客户端将不需要进行线性扫描，而只需要进行一个常数时间的操作。 */
-    c->client_list_node = listLast(server->clients);
+    c->client_list_node = list_last(server->clients);
     uint64_t id = htonu64(c->id);
     raxInsert(server->clients_index,(unsigned char*)&id,sizeof(id),c,NULL);
 }
@@ -243,9 +276,9 @@ void readQueryFromClient(connection *conn) {
      * 从而提高性能。
      * 
      */
-    qblen = sdslen(c->querybuf);
+    qblen = sds_len(c->querybuf);
     if (c->querybuf_peak < qblen) c->querybuf_peak = qblen;
-    c->querybuf = sdsMakeRoomFor(c->querybuf, readlen);
+    c->querybuf = sds_make_room_for(c->querybuf, readlen);
     
     nread = connRead(c->conn, c->querybuf + qblen, readlen);
     if (nread == -1) {
@@ -260,10 +293,10 @@ void readQueryFromClient(connection *conn) {
         freeClientAsync(c);
         return;
     } 
-    sdsIncrLen(c->querybuf,nread);
+    sds_incr_len(c->querybuf,nread);
     if (c->exec(c)) {
         //清理掉c->querybuf
-        sdsrange(c->querybuf,c->qb_pos,-1);
+        sds_range(c->querybuf,c->qb_pos,-1);
         c->qb_pos = 0;
     }
 }
@@ -287,7 +320,7 @@ static void acceptCommonHandler(struct latteServer* server,connection *conn, int
      * called, because we don't want to even start transport-level negotiation
      * if rejected. */
     //  + getClusterConnectionsCount()
-    if (listLength(server->clients)
+    if (list_length(server->clients)
         >= server->maxclients)
     {
         char *err = "-ERR max number of clients reached\r\n";
@@ -353,14 +386,14 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
 }
 
 void initInnerLatteServer(struct latteServer* server) {
-    server->clients = listCreate();
+    server->clients = list_new();
     server->clients_index = raxNew();
     server->acceptTcpHandler = acceptTcpHandler;
     server->next_client_id = 0;
 }
 void freeInnerLatteServer(struct latteServer* server) {
     if (server->clients != NULL) {
-        listRelease(server->clients);
+        list_delete(server->clients);
         server->clients = NULL;
     }
     if (server->clients_index != NULL) {
@@ -373,14 +406,14 @@ void freeInnerLatteServer(struct latteServer* server) {
 /**client **/
 void initInnerLatteClient(struct latteClient* client) {
     client->qb_pos = 0;
-    client->querybuf = sdsempty();
+    client->querybuf = sds_empty();
     client->querybuf_peak = 0;
     client->client_list_node = NULL;
 }
 
 void freeInnerLatteClient(struct latteClient* client) {
     if (client->querybuf != NULL) {
-        sdsfree(client->querybuf);
+        sds_delete(client->querybuf);
         client->querybuf = NULL;
     }
 }

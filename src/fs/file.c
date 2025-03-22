@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "posix_file.h"
 #include "flags.h"
+#include <stdio.h>
 #if defined(HAVE_O_CLOEXEC)
     int kOpenBaseFlags = O_CLOEXEC;
 #else
@@ -13,7 +14,7 @@
 Error* openFile(char* filename, int* fd, int flag, mode_t mode) {
     *fd = open(filename, flag, mode);
     if (*fd < 0) {
-        return errnoIoCreate(filename); 
+        return errno_io_new(filename); 
     }
     return &Ok;
 }
@@ -66,29 +67,29 @@ int removeFile(char* file) {
     return unlink(file);
 }
 
-int renameFile(sds from, sds to) {
+int renameFile(sds_t from, sds_t to) {
     return rename(from, to);
 }
 
 FileLock* fileLockCreate(int fd, char* filename) {
     FileLock* fl = zmalloc(sizeof(FileLock));
     fl->fd = fd;
-    fl->filename = sdsnew(filename);
+    fl->filename = sds_new(filename);
     return fl;
 }
 
 void fileLockRelease(FileLock* lock) {
-    sdsfree(lock->filename);
+    sds_delete(lock->filename);
     zfree(lock);
 }
 
 //判断某个文件是否存在
-bool fileExists(sds filename) {
+bool fileExists(sds_t filename) {
     return access(filename, F_OK) == 0;
 }
 
 //创建一个写文件，如果原来有数据则清空数据， 
-Error* writableFileCreate(sds filename,
+Error* writableFileCreate(sds_t filename,
                          WritableFile** result)  {
     //O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags: 这是一个位或运算表达式，用于设置open函数的标志参数。这些标志决定了文件的打开模式和行为：
     //O_TRUNC: 如果文件已存在，那么在打开时会被截断至零长度，即清空文件内容。如果文件不存在，此标志将被忽略。
@@ -98,52 +99,52 @@ Error* writableFileCreate(sds filename,
     int fd ;
     Error* error = openFile(filename, &fd,
                     O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);
-    if (!isOk(error)) {
+    if (!error_is_ok(error)) {
         return error;
     }
     if (fd < 0) {
       *result = NULL;
-      return errnoIoCreate(filename);
+      return errno_io_new(filename);
     }
 
     *result = (WritableFile*)posixWritableFileCreate(filename, fd);
     return &Ok;
   }
 
-Error* writableFileAppendSds(WritableFile* file, sds data) {
-    return writableFileAppend(file, data, sdslen(data));
+Error* writableFileAppendSds(WritableFile* file, sds_t data) {
+    return writableFileAppend(file, data, sds_len(data));
 }  
 
 Error* writableFileAppend(WritableFile* file, char* buf, size_t len) {
-    return posixWriteableFileAppend(file, buf, len);
+    return posixWriteableFileAppend((PosixWritableFile*)file, buf, len);
 }
 
 Error* writableFileFlush(WritableFile* file) {
-    return posixWritableFileFlush(file);
+    return posixWritableFileFlush((PosixWritableFile*)file);
 }
 
 Error* writableFileSync(WritableFile* file) {
-    return posixWritableFileSync(file);
+    return posixWritableFileSync((PosixWritableFile*)file);
 }
 
 Error* writableFileClose(WritableFile* file) {
-    return posixWritableFileClose(file);
+    return posixWritableFileClose((PosixWritableFile*)file);
 }
 
-Error* writableFileAppendSlice(WritableFile* file, Slice* data) {
+Error* writableFileAppendSlice(WritableFile* file, slice_t* data) {
     return writableFileAppend(file, data->p, data->len);
 }
 
 void writableFileRelease(WritableFile* file) {
-    return posixWritableFileRelease(file);
+    return posixWritableFileRelease((PosixWritableFile*)file);
 }
 
 
 // ================ SequentialFile =============
 
 //创建顺序读文件
-Error* sequentialFileCreate(sds filename, SequentialFile** file) {
-    return posixSequentialFileCreate(filename, file);
+Error* sequentialFileCreate(sds_t filename, SequentialFile** file) {
+    return posixSequentialFileCreate(filename, (PosixSequentialFile**)file);
 }
 
 //sequentialFile
@@ -155,31 +156,31 @@ Error* sequentialFileCreate(sds filename, SequentialFile** file) {
 // 如果遇到错误，则返回非 OK 状态。
 //
 // 需要：外部同步(不是线程安全的访问方式)
-Error* sequentialFileRead(SequentialFile* file,size_t n, Slice* result) {
-    return posixSequentialFileRead(file, n, result);
+Error* sequentialFileRead(SequentialFile* file,size_t n, slice_t* result) {
+    return posixSequentialFileRead((PosixSequentialFile*)file, n, result);
 }
 
 // 从文件中跳过“n”个字节。这保证不会比读取相同数据慢，但可能会更快。
 // 如果到达文件末尾，跳过将在文件末尾停止，并且 Skip 将返回 OK。
 // 需要：外部同步(不是线程安全的访问方式)
 Error* sequentialFileSkip(SequentialFile* file,uint64_t n) {
-    return posixSequentialFileSkip(file, n);
+    return posixSequentialFileSkip((PosixSequentialFile*)file, n);
 }
 
 void sequentialFileRelease(SequentialFile* file) {
-    posixSequentialFileRelease(file);
+    posixSequentialFileRelease((PosixSequentialFile*)file);
 }
 
 Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* data) {
-    Slice slice = {
-        .p = sdsemptylen(n),
+    slice_t slice = {
+        .p = sds_empty_len(n),
         .len = 0
     };
-    Error* error = posixSequentialFileRead(file, n, &slice);
-    if (!isOk(error)) {
+    Error* error = posixSequentialFileRead((PosixSequentialFile*)file, n, &slice);
+    if (!error_is_ok(error)) {
         return error;
     }
     *data = slice.p;
-    sdssetlen(slice.p, slice.len);
+    sds_set_len(slice.p, slice.len);
     return error;
 }

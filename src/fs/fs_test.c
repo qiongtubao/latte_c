@@ -10,6 +10,8 @@
 #include <sys/stat.h> // stat
 #include <unistd.h>   // rmdir, unlink
 #include <string.h>
+#include "fs.h"
+#include <fcntl.h>
 
 // 递归删除目录及其中的所有文件和子目录
 void recursive_rmdir(const char *path) {
@@ -81,21 +83,29 @@ int check_dir_exists(char* dirname) {
 int test_create_dir() {
     assert(check_dir_exists("test_create_dir") == 0);
     Error* error = dirCreate("test_create_dir");
-    assert(isOk(error));
+    assert(error_is_ok(error));
     assert(check_dir_exists("test_create_dir") == 1);
     recursive_rmdir("test_create_dir");
     assert(check_dir_exists("test_create_dir") == 0);
+
+
+    assert(dirIs("test_create_dir") == 0);
+    error = dirCreateRecursive("test_create_dir", 0755);
+    assert(error_is_ok(error));
+    assert(dirIs("test_create_dir") == 1);
+    recursive_rmdir("test_create_dir");
+    assert(dirIs("test_create_dir") == 0);
     return 1;
 }
 
 int test_env_lockfile() {
     Env* env = envCreate();
-    sds filename = sdsnew("LOCK");
+    sds_t filename = sds_new("LOCK");
     FileLock* fileLock;
     Error* error = envLockFile(env, filename, &fileLock);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     error = envUnlockFile(env, fileLock);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     return 1;
 }
 
@@ -103,46 +113,116 @@ int test_env_write_read() {
     recursive_rmdir("test_env_dir");
     Env* env = envCreate();
     Error* error = dirCreate("test_env_dir");
-    sds file = sdsnew("test_env_dir/write.log");
-    sds read = NULL;
+    sds_t file = sds_new("test_env_dir/write.log");
+    sds_t read = NULL;
     error = envReadFileToSds(env, file, &read);
     assert(error->code == CNotFound);
     assert(read == NULL);
-    sds data = sdsnew("test");
+    sds_t data = sds_new("test");
     error = envWriteSdsToFileSync(env, file, data);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     error = envReadFileToSds(env, file, &read);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     assert(strncmp(read, "test", 4) == 0);
+    //double free
     envRelease(env);
 
     
     SequentialFile* sf;
     error = sequentialFileCreate(file, &sf);
     
-    assert(isOk(error));
-    Slice slice = {
-        .p = sdsemptylen(100),
-        .len = 0
-    };
-    sds result;
+    assert(error_is_ok(error));
+    // slice_t slice = {
+    //     .p = sds_empty_len(100),
+    //     .len = 0
+    // };
+    sds_t result;
     error = sequentialFileReadSds(sf, 100, &result);
     sequentialFileRelease(sf);
-    assert(isOk(error));
-    assert(sdslen(result) == 4);
+    assert(error_is_ok(error));
+    assert(sds_len(result) == 4);
     assert(strncmp("test", result, 4) == 0);
-    sdsfree(result);
+    sds_delete(result);
     
     error = envSequentialFileCreate(env, file, &sf);
-    assert(isOk(error));
+    assert(error_is_ok(error));
     error = sequentialFileReadSds(sf, 100, &result);
     sequentialFileRelease(sf);
-    assert(isOk(error));
-    assert(sdslen(result) == 4);
+    assert(error_is_ok(error));
+    assert(sds_len(result) == 4);
     assert(strncmp("test", result, 4) == 0);
-    sdsfree(result);
+    sds_delete(result);
 
     recursive_rmdir("test_env_dir");
+    return 1;
+}
+
+int test_fs() {
+    recursive_rmdir("test_fs");
+    assert(error_is_ok(dirCreate("test_fs")));
+    int fd = open("test_fs/test.txt", O_CREAT | O_RDWR , 0644);
+    assert(file_exists("test_fs/test.txt"));
+    char buf[10];
+    int size = 0;
+    int ret = readn(fd, buf, 10, &size);
+    assert(ret == -1);
+    assert(size == 0);
+    
+    ret = writen(fd, "hello", 5);
+    assert(ret == 0);
+
+    assert(lseek(fd, 0, SEEK_SET) != -1);
+    ret = readn(fd, buf, 10, &size);
+    assert(ret == -1);
+    assert(size == 5);
+    assert(strncmp(buf, "hello", 5) == 0);
+
+    assert(lseek(fd, 0, SEEK_SET) != -1);
+    ret = writen(fd, "hello_world", 11);
+    assert(ret == 0);
+
+    assert(lseek(fd, 0, SEEK_SET) != -1);
+    size = 0;
+    ret = readn(fd, buf, 10, &size);
+    assert(ret == 0);
+    assert(size == 10);
+    assert(strncmp(buf, "hello_world", 11) != 0);
+    assert(strncmp(buf, "hello_world", 10) == 0);
+
+    assert(lseek(fd, 0, SEEK_SET) != -1);
+    sds_t result = readall(fd);
+    assert(result != NULL);
+    assert(sds_len(result) == 11);
+    assert(strncmp(result, "hello_world", 11) == 0);
+
+    recursive_rmdir("test_fs");
+    return 1;
+}
+
+int test_dir() {
+    assert(dirIs("./test_dir") == 1);
+    latte_iterator_t* iter = dir_scan_file("./test_dir", ".*\\.txt$");
+    int i = 0;
+    
+    while(latte_iterator_has_next(iter)) {
+        sds_t file = (sds)latte_iterator_next(iter);
+        assert(file != NULL);
+        i++;
+    }
+    //a.txt b.txt
+    assert(i == 2);
+    
+    latte_iterator_delete(iter);
+
+    iter = dir_scan_file("./test_dir", ".*\\.t$");
+    while(latte_iterator_has_next(iter)) {
+        sds_t file = latte_iterator_next(iter);
+        assert(sds_cmp(file, "a.t"));
+    }
+    latte_iterator_delete(iter);
+
+    iter = dir_scan_file("./test_dir1", ".*\\.txt$");
+    assert(iter == NULL);
     return 1;
 }
 
@@ -157,6 +237,10 @@ int test_api(void) {
             test_env_lockfile() == 1);
         test_cond("env write read function",
             test_env_write_read() == 1);
+        test_cond("fs function",
+            test_fs() == 1);
+        test_cond("dir function",
+            test_dir() == 1);
     } test_report()
     return 1;
 }

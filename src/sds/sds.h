@@ -15,6 +15,7 @@
 #define s_trymalloc_usable ztrymalloc_usable
 
 typedef char *sds;
+#define sds_t sds
 
 struct __attribute__ ((__packed__)) sdshdr5 {
     unsigned char flags; /* 3 lsb of type, and 5 msb of string length */
@@ -58,7 +59,7 @@ struct __attribute__ ((__packed__)) sdshdr64 {
 #define SDS_TYPE_5_LEN(f) ((f)>>SDS_TYPE_BITS)
 
 
-static inline size_t sdslen(const sds s) {
+static inline size_t sds_len(const sds_t s) {
     unsigned char flags = s[-1];
     switch (flags & SDS_TYPE_MASK) {
         case SDS_TYPE_5:
@@ -75,7 +76,7 @@ static inline size_t sdslen(const sds s) {
     return 0;
 }
 
-static inline void sdssetlen(sds s, size_t newlen) {
+static inline void sds_set_len(sds_t s, size_t newlen) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
         case SDS_TYPE_5:
@@ -99,7 +100,7 @@ static inline void sdssetlen(sds s, size_t newlen) {
     }
 }
 
-static inline void sdssetalloc(sds s, size_t newlen) {
+static inline void sds_set_alloc(sds_t s, size_t newlen) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
         case SDS_TYPE_5:
@@ -120,7 +121,7 @@ static inline void sdssetalloc(sds s, size_t newlen) {
     }
 }
 
-static inline size_t sdsavail(const sds s) {
+static inline size_t sds_avail(const sds_t s) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
         case SDS_TYPE_5: {
@@ -145,8 +146,8 @@ static inline size_t sdsavail(const sds s) {
     }
     return 0;
 }
-/* sdsalloc() = sdsavail() + sdslen() */
-static inline size_t sdsalloc(const sds s) {
+/* sds_alloc() = sds_avail() + sds_len() */
+static inline size_t sds_alloc(const sds_t s) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
         case SDS_TYPE_5:
@@ -163,7 +164,7 @@ static inline size_t sdsalloc(const sds s) {
     return 0;
 }
 
-static inline void sdsinclen(sds s, size_t inc) {
+static inline void sds_inc_len(sds_t s, size_t inc) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
         case SDS_TYPE_5:
@@ -192,45 +193,45 @@ static inline void sdsinclen(sds s, size_t inc) {
  * @param init
  * @return
  * @example
- *      sds s = sdsnew("foo");
+ *      sds_t s = sds_new("foo");
  *      assert(strcmp(s, "foo") == 0);
  */
-sds sdsnew(const char *init);
-void sdsfree(sds s);
+sds_t sds_new(const char *init);
+void sds_delete(sds_t s);
 /**
  *
  * @param init
  * @param initlen
  * @return
  * @example
- *     sds x = sdsnew("foo");
- *     assert(sdslen(x) == 3);
+ *     sds_t x = sds_new("foo");
+ *     assert(sds_len(x) == 3);
  *     assert(memcmp(x, "foo\0", 4) == 0);
  */
-sds sdsnewlen(const void *init, size_t initlen);
-sds sdstrynewlen(const void *init, size_t initlen);
+sds_t sds_new_len(const void *init, size_t initlen);
+sds_t sds_try_new_len(const void *init, size_t initlen);
 
 /**
  *
  * @return
  * @example
- *    sds empty = sdsempty();
- *    assert(sdslen(empty) == 0);
+ *    sds_t empty = sds_empty();
+ *    assert(sds_len(empty) == 0);
  */
-sds sdsempty(void);
-sds sdsemptylen(int length);
+sds_t sds_empty(void);
+sds_t sds_empty_len(int length);
 /**
  *
  * @param s
  * @param t
  * @return
  * @example
- *      sds x = sdsnewlen("foo", 2);
- *      x = sdscat(x, "bar");
- *      assert(sdslen(x) == 5);
+ *      sds_t x = sds_new_len("foo", 2);
+ *      x = sds_cat(x, "bar");
+ *      assert(sds_len(x) == 5);
  *      assert(memcmp(x, "fobar\0", 6) == 0);
  */
-sds sdscat(sds s, const char *t);
+sds_t sds_cat(sds_t s, const char *t);
 
 /**
  *
@@ -239,19 +240,19 @@ sds sdscat(sds s, const char *t);
  * @param ...
  * @return
  * @example
- *      sds x = sdsempty();
- *      x = sdscatfmt(x, "string:%s", "hello");
+ *      sds_t x = sds_empty();
+ *      x = sds_cat_fmt(x, "string:%s", "hello");
  *      assert(memcmp(x, "string:hello\0", strlen("string:hello\0")) == 0);
- *      sdsfree(x);
- *      x = sdsempty();
- *      x = sdscatfmt(x, "int:%i", 100);
+ *      sds_delete(x);
+ *      x = sds_empty();
+ *      x = sds_cat_fmt(x, "int:%i", 100);
  *      assert(memcmp(x, "int:100\0", strlen("int:100\0")) == 0);
- *      sdsfree(x);
- *      x = sdsempty();
- *      x = sdscatfmt(x, "long:%u", 2147483648);
+ *      sds_delete(x);
+ *      x = sds_empty();
+ *      x = sds_cat_fmt(x, "long:%u", 2147483648);
  *      assert(memcmp(x, "long:2147483648\0", strlen("long:2147483648\0")) == 0);
  */
-sds sdscatfmt(sds s, char const *fmt, ...);
+sds_t sds_cat_fmt(sds_t s, char const *fmt, ...);
 
 /**
  * @brief 
@@ -261,11 +262,11 @@ sds sdscatfmt(sds s, char const *fmt, ...);
  * @param len 
  * @return sds
  * @example
- *      sds x = sdsempty();
- *      x = sdscatlen(x, "helloabcded", 5);
+ *      sds_t x = sds_empty();
+ *      x = sds_cat_len(x, "helloabcded", 5);
  *      assert(memcpy(x, "hello\0",6));
  */
-sds sdscatlen(sds s, const void *t, size_t len);
+sds_t sds_cat_len(sds_t s, const void *t, size_t len);
 
 /**
  *
@@ -277,15 +278,15 @@ sds sdscatlen(sds s, const void *t, size_t len);
  * @return
  * @example
  *      int len = 0;
- *      sds* splits = sdssplitlen("test_a_b_c", 10, "_", 1, &len);
+ *      sds* splits = sds_split_len("test_a_b_c", 10, "_", 1, &len);
  *      assert(len == 4);
  *      assert(memcmp(splits[0], "test\0",5) == 0);
  *      assert(memcmp(splits[1], "a\0",2) == 0);
  *      assert(memcmp(splits[2], "b\0",2) == 0);
  *      assert(memcmp(splits[3], "c\0",2) == 0);
- *      sdsfreesplitres(splits, len);
+ *      sds_free_splitres(splits, len);
  */
-void sdsfreesplitres(sds *tokens, int count);
+void sds_free_splitres(sds_t *tokens, int count);
 
 /**
  *
@@ -293,23 +294,23 @@ void sdsfreesplitres(sds *tokens, int count);
  * @param s2
  * @return
  * @example
- *      sds x = sdsnew("hello");
- *      sds y = sdsnew("hello");
- *      assert(sdscmp(sdscmp(x, y) == 0);
+ *      sds_t x = sds_new("hello");
+ *      sds_t y = sds_new("hello");
+ *      assert(sds_cmp(sds_cmp(x, y) == 0);
  */
-int sdscmp(const sds s1, const sds s2);
+int sds_cmp(const sds_t s1, const sds_t s2);
 
-sds sdscatprintf(sds s, const char *fmt, ...);
+sds_t sds_cat_printf(sds_t s, const char *fmt, ...);
 
 /**
  *
  * @param value
  * @return
  * @example
- *      sds ll = sdsfromlonglong(100);
+ *      sds_t ll = sds_from_longlong(100);
  *      assert(memcmp(ll, "100\0", 4) == 0);
  */
-sds sdsfromlonglong(long long value);
+sds_t sds_from_longlong(long long value);
 
 /**
  *
@@ -317,51 +318,50 @@ sds sdsfromlonglong(long long value);
  * @param t
  * @return
  * @example
- *      sds x = sdsnew("x");
- *      sds y = sdsnew("y");
- *      x = sdscatsds(x, y);
+ *      sds_t x = sds_new("x");
+ *      sds_t y = sds_new("y");
+ *      x = sds_cat_sds(x, y);
  *      assert(memcmp(x, "xy\0", 3) == 0);
  */
-sds sdscatsds(sds s, const sds t);
+sds_t sds_cat_sds(sds_t s, const sds_t t);
 /**
  *
  * @param s
  * @param cset
  * @return
  * @example
- *      s = sdsnew("AA...AA.a.aa.aHelloWorld     :::");
- *      s = sdstrim(s,"Aa. :");
+ *      s = sds_new("AA...AA.a.aa.aHelloWorld     :::");
+ *      s = sds_trim(s,"Aa. :");
  *      assert(memcmp(s, "HelloWorld\0", 11) == 0);
  */
-sds sdstrim(sds s, const char *cset);
+sds_t sds_trim(sds_t s, const char *cset);
 
-sds sdscatrepr(sds s, const char *p, size_t len);
-sds *sdssplitargs(const char *line, int *argc);
-void sdsfreesplitres(sds *tokens, int count);
-sds *sdssplitlen(const char *s, ssize_t len, const char *sep, int seplen, int *count);
-// void sdstolower(sds s);
+sds_t sds_catrepr(sds_t s, const char *p, size_t len);
+sds_t *sds_split_args(const char *line, int *argc);
+sds_t *sds_split_len(const char *s, ssize_t len, const char *sep, int seplen, int *count);
+// void sdstolower(sds_t s);
 
 /**
  * @brief 
  * 
  * @param s
  * @example 
- *   sds x = sdsnew("hello");
- *   assert(sdslen(x) == 5);
- *   sdsclear(x);
- *   assert(sdslen(x) == 0);
+ *   sds_t x = sds_new("hello");
+ *   assert(sds_len(x) == 5);
+ *   sds_clear(x);
+ *   assert(sds_len(x) == 0);
  *  
  */
-void sdsclear(sds s);
+void sds_clear(sds_t s);
 
 
-void sdsrange(sds s, ssize_t start, ssize_t end);
-void sdsIncrLen(sds s, ssize_t incr);
-sds sdsMakeRoomFor(sds s, size_t addlen);
-sds sdsdup(const sds s);
-sds sdsResize(sds s, size_t size, int would_regrow);
+void sds_range(sds_t s, ssize_t start, ssize_t end);
+void sds_incr_len(sds_t s, ssize_t incr);
+sds_t sds_make_room_for(sds_t s, size_t addlen);
+sds_t sds_dup(const sds_t s);
+sds_t sds_resize(sds_t s, size_t size, int would_regrow);
 #define C_NPOS ((size_t)(-1))
-size_t sdsFindLastOf(sds haystack, const char *needle);
-int sdsStartsWith(sds str, const char *prefix);
-sds sdsReset(sds s, char* data, int len);
+size_t sds_find_lastof(sds_t haystack, const char *needle);
+int sds_starts_with(sds_t str, const char *prefix);
+sds_t sds_reset(sds_t s, char* data, int len);
 #endif

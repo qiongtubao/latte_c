@@ -4,7 +4,11 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdint.h>
+#include "sds/sds.h"
 
+#define MAX_LONG_DOUBLE_CHARS 5*1024
+// ULLONG_MAX 9223372036854775807LL * 2 + 1  => 20位
+#define MAX_ULL_CHARS 21
 
 #ifdef __GNUC__
 #  define likely(x)   __builtin_expect(!!(x), 1)
@@ -20,20 +24,49 @@
 #define latte_unreachable abort
 #endif
 
+#ifndef latte_min
+#define latte_min(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
+#ifndef latte_max
+#define latte_max(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
+// 检查并打印错误信息
+void latte_assert(int condition, const char *message, ...);
+
 int ll2string(char *s, size_t len, long long value);
+sds_t ll2sds(long long value);
 int string2ll(const char *s, size_t slen, long long *value);
+int sds2ll(sds_t s, long long* value);
 // int string2ll(const char *s, size_t slen, long long *value);
-// int string2ull(const char *s, unsigned long long *value);
+int string2ull(const char *s, unsigned long long *value);
+int ull2string(char *s, size_t len, unsigned long long value);
+sds_t ull2sds(unsigned long long value);
 // int string2l(const char *s, size_t slen, long *value);
-// int string2ld(const char *s, size_t slen, long double *dp);
-// int string2d(const char *s, size_t slen, double *dp);
-// int d2string(char *buf, size_t len, double value);
+int string2ld(const char *s, size_t slen, long double *dp);
+int sds2ld(sds_t s, long double* dp);
+/* long double to string convertion options */
+typedef enum {
+    LD_STR_AUTO,     /* %.17Lg */
+    LD_STR_HUMAN,    /* %.17Lf + Trimming of trailing zeros */
+    LD_STR_HEX       /* %La */
+} ld2string_mode;
+int ld2string(char *buf, size_t len, long double value, ld2string_mode mode);
+sds_t ld2sds(long double value, ld2string_mode mode);
+int string2d(const char *s, size_t slen, double *dp);
+int sds2d(sds_t value, double* dp);
+int d2string(char *buf, size_t len, double value);
+sds_t d2sds(double value);
 long long ustime(void);
+long long nstime(void);
 
 static long long nowustime;
 static long daylight_active;
 static int start_update_cache_timed = 0;
-long getTimeZone();
-long getDaylightActive();
-long updateDaylightActive();
+long get_time_zone();
+long get_day_light_active();
+long update_day_light_active();
+
+unsigned long  current_monitonic_time();
 #endif

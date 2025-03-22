@@ -1,18 +1,28 @@
 ifneq ($(USED_FS), yes) 
+include $(WORKSPACE)/src/zmalloc/lib.mk
+include $(WORKSPACE)/src/sds/lib.mk
 include $(WORKSPACE)/src/set/lib.mk
+include $(WORKSPACE)/src/utils/lib.mk
+include $(WORKSPACE)/src/list/lib.mk
+include $(WORKSPACE)/src/log/lib.mk
 FINAL_CC_CFLAGS+= -I../fs
 
-LIB_OBJ+= ../fs/file.o ../fs/dir.o ../fs/env.o ../fs/posix_file.o
-USED_FS=yes
+
 ../fs/file.o:
-	cd ../fs && make file.o
+	cd $(WORKSPACE)/src/fs && make file.o
 
 ../fs/dir.o:
-	cd ../fs && make dir.o
+	cd $(WORKSPACE)/src/fs && make dir.o
 
 ../fs/env.o:
-	cd ../fs && make env.o
+	cd $(WORKSPACE)/src/fs && make env.o
 
-../fs/posix_file.o
-	cd ../fs && make posix_file.o
+../fs/posix_file.o:
+	cd $(WORKSPACE)/src/fs && make posix_file.o
+
+../fs/fs.o:
+	cd $(WORKSPACE)/src/fs && make fs.o
+
+LIB_OBJ+= ../fs/file.o ../fs/dir.o ../fs/env.o ../fs/posix_file.o ../fs/fs.o
+USED_FS=yes
 endif

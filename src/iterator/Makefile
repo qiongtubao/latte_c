@@ -1,7 +1,7 @@
 WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=iterator.o
 LIB_OBJ?=
-TEST_MAIN?=
+TEST_MAIN?=iterator_test
 LIB_MODULES?=zmalloc
 MODULE?=iterator
 BUILD_INCLUDE=iterator.h
