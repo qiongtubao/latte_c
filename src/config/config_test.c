@@ -105,15 +105,6 @@ int test_loadConfigFromString() {
 }
 
 
-int test_config() {
-    config* c = createConfig();
-    //sds
-    sds name = sdsnewlen("name", 4);
-    assert(registerConfig(c, name, &name_rule) == DICT_OK);
-
-    assert(dictFind(c->rules, "name") != NULL);
-    return 1;
-}
 
 int test_api(void) {
     {

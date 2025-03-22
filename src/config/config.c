@@ -6,16 +6,7 @@
 
 #include "dict/dict_plugins.h"
 
-<<<<<<< HEAD
 
-void* ll2ptr(long long value) {
-    if (sizeof(void*) == sizeof(long long)) {
-        return (void*)(value);
-    } else {
-        return &value;
-    }
-}
-=======
 #define UNUSED(x) ((void)(x))
 // void* ll2ptr(long long value) {
 //     if (sizeof(void*) == sizeof(long long)) {
@@ -24,7 +15,7 @@ void* ll2ptr(long long value) {
 //         return (void*)&value;
 //     }
 // }
->>>>>>> 658eef7 ([recode]config module)
+
 
 long long ptr2ll(void* value) {
     if (sizeof(void*) == sizeof(long long)) {
