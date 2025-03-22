@@ -22,7 +22,7 @@ int dictSdsKeyCompare(void *privdata, const void *key1,
     return memcmp(key1, key2, l1) == 0;
 }
 
-void dictSdsDestructor(void *privdata, void *val) {
+void dictSdsDestructor(dict *privdata, void *val) {
     DICT_NOTUSED(privdata);
 
     sdsfree(val);

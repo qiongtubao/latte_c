@@ -15,3 +15,4 @@ include $(WORKSPACE)/src/zmalloc/lib.mk
 include $(WORKSPACE)/src/dict/lib.mk
 include $(WORKSPACE)/src/sds/lib.mk
 include $(WORKSPACE)/src/utils/lib.mk
+include $(WORKSPACE)/src/dict_plugins/lib.mk

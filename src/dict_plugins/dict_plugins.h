@@ -8,6 +8,6 @@
 uint64_t dictSdsHash(const void *key);
 int dictSdsKeyCompare(void *privdata, const void *key1,
         const void *key2);
-void dictSdsDestructor(void *privdata, void *val);
+void dictSdsDestructor(dict *privdata, void *val);
 void *dictSdsDup(dict *d, const void *key);
 #endif

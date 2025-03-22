@@ -4,6 +4,8 @@
 #include <errno.h>
 #include "utils/utils.h"
 #include "dict_plugins/dict_plugins.h"
+
+#define UNUSED(x) (void)(x)
 void* ll2ptr(long long value) {
     if (sizeof(void*) == sizeof(long long)) {
         return (void*)(value);
@@ -20,10 +22,18 @@ long long ptr2ll(void* value) {
     }
 }
 
+int dictCharKeyCompare(dict* d, const void* a, const void* b) {
+    UNUSED(d);
+    if (strlen(a) != strlen(b)) return 0;
+    return strcmp(a, b) == 0;
+}
 
+uint64_t dictCharHash(const void* key) {
+     return dictGenHashFunction((unsigned char*)key, strlen(key));
+}
 
 dictType ruleDictType = {
-    dictSdsHash,
+    dictCharHash,
     NULL,
     NULL,
     dictCharKeyCompare,
