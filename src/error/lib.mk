@@ -14,5 +14,5 @@ FINAL_CC_CFLAGS+= -I../error
 
 
 LIB_OBJ+= ../error/error.o
-USED_FS=yes
+USED_ERROR=yes
 endif

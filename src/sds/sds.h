@@ -365,4 +365,6 @@ sds_t sds_resize(sds_t s, size_t size, int would_regrow);
 size_t sds_find_lastof(sds_t haystack, const char *needle);
 int sds_starts_with(sds_t str, const char *prefix);
 sds_t sds_reset(sds_t s, char* data, int len);
+sds sds_cat_vprintf(sds s, const char *fmt, va_list ap);
+
 #endif

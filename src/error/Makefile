@@ -2,9 +2,9 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?= error.o
 LIB_OBJ?=
 TEST_MAIN?=error_test
-LIB_MODULES?=error
+LIB_MODULES?=
 MODULE?=error
-BUILD_INCLUDE= error.h
+BUILD_INCLUDE=error.h
 
 include $(WORKSPACE)/mks/sys.mk
 include $(WORKSPACE)/mks/final.mk
