@@ -73,6 +73,15 @@ int connEnableTcpNoDelay(connection *conn);
 void connSetPrivateData(connection *conn, void *data);
 int connKeepAlive(connection *conn, int interval);
 
+/* Set a write handler, and possibly enable a write barrier, this flag is
+ * cleared when write handler is changed or removed.
+ * With barrier enabled, we never fire the event if the read handler already
+ * fired in the same event loop iteration. Useful when you want to persist
+ * things to disk before sending replies, and want to do that in a group fashion. */
+static inline int connSetWriteHandlerWithBarrier(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc func, int barrier) {
+    return conn->type->set_write_handler(el, conn, func, barrier);
+}
+
 static inline void connClose(struct aeEventLoop *el, connection *conn) {
     conn->type->close(el, conn);
 }
@@ -124,6 +133,14 @@ static inline int connAccept(struct aeEventLoop *el, connection *conn, Connectio
 static inline int connSetReadHandler(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc func) {
     return conn->type->set_read_handler(el, conn, func);
 }
+
+/* Register a write handler, to be called when the connection is writable.
+ * If NULL, the existing handler is removed.
+ */
+static inline int connSetWriteHandler(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc func) {
+    return conn->type->set_write_handler(el, conn, func, 0);
+}
+
 
 /* 
 从连接中读取，与read(2)的行为相同。
