@@ -10,10 +10,13 @@ include $(WORKSPACE)/src/endianconv/lib.mk
 include $(WORKSPACE)/src/log/lib.mk
 include $(WORKSPACE)/src/value/lib.mk
 FINAL_CC_CFLAGS+= -I../server
-LIB_OBJ+= ../server/server.o 
+LIB_OBJ+= ../server/server.o ../server/client.o
 USED_SERVER=yes
 ../server/server.o:
 		cd ../server && make server.o
+
+../server/client.o:
+		cd ../server && make client.o
 
 endif
 
