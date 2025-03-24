@@ -125,6 +125,14 @@ static inline int connSetReadHandler(struct aeEventLoop *el, connection *conn, C
     return conn->type->set_read_handler(el, conn, func);
 }
 
+/* Register a write handler, to be called when the connection is writable.
+ * If NULL, the existing handler is removed.
+ */
+static inline int connSetWriteHandler(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc func) {
+    return conn->type->set_write_handler(el, conn, func, 0);
+}
+
+
 /* 
 从连接中读取，与read(2)的行为相同。
 与read(2)类似，可能会出现短读。返回值为0表示连接已关闭，返回-1表示出现错误。
