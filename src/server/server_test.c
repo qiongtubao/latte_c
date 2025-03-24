@@ -10,34 +10,36 @@
 #include <pthread.h>
 #include <arpa/inet.h>
 #include "server.h"
-
+#include "client.h"
 
 #define PORT 8081
 #define BUFFER_SIZE 1024
 
 
 
-int echoHandler(struct latteClient* lc) {
-    log_info("latte_c_server", "echoHandler\n");
-    struct client* c = (struct client*)lc; 
+int echoHandler(struct latte_client_t* lc) {
+    // struct client* c = (struct client*)lc; 
     if (strncmp(lc->querybuf, "quit", 4) == 0) {
         lc->qb_pos = 4;
-        stopServer(lc->server);
+        stop_latte_server(lc->server);
         return 1;
     }
-    if (connWrite(lc->conn, lc->querybuf, sds_len(lc->querybuf)) == -1) {
-        printf("write fail");
-    }
+    // if (connWrite(lc->conn, lc->querybuf, sds_len(lc->querybuf)) == -1) {
+    //     printf("write fail");
+    // }
+    // lc->qb_pos = sds_len(lc->querybuf);
+    add_reply_proto(lc, lc->querybuf, sds_len(lc->querybuf));
     lc->qb_pos = sds_len(lc->querybuf);
+    log_info("latte_c", "echoHandler\n");
     return 1;
 }
-struct latteClient *createLatteClient() {
-    struct latteClient* client = zmalloc(sizeof(struct latteClient));
+ latte_client_t *createLatteClient() {
+     latte_client_t* client = zmalloc(sizeof(latte_client_t));
     client->exec = echoHandler;
     return client;
 }
 
-void freeLatteClient(struct latteClient* client) {
+void freeLatteClient(struct latte_client_t* client) {
     zfree(client);
 }
 
@@ -52,21 +54,21 @@ vector_t* test_bind_vector_new() {
     return v;
 }
 void *server_thread(void *arg) {
-    struct latteServer* server = zmalloc(sizeof(struct latteServer));
+    struct latte_server_t* server = zmalloc(sizeof(struct latte_server_t));
     server->port = PORT;
     server->bind = test_bind_vector_new();
     
     server->maxclients = 100;
     server->el = aeCreateEventLoop(1024);
-    initInnerLatteServer(server);
+    init_latte_server(server);
     server->createClient = createLatteClient;
     server->freeClient = freeLatteClient;
-    startLatteServer(server);
+    start_latte_server(server);
 }
 
 int test_server() {
     log_init();
-    log_add_stdout("latte_c", LOG_DEBUG);
+    log_add_stdout("latte_lib", LOG_DEBUG);
     pthread_t server_thread_id;
 
     // 创建线程启动Server

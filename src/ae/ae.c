@@ -16,6 +16,7 @@
 #include "anet/anet.h"
 #include "log/log.h"
 
+
 /* Include the best multiplexing layer supported by this system.
  * The following should be ordered by performances, descending. */
 #ifdef HAVE_EVPORT
@@ -49,7 +50,9 @@ aeEventLoop *aeCreateEventLoop(int setsize) {
     eventLoop->stop = 0;
     eventLoop->maxfd = -1;
     eventLoop->beforesleep = NULL;
+    eventLoop->beforesleeps = list_new();
     eventLoop->aftersleep = NULL;
+    eventLoop->aftersleeps = list_new();
     eventLoop->flags = 0;
     if (aeApiCreate(eventLoop) == -1) goto err;
     /* Events with mask == AE_NONE are not set. So let's initialize the
@@ -357,8 +360,20 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
             tvp = &tv;
         }
 
-        if (eventLoop->beforesleep != NULL && flags & AE_CALL_BEFORE_SLEEP)
-            eventLoop->beforesleep(eventLoop);
+        if ( flags & AE_CALL_BEFORE_SLEEP) {
+            if ( eventLoop->beforesleep != NULL ) eventLoop->beforesleep(eventLoop);
+            if ( list_length(eventLoop->beforesleeps) > 0) {
+                list_node_t* ln;
+                list_iterator_t li;
+                list_rewind(eventLoop->beforesleeps, &li);
+                while((ln = list_next(&li))) {
+                    latte_func_task_t *t = list_node_value(ln);
+                    exec_task(t);
+                }
+
+            }
+        }
+            
 
         /* Call the multiplexing API, will return only on timeout or when
          * some event fires. */
@@ -471,3 +486,9 @@ void aeSetBeforeSleepProc(aeEventLoop *eventLoop, aeBeforeSleepProc *beforesleep
 void aeSetAfterSleepProc(aeEventLoop *eventLoop, aeBeforeSleepProc *aftersleep) {
     eventLoop->aftersleep = aftersleep;
 }
+
+
+void aeAddBeforeSleepTask(aeEventLoop* eventLoop, latte_func_task_t* task) {
+    eventLoop->beforesleeps =  list_add_node_head(eventLoop->beforesleeps, task);
+}
+

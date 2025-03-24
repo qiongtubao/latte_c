@@ -2,14 +2,15 @@
 #include <errno.h>
 #include <string.h>
 #include "utils/atomic.h"
+#include "client.h"
 
-uint64_t getClientId(struct latteServer* server) {
+uint64_t getClientId(struct latte_server_t* server) {
     uint64_t client_id;
     latte_atomic_get_incr(server->next_client_id, client_id, 1);
     return client_id;
 }
 
-void closeSocketListeners(struct latteServer* server, socketFds *sfd) {
+void closeSocketListeners(struct latte_server_t* server, socket_fds_t *sfd) {
     int j;
 
     for (j = 0; j < sfd->count; j++) {
@@ -23,7 +24,7 @@ void closeSocketListeners(struct latteServer* server, socketFds *sfd) {
 }
 
 //监听端口
-int listenToPort(struct latteServer* server,char* neterr, vector_t* bind, int port, int tcp_backlog, socketFds *sfd) {
+int listenToPort(struct latte_server_t* server,char* neterr, vector_t* bind, int port, int tcp_backlog, socket_fds_t *sfd) {
     int j;
     latte_iterator_t* iterator = vector_get_iterator(bind);
     while(latte_iterator_has_next(iterator)) {
@@ -104,7 +105,7 @@ int listenToPort(struct latteServer* server,char* neterr, vector_t* bind, int po
 
 /* 创建事件处理程序，用于接受 TCP 或 TLS 域套接字中的新连接。
  * 这原子地适用于所有插槽 fds */
-int createSocketAcceptHandler(struct latteServer* server, socketFds *sfd, aeFileProc *accept_handler, void* privdata) {
+int createSocketAcceptHandler(struct latte_server_t* server, socket_fds_t *sfd, aeFileProc *accept_handler, void* privdata) {
     int j;
     for (j = 0; j < sfd->count; j++) {
         if (aeCreateFileEvent(server->el, sfd->fd[j], AE_READABLE, accept_handler, privdata) == AE_ERR) {
@@ -116,13 +117,78 @@ int createSocketAcceptHandler(struct latteServer* server, socketFds *sfd, aeFile
     return SERVER_OK;
 }
 
+/* Write event handler. Just send data to the client. */
+void sendReplyToClient(connection *conn) {
+    latte_client_t *c = connGetPrivateData(conn);
+    writeToClient(c,1);
+}
+
+
+/* This function is called just before entering the event loop, in the hope
+ * we can just write the replies to the client output buffer without any
+ * need to use a syscall in order to install the writable event handler,
+ * get it called, and so forth. */
+int handleClientsWithPendingWrites(latte_server_t* server) {
+    list_iterator_t li;
+    list_node_t* ln;
+    int processed = list_length(server->clients_pending_write);
+    if (processed == 0) return 0;
+    LATTE_LIB_LOG(LL_INFO, "processed %d", processed);
+    list_rewind(server->clients_pending_write, &li);
+    while((ln = list_next(&li))) {
+        LATTE_LIB_LOG(LL_INFO, "get client");
+        latte_client_t *c = list_node_value(ln);
+        c->flags &= ~CLIENT_PENDING_WRITE;
+        list_del_node(server->clients_pending_write,ln);
+
+        /* If a client is protected, don't do anything,
+         * that may trigger write error or recreate handler. */
+        if (c->flags & CLIENT_PROTECTED) continue;
+
+        /* Don't write to clients that are going to be closed anyway. */
+        if (c->flags & CLIENT_CLOSE_ASAP) continue;
+
+        /* Try to write buffers to the client socket. */
+        if (writeToClient(c,0) == -1) continue;
+
+        /* If after the synchronous writes above we still have data to
+         * output to the client, we need to install the writable handler. */
+        if (clientHasPendingReplies(c)) {
+            int ae_barrier = 0;
+            /* For the fsync=always policy, we want that a given FD is never
+             * served for reading and writing in the same event loop iteration,
+             * so that in the middle of receiving the query, and serving it
+             * to the client, we'll call beforeSleep() that will do the
+             * actual fsync of AOF to disk. the write barrier ensures that. */
+            // if (server.aof_state == AOF_ON &&
+            //     server.aof_fsync == AOF_FSYNC_ALWAYS)
+            // {
+            //     ae_barrier = 1;
+            // }
+            if (connSetWriteHandlerWithBarrier(server->el, c->conn, sendReplyToClient, ae_barrier) == -1) {
+                free_latte_client_async(c);
+            }
+        }
+    }
+    return processed;
+}
+
+int send_clients(latte_func_task_t* task) {
+    latte_server_t* server = (latte_func_task_t*)task->args[0];
+    handleClientsWithPendingWrites(server);
+    return 1;
+}
+
+int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
+    // LATTE_LIB_LOG(LOG_INFO, "serverCron");
+}
 //启动latte server
-int startLatteServer(struct latteServer* server) {
-    log_info("latte_c","start latte server %lld %lld !!!!!", server->port, server->tcp_backlog);
+int start_latte_server(latte_server_t* server) {
+    LATTE_LIB_LOG(LOG_INFO, "start latte server %lld %lld !!!!!", server->port, server->tcp_backlog);
     //listen port
     if (server->port != 0 &&
         listenToPort(server, server->neterr,server->bind,server->port,server->tcp_backlog,&server->ipfd) == -1) {
-        log_error("latte_c","start latte server fail!!!");
+        LATTE_LIB_LOG(LOG_ERROR,"start latte server fail!!!");
         exit(1);
     }
     //TODO listening tls port
@@ -134,177 +200,45 @@ int startLatteServer(struct latteServer* server) {
         // && server.tlsfd.count == 0 
         // && server.sofd < 0
     ) {
-        log_error("latte_c","Configured to not listen anywhere, exiting.");
+        LATTE_LIB_LOG(LOG_ERROR, "Configured to not listen anywhere, exiting.");
         exit(1);
     }
     if (server->acceptTcpHandler == NULL) {
-        log_error("latte_c","server unset acceptTcpHandler");
+        LATTE_LIB_LOG(LOG_ERROR, "server unset acceptTcpHandler");
         exit(1);
     }
 
     /* Create an event handler for accepting new connections in TCP and Unix
      * domain sockets. */
     if (createSocketAcceptHandler(server, &server->ipfd, server->acceptTcpHandler, server) != SERVER_OK) {
-        log_error("latte_c","Unrecoverable error creating TCP socket accept handler.");
+        LATTE_LIB_LOG(LOG_ERROR, "Unrecoverable error creating TCP socket accept handler.");
         exit(1);
     }
-    log_info("latte_c", "start latte server success PID: %lld\n" , getpid());
+    aeAddBeforeSleepTask(server->el, latte_func_task_new(send_clients, NULL, 1, server));
+    LATTE_LIB_LOG(LOG_INFO, "start latte server success PID: %lld\n" , getpid());
 
+    /* Create the timer callback, this is our way to process many background
+     * operations incrementally, like clients timeout, eviction of unaccessed
+     * expired keys and so forth. */
+    if (aeCreateTimeEvent(server->el, 1, serverCron, NULL, NULL) == AE_ERR) {
+        // serverPanic("Can't create event loop timers.");
+        exit(1);
+    }
     aeMain(server->el);
     aeDeleteEventLoop(server->el);
     return 1;
 }
-int stopServer(struct latteServer* server) {
+int stop_latte_server(struct latte_server_t* server) {
     aeStop(server->el);
     return 1;
 }
 
-/**
- * @brief 
- * 
- * @param client 
- * 从可能引用客户端的全局列表中移除指定的客户端，
- * 不包括发布/订阅通道。
- * 这是由freeClient()和replicationCacheMaster()使用的。
- */
-void unlinkClient(struct latteClient* c) {
-    struct latteServer* server = c->server;
-    list_node_t *ln;
-    if (c->conn) {
-        if (c->client_list_node) {
-            uint64_t id = htonu64(c->id);
-            raxRemove(server->clients_index,(unsigned char*)&id,sizeof(id),NULL);
-            list_del_node(server->clients,c->client_list_node);
-            c->client_list_node = NULL;
-        }
-        connClose(server->el, c->conn);
-        c->conn = NULL;
-    }
-}
 
-void freeClient(struct latteClient *c) {
-    log_debug("latte_c","freeClient %d\n", c->conn->fd);
-    struct latteServer* server = c->server;
-    unlinkClient(c);
-    freeInnerLatteClient(c);
-    server->freeClient(c);
-}
-
-/* 放入异步删除队列 */
-void freeClientAsync(struct latteClient *c) {
-    struct latteServer* server = c->server;
-    //TODO
-    freeClient(c);
-}
-void clientAcceptHandler(connection *conn) {
-    struct latteClient *c = connGetPrivateData(conn);
-
-    if (connGetState(conn) != CONN_STATE_CONNECTED) {
-        log_error("latte_c", "Error accepting a client connection: %s\n", connGetLastError(conn));
-        freeClientAsync(c);
-        return;
-    }
-}
-
-void initClient(struct aeEventLoop* el,struct latteClient* c, struct connection* conn, int flags) {
-    /* Last chance to keep flags */
-    c->flags |= flags;
-    /* Initiate accept.
-     *
-     * Note that connAccept() is free to do two things here:
-     * 1. Call clientAcceptHandler() immediately;
-     * 2. Schedule a future call to clientAcceptHandler().
-     *
-     * Because of that, we must do nothing else afterwards.
-     */
-    if (connAccept(el, conn, clientAcceptHandler) == CONNECTION_ERR) {
-        char conninfo[100];
-        if (connGetState(conn) == CONN_STATE_ERROR) {
-            log_error("latte_c", "Error accepting a client connection: %s (conn: %s)\n", 
-                connGetLastError(conn), 
-                connGetInfo(conn, conninfo, sizeof(conninfo))
-            );
-        }
-        freeClient(connGetPrivateData(conn));
-        return;
-    }
-}
-
-void linkClient(struct latteServer* server, struct latteClient* c) {
-    list_add_node_tail(server->clients, c);
-    /* Note that we remember the linked list node where the client is stored,
-     * this way removing the client in unlinkClient() will not require
-     * a linear scan, but just a constant time operation. */
-    /* 请注意，我们记住了存储客户端的链表节点，这样在 unlinkClient() 中移除客户端将不需要进行线性扫描，而只需要进行一个常数时间的操作。 */
-    c->client_list_node = list_last(server->clients);
-    uint64_t id = htonu64(c->id);
-    raxInsert(server->clients_index,(unsigned char*)&id,sizeof(id),c,NULL);
-}
-
-
-#define PROTO_REQ_INLINE 1
-#define PROTO_REQ_MULTIBULK 2
-
-#define PROTO_IOBUF_LEN         (1024*16)  /* Generic I/O buffer size */
-#define PROTO_REPLY_CHUNK_BYTES (16*1024) /* 16k output buffer */
-#define PROTO_INLINE_MAX_SIZE   (1024*64) /* Max size of inline reads */
-#define PROTO_MBULK_BIG_ARG     (1024*32)
-void readQueryFromClient(connection *conn) {
-    struct latteClient *c = connGetPrivateData(conn);
-    int nread, readlen;
-    size_t qblen;
-    /**
-     * @brief Construct a new if object
-     *  在这个代码块中，如果启用了线程化I/O，
-     *  就会在事件循环之前从客户端套接字读取数据。
-     *  这是因为线程化I/O需要在I/O线程中处理客户端套接字的读写操作，
-     *  而主线程只负责事件循环。
-     *  因此，在进入事件循环之前，
-     *  需要从客户端套接字读取数据，
-     *  以便I/O线程能够处理它们。
-     */
-    // if (postponeClientRead(c)) return;
-    readlen = PROTO_IOBUF_LEN;
-    /**
-     * @brief 
-     * 这个代码块是用于解析客户端发送的Redis协议请求的。
-     * 在处理多个批量请求时，
-     * 如果当前正在处理一个足够大的批量回复，
-     * 就会尝试尽可能地让查询缓冲区包含表示对象的SDS字符串，
-     * 即使这可能需要更多的`read(2)`调用。
-     * 这样可以避免在处理批量请求时创建新的SDS字符串，
-     * 从而提高性能。
-     * 
-     */
-    qblen = sds_len(c->querybuf);
-    if (c->querybuf_peak < qblen) c->querybuf_peak = qblen;
-    c->querybuf = sds_make_room_for(c->querybuf, readlen);
-    
-    nread = connRead(c->conn, c->querybuf + qblen, readlen);
-    if (nread == -1) {
-        if (connGetState(conn) == CONN_STATE_CONNECTED) {
-            return;
-        } else {
-            log_error("latte_c", "Reading from client: %s\n",connGetLastError(c->conn));
-            freeClientAsync(c);
-            return;
-        }
-    } else if (nread == 0) {
-        freeClientAsync(c);
-        return;
-    } 
-    sds_incr_len(c->querybuf,nread);
-    if (c->exec(c)) {
-        //清理掉c->querybuf
-        sds_range(c->querybuf,c->qb_pos,-1);
-        c->qb_pos = 0;
-    }
-}
 
 
 //这里从connection 创建client
-static void acceptCommonHandler(struct latteServer* server,connection *conn, int flags, char *ip) {
-    latteClient *c;
+static void acceptCommonHandler(latte_server_t* server,connection *conn, int flags, char *ip) {
+    struct latte_client_t *c;
     char conninfo[100];
     UNUSED(ip);
     if (connGetState(conn) != CONN_STATE_ACCEPTING) {
@@ -344,7 +278,7 @@ static void acceptCommonHandler(struct latteServer* server,connection *conn, int
         connClose(server->el, conn); /* May be already closed, just ignore errors */
         return;
     }
-    initInnerLatteClient(c);
+    protected_init_latte_client(c);
     
     c->conn = conn;
     c->id = getClientId(server);
@@ -359,8 +293,8 @@ static void acceptCommonHandler(struct latteServer* server,connection *conn, int
         connSetReadHandler(server->el, conn, readQueryFromClient);
         connSetPrivateData(conn, c);
     }
-    initClient(server->el, c, conn, flags);
-    if(conn) linkClient(server, c);
+    init_latte_client(server->el, c, conn, flags);
+    if(conn) link_latte_client(server, c);
 }
 
 #define MAX_ACCEPTS_PER_CALL 1000
@@ -368,7 +302,7 @@ static void acceptCommonHandler(struct latteServer* server,connection *conn, int
 void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     int cport, cfd, max = MAX_ACCEPTS_PER_CALL;
     char cip[NET_IP_STR_LEN];
-    struct latteServer* server = (struct latteServer*)(privdata);
+    latte_server_t* server = (latte_server_t*)(privdata);
 
     while(max--) {
         cfd = anetTcpAccept(server->neterr, fd, cip, sizeof(cip), &cport);
@@ -385,13 +319,15 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     }
 }
 
-void initInnerLatteServer(struct latteServer* server) {
+void init_latte_server(latte_server_t* server) {
     server->clients = list_new();
     server->clients_index = raxNew();
     server->acceptTcpHandler = acceptTcpHandler;
     server->next_client_id = 0;
+    server->clients_pending_write = list_new();
 }
-void freeInnerLatteServer(struct latteServer* server) {
+
+void destory_latte_server(latte_server_t* server) {
     if (server->clients != NULL) {
         list_delete(server->clients);
         server->clients = NULL;
@@ -403,17 +339,4 @@ void freeInnerLatteServer(struct latteServer* server) {
     server->acceptTcpHandler = NULL;
 }
 
-/**client **/
-void initInnerLatteClient(struct latteClient* client) {
-    client->qb_pos = 0;
-    client->querybuf = sds_empty();
-    client->querybuf_peak = 0;
-    client->client_list_node = NULL;
-}
 
-void freeInnerLatteClient(struct latteClient* client) {
-    if (client->querybuf != NULL) {
-        sds_delete(client->querybuf);
-        client->querybuf = NULL;
-    }
-}

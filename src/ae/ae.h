@@ -2,6 +2,8 @@
 #define __LATTE_AE_H
 #include "monotonic.h"
 #include "log/log.h"
+#include "list/list.h"
+#include "func_task/func_task.h"
 
 #define AE_OK 0
 #define AE_ERR -1
@@ -74,7 +76,9 @@ typedef struct aeEventLoop {
     int stop;
     void *apidata; /* This is used for polling API specific data */
     aeBeforeSleepProc *beforesleep;
+    list_t* beforesleeps;
     aeBeforeSleepProc *aftersleep;
+    list_t* aftersleeps;
     int flags;
 } aeEventLoop;
 
@@ -95,6 +99,7 @@ int aeWait(int fd, int mask, long long milliseconds);
 void aeMain(aeEventLoop *eventLoop);
 char *aeGetApiName(void);
 void aeSetBeforeSleepProc(aeEventLoop *eventLoop, aeBeforeSleepProc *beforesleep);
+void aeAddBeforeSleepTask(aeEventLoop* eventLoop, latte_func_task_t* task);
 void aeSetAfterSleepProc(aeEventLoop *eventLoop, aeBeforeSleepProc *aftersleep);
 int aeGetSetSize(aeEventLoop *eventLoop);
 int aeResizeSetSize(aeEventLoop *eventLoop, int setsize);
