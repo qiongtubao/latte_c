@@ -46,7 +46,7 @@ avl_node_t* avl_tree_get_min(avl_tree_t* tree);
 int avl_tree_remove(avl_tree_t* tree, void* key);
 void avl_tree_delete(avl_tree_t* tree);
 int avl_tree_size(avl_tree_t* tree);
-
+void avl_tree_clear(avl_tree_t* tree);
 
 // avl_tree_iterator_t* avl_tree_iterator_new(avl_tree_t* tree);
 // bool avl_tree_iterator_has_next(avl_tree_iterator_t* iterator);

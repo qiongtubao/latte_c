@@ -112,6 +112,16 @@ uint32_t digits10(uint64_t v) {
     return 12 + digits10(v / 1000000000000UL);
 }
 
+uint32_t sdigits10(int64_t v) {
+    if (v < 0) {
+        uint64_t uv = (v != LLONG_MIN) ?
+            (uint64_t) - v : ((uint64_t) LLONG_MAX) + 1;
+        return digits10(uv) + 1;
+    } else {
+        return digits10(v);
+    }
+}
+
 /* Convert a long long into a string. Returns the number of
  * characters needed to represent the number.
  * If the buffer is not big enough to store the string, 0 is returned.

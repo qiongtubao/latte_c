@@ -26,8 +26,8 @@ void private_hash_set_delete(hash_set_t* hash_set) {
 }
 
 
-void private_hash_set_destroy(hash_set_t* hash_set) {
-    dict_destroy(hash_set);
+void private_hash_set_destroy(set_t* hash_set) {
+    dict_destroy((hash_set_t*)hash_set);
 }
 
 /**

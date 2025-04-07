@@ -69,4 +69,9 @@ long get_day_light_active();
 long update_day_light_active();
 
 unsigned long  current_monitonic_time();
+
+
+//
+uint32_t digits10(uint64_t v);
+uint32_t sdigits10(int64_t v);
 #endif
