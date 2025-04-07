@@ -17,7 +17,10 @@ FINAL_CC_CFLAGS+= -I../set
 ../set/set.o:
 	cd $(WORKSPACE)/src/set && make set.o
 
-LIB_OBJ+=  ../set/avl_set.o ../set/hash_set.o ../set/set.o
+../set/int_set.o:
+	cd $(WORKSPACE)/src/set && make int_set.o
+
+LIB_OBJ+=  ../set/avl_set.o ../set/hash_set.o ../set/set.o ../set/int_set.o
 
 USED_SET=yes
 endif
