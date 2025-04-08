@@ -229,8 +229,8 @@ int test_dict_random() {
     dict_t* d = dict_new(&dict_klong_vlong_func);
     for(long i = 0; i < 10000; i++) {
         long r = random_long(100,10000);
-        if (dict_find(d, r) != NULL) continue;
-        assert(DICT_OK == dict_add(d, r, r));
+        if (dict_find(d, (void*)(long)r) != NULL) continue;
+        assert(DICT_OK == dict_add(d, (void*)(long)r, (void*)(long)r));
     }
     dict_delete(d);
     return 1;

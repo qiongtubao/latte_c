@@ -57,3 +57,12 @@ int dict_ptr_key_compare(dict_t* privdata, const void *key1,
     UNUSED(privdata);
     return key1 == key2;
 }
+
+dict_func_t sds_key_set_dict_type = {
+        dict_sds_hash,
+        NULL,
+        NULL,
+        dict_sds_key_compare,
+        dict_sds_destructor,
+        NULL
+};

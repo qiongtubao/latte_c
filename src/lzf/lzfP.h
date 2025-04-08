@@ -40,11 +40,11 @@
  * either the BSD or the GPL.
  */
 
-#define STANDALONE 1 /* at the moment, this is ok. */
+// #define STANDALONE 1 /* at the moment, this is ok. */
 
-#ifndef STANDALONE
-# include "lzf.h"
-#endif
+// #ifndef STANDALONE
+#include "lzf.h"
+// #endif
 
 /*
  * Size of hashtable is (1 << HLOG) * sizeof (char *)

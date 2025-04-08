@@ -16,7 +16,11 @@
 方法名 
 ```c
   typedef int xxx_xxx_func(void* v)
+  xxx_t xxx_new(xxx),void xxx_delete(xxx_t* xxx)  // 调用xxx_create
+  xxx_t xxx_create(void) , void xxx_release(xxx_t xxx)
+
 ```
+
 
 静态对象
 global_xxx

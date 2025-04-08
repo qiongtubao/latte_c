@@ -65,6 +65,8 @@ struct dict_t {
     /* Keep small vars at end for optimal (minimal) struct padding */
     int16_t pauserehash; /* If >0 rehashing is paused (<0 indicates coding error) */
     signed char ht_size_exp[2]; /* exponent of size. (size = 1<<exp) */
+
+    void* metadata[]; //增加expire 针对单个subkey
 };
 
 

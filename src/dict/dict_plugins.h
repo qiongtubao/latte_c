@@ -1,4 +1,3 @@
-
 #ifndef __LATTE_DICT_PLUGINS_H
 #define __LATTE_DICT_PLUGINS_H
 #include <stdio.h>
@@ -21,4 +20,8 @@ uint64_t dict_ptr_hash(const void *key);
 int dict_ptr_key_compare(dict_t*privdata, const void *key1,
         const void *key2);
 
+
+
+/* sds key set dict type */
+extern dict_func_t sds_key_set_dict_type;
 #endif

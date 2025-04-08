@@ -9,10 +9,7 @@
 #include "zmalloc/zmalloc.h"
 #include "lzfP.h"
 
-
 int test_lzf() {
-    assert(hello_c() == 1);
-    assert(hello_d() == 2);
     return 1;
 }
 

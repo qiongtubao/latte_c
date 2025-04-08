@@ -12,7 +12,7 @@
 **	This algorithm is believed to be patent-free.
 **
 ***********************************************************************/
-
+#include <stdio.h>
 #define LZF_VERSION 0x0105 /* 1.5, API version */
 
 /*
