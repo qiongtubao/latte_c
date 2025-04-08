@@ -1130,3 +1130,7 @@ sds sds_map_chars(sds s, const char *from, const char *to, size_t setlen) {
     }
     return s;
 }
+
+sds sds_remove_free_space(sds s, int would_regrow) {
+    return sds_resize(s, sds_len(s), would_regrow);
+}

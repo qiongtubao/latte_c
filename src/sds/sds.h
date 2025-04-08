@@ -367,4 +367,5 @@ int sds_starts_with(sds_t str, const char *prefix);
 sds_t sds_reset(sds_t s, char* data, int len);
 sds sds_cat_vprintf(sds s, const char *fmt, va_list ap);
 sds sds_map_chars(sds s, const char *from, const char *to, size_t setlen);
+sds sds_remove_free_space(sds s, int would_regrow);
 #endif
