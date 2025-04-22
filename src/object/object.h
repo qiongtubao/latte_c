@@ -48,6 +48,7 @@ typedef struct latte_object_t {
                 * 和最高有效 16 位访问时间）。 */
     void *ptr;
 } latte_object_t;
+#define sds_encoded_object(objptr) (objptr->encoding == OBJ_ENCODING_RAW || objptr->encoding == OBJ_ENCODING_EMBSTR)
 
 latte_object_t* latte_object_new(int type, void* ptr);
 void latte_object_decr_ref_count(latte_object_t* o);
