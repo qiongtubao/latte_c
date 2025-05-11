@@ -188,4 +188,6 @@ latte_iterator_t* dict_get_latte_iterator(dict_t *d);
  *     比如 private_dict_cmp(a, b) + private_dict_cmp(b, a) != 0 
  */
 int private_dict_cmp(dict_t* a, dict_t* b, cmp_func cmp);
+void* dict_fetch_value(dict_t *d, const void *key);
+
 #endif

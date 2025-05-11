@@ -4,6 +4,7 @@ ifneq ($(USED_CONFIG), yes)
 include $(WORKSPACE)/src/dict/lib.mk
 include $(WORKSPACE)/src/zmalloc/lib.mk
 include $(WORKSPACE)/src/utils/lib.mk
+include $(WORKSPACE)/src/value/lib.mk
 FINAL_CC_CFLAGS+= -I../config 
 
 ../config/config.o:

@@ -16,3 +16,4 @@ include $(WORKSPACE)/src/sds/lib.mk
 include $(WORKSPACE)/src/dict/lib.mk
 include $(WORKSPACE)/src/vector/lib.mk
 include $(WORKSPACE)/src/iterator/lib.mk
+include $(WORKSPACE)/src/debug/lib.mk

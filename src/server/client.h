@@ -11,8 +11,7 @@
 #define CLIENT_PENDING_WRITE (1<<3) /* Client has output to send but a write
                                         handler is yet not installed. */
 
-#define PROTO_REQ_INLINE 1
-#define PROTO_REQ_MULTIBULK 2
+
 
 #define PROTO_IOBUF_LEN         (1024*16)  /* Generic I/O buffer size */
 #define PROTO_REPLY_CHUNK_BYTES (16*1024) /* 16k output buffer */
@@ -27,14 +26,14 @@ typedef struct client_reply_block_t {
     char buf[];
 } client_reply_block_t;
 /* latteClient */
-typedef int (*handle_func)(struct latte_client_t* client);
+typedef int (*handle_func)(struct latte_client_t* client, int nread);
 typedef struct latte_client_t {
     uint64_t id;
     connection *conn;
     sds_t querybuf;    /* 我们用来累积客户端查询的缓冲区 */
     size_t qb_pos;
     size_t querybuf_peak;   /* 最近（100毫秒或更长时间）查询缓冲区大小的峰值 */
-    handle_func exec;
+    handle_func handle;
     int flags;
     struct latte_server_t* server;
     struct list_node_t* client_list_node;

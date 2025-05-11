@@ -814,3 +814,9 @@ end:
     latte_iterator_delete(it);
     return result;
 }
+
+void* dict_fetch_value(dict_t *d, const void *key) {
+    dict_entry_t* he;
+    he = dict_find(d, key);
+    return he? dict_get_val(he): NULL;
+}

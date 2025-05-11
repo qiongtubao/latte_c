@@ -17,7 +17,7 @@
 
 
 
-int echoHandler(struct latte_client_t* lc) {
+int echoHandler(struct latte_client_t* lc, int nread) {
     // struct client* c = (struct client*)lc; 
     if (strncmp(lc->querybuf, "quit", 4) == 0) {
         lc->qb_pos = 4;
@@ -35,7 +35,7 @@ int echoHandler(struct latte_client_t* lc) {
 }
  latte_client_t *createLatteClient() {
      latte_client_t* client = zmalloc(sizeof(latte_client_t));
-    client->exec = echoHandler;
+    client->handle = echoHandler;
     return client;
 }
 

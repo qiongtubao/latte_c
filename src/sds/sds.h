@@ -369,4 +369,5 @@ sds sds_cat_vprintf(sds s, const char *fmt, va_list ap);
 sds sds_map_chars(sds s, const char *from, const char *to, size_t setlen);
 sds sds_remove_free_space(sds s, int would_regrow);
 size_t sds_zmalloc_size(sds s);
+sds sds_map_chars(sds s, const char *from, const char *to, size_t setlen);
 #endif

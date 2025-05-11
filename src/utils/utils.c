@@ -477,13 +477,3 @@ sds_t ull2sds(unsigned long long ull) {
 }
 
 
-void latte_assert(int condition, const char *message, ...) {
-    if (!condition) {
-        va_list args;
-        va_start(args, message);
-        fprintf(stderr, "Assertion failed: ");
-        vfprintf(stderr, message, args);
-        va_end(args);
-        exit(1);
-    }
-}

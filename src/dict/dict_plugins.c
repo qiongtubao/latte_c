@@ -66,3 +66,20 @@ dict_func_t sds_key_set_dict_type = {
         dict_sds_destructor,
         NULL
 };
+
+static uint8_t dict_hash_function_seed[16];
+
+uint64_t dict_sds_case_hash_function(const unsigned char *buf, int len) {
+    return siphash_nocase(buf,len,dict_hash_function_seed);
+}
+
+uint64_t dict_sds_case_hash(const void *key) {
+    return dict_sds_case_hash_function((unsigned char*)key, sds_len((char*)key));
+}
+
+int dict_sds_key_case_compare(dict_t*privdata, const void *key1,
+        const void *key2) {
+    DICT_NOTUSED(privdata);
+
+    return strcasecmp(key1, key2) == 0;        
+}

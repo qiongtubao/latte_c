@@ -164,3 +164,14 @@ void _latte_assert(const char *estr, const char *file, int line) {
     removeSignalHandlers();
     bugReportEnd(0, 0);
 }
+
+void latte_assert_with_info(int condition, const char *message, ...) {
+    if (!condition) {
+        va_list args;
+        va_start(args, message);
+        fprintf(stderr, "Assertion failed: ");
+        vfprintf(stderr, message, args);
+        va_end(args);
+        exit(1);
+    }
+}

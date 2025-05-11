@@ -19,6 +19,7 @@ void _latte_panic(const char *file, int line, const char *msg, ...);
 #endif
 
 #define latte_assert(_e) ((_e)?(void)0 : (_latte_assert(#_e,__FILE__,__LINE__),latte_unreachable()))
+void latte_assert_with_info(int condition, const char *message, ...);
 #define latte_panic(...) _latte_panic(__FILE__,__LINE__,__VA_ARGS__),latte_unreachable()
 
 
