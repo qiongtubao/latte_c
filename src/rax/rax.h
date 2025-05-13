@@ -332,5 +332,6 @@ void raxSetDebugMsg(int onoff);
 /* Internal API. May be used by the node callback in order to access rax nodes
  * in a low level way, so this function is exported as well. */
 void raxSetData(raxNode *n, void *data);
-
+/* A special pointer returned for not found items. */
+extern void *raxNotFound;
 #endif

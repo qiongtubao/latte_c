@@ -23,6 +23,11 @@
 #define rax_realloc zrealloc
 #define rax_free zfree
 
+/* This is a special pointer that is guaranteed to never have the same value
+ * of a radix tree node. It's used in order to report "not found" error without
+ * requiring the function to have multiple return values. */
+void *raxNotFound = (void*)"rax-not-found-pointer";
+
 /* Return the pointer to the first child pointer. */
 #define raxNodeFirstChildPtr(n) ((raxNode**) ( \
     (n)->data + \
@@ -1710,4 +1715,18 @@ void raxStart(raxIterator *it, rax *rt) {
 void raxStop(raxIterator *it) {
     if (it->key != it->key_static_string) rax_free(it->key);
     raxStackFree(&it->stack);
+}
+
+/* Find a key in the rax, returns raxNotFound special void pointer value
+ * if the item was not found, otherwise the value associated with the
+ * item is returned. */
+void *raxFind(rax *rax, unsigned char *s, size_t len) {
+    raxNode *h;
+
+    debugf("### Lookup: %.*s\n", (int)len, s);
+    int splitpos = 0;
+    size_t i = raxLowWalk(rax,s,len,&h,NULL,&splitpos,NULL);
+    if (i != len || (h->iscompr && splitpos != 0) || !h->iskey)
+        return raxNotFound;
+    return raxGetData(h);
 }
