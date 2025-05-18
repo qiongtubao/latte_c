@@ -371,4 +371,5 @@ sds sds_remove_free_space(sds s, int would_regrow);
 size_t sds_zmalloc_size(sds s);
 sds sds_map_chars(sds s, const char *from, const char *to, size_t setlen);
 void sds_to_lower(sds s);
+void sds_to_upper(sds s);
 #endif

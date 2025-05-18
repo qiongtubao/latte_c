@@ -1155,3 +1155,10 @@ void sds_to_lower(sds s) {
 
     for (j = 0; j < len; j++) s[j] = tolower(s[j]);
 }
+
+/* Apply toupper() to every character of the sds string 's'. */
+void sds_to_upper(sds s) {
+    size_t len = sds_len(s), j;
+
+    for (j = 0; j < len; j++) s[j] = toupper(s[j]);
+}
