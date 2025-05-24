@@ -3,6 +3,7 @@ include $(WORKSPACE)/src/zmalloc/lib.mk
 include $(WORKSPACE)/src/utils/lib.mk
 include $(WORKSPACE)/src/log/lib.mk
 include $(WORKSPACE)/src/vector/lib.mk
+include $(WORKSPACE)/src/debug/lib.mk
 FINAL_CC_CFLAGS+= -I../tree
 
 

@@ -60,3 +60,11 @@ size_t object_list_compute_size(latte_object_t* o, size_t sample_size) {
     }
     return asize;
 }
+
+object_type_t object_list_type = {
+    "list",
+    free_list_object,
+    object_list_compute_size,
+    NULL,
+    NULL
+};

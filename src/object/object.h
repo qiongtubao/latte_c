@@ -4,6 +4,9 @@
 #include <limits.h>
 #include <inttypes.h>
 #include <ctype.h>
+#include "vector.h"
+#include "dict/dict.h"
+#include "io/io.h"
 
 /* The actual Redis Object */
 #define OBJ_STRING 0    /* String object. */
@@ -11,8 +14,8 @@
 #define OBJ_SET 2       /* Set object. */
 #define OBJ_ZSET 3      /* Sorted set object. */
 #define OBJ_HASH 4      /* Hash object. */
-#define OBJ_MODULE 5    /* Module object. */
-#define OBJ_STREAM 6    /* Stream object. */
+#define OBJ_STREAM 5    /* Stream object. */
+// #define OBJ_MODULE 5    /* Module object. */
 
 #define LRU_BITS 24
 #define LRU_CLOCK_MAX ((1<<LRU_BITS)-1) /* Max value of obj->lru */
@@ -56,21 +59,38 @@ void latte_object_incr_ref_count(latte_object_t* o);
 latte_object_t* make_object_shared(latte_object_t* o);
 
 char* str_encoding(int encoding);
-size_t object_string_compute_size(latte_object_t* o, size_t sample_size);
-size_t object_list_compute_size(latte_object_t* o, size_t sample_size);
-size_t object_set_compute_size(latte_object_t* o, size_t sample_size);
-size_t object_zset_compute_size(latte_object_t* o, size_t sample_size);
-size_t object_hash_compute_size(latte_object_t* o, size_t sample_size);
-size_t object_stream_compute_size(latte_object_t* o, size_t sample_size);
-size_t object_module_compute_size(latte_object_t *key, latte_object_t* o, size_t sample_size, int dbid);
-size_t object_compute_size(latte_object_t *key, latte_object_t* o, size_t sample_size, int dbid);
+size_t object_compute_size(latte_object_t *o, size_t sample) ;
+void object_free(latte_object_t* o);
+latte_object_t* object_load(io_t* io, vector_t* types, int* size);
+int object_save(latte_object_t* o, io_t* io);
 
 
-void free_string_object(latte_object_t *o);
-void free_list_object(latte_object_t *o);
-void free_set_object(latte_object_t *o);
-void free_zset_object(latte_object_t* o);
-void free_hash_object(latte_object_t* o);
-void free_module_object(latte_object_t *o);
-void free_stream_object(latte_object_t *o);
+typedef void free_object_func(latte_object_t* o);
+typedef size_t compute_func(latte_object_t* key1, size_t sample);
+typedef latte_object_t* load_object_func(void* stream, int* size);
+typedef int save_object_func(latte_object_t* o, void* stream); 
+
+
+typedef struct object_type_t {
+    char* name;
+    free_object_func* free;
+    compute_func*  compute;
+    load_object_func* load;
+    save_object_func* save;
+} object_type_t;
+static struct object_factory_t {
+    vector_t* object_types;
+    dict_t* type_names;
+} global_object_factory;
+
+void object_init();
+int register_object_type(object_type_t* type);
+
+extern object_type_t object_string_type;
+extern object_type_t object_list_type;
+extern object_type_t object_set_type;
+extern object_type_t object_zset_type;
+extern object_type_t object_hash_type;
+extern object_type_t object_stream_type;
+
 #endif

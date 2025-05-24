@@ -1,7 +1,8 @@
 WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=object.o object_string.o object_list.o object_hash.o object_zset.o object_set.o object_stream.o object_module.o
+BUILD_OBJ?=object.o object_string.o object_list.o object_hash.o object_zset.o object_set.o object_stream.o 
+# object_module.o
 LIB_OBJ?=
-LIB_MODULES=zset stream zset set dict list sds debug  
+LIB_MODULES=zset stream zset set dict list sds debug
 TEST_MAIN?=object_test
 MODULE?=object
 BUILD_INCLUDE=object.h string.h list.h hash.h zset.h set.h stream.h module.h

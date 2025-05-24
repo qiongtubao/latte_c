@@ -90,3 +90,12 @@ size_t object_stream_compute_size(latte_object_t* o, size_t sample_size) {
         raxStop(&ri);
     }
 }
+
+
+object_type_t object_stream_type = {
+    "stream",
+    free_stream_object,
+    object_stream_compute_size,
+    NULL,
+    NULL
+};

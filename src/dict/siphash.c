@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include "dict.h"
 
 /* Fast tolower() alike function that does not care about locale
  * but just returns a-z instead of A-Z. */
@@ -95,23 +96,7 @@ int siptlw(int c) {
      ((uint64_t)(siptlw((p)[6])) << 48) |                                              \
      ((uint64_t)(siptlw((p)[7])) << 56))
 
-#define SIPROUND                                                               \
-    do {                                                                       \
-        v0 += v1;                                                              \
-        v1 = ROTL(v1, 13);                                                     \
-        v1 ^= v0;                                                              \
-        v0 = ROTL(v0, 32);                                                     \
-        v2 += v3;                                                              \
-        v3 = ROTL(v3, 16);                                                     \
-        v3 ^= v2;                                                              \
-        v0 += v3;                                                              \
-        v3 = ROTL(v3, 21);                                                     \
-        v3 ^= v0;                                                              \
-        v2 += v1;                                                              \
-        v1 = ROTL(v1, 17);                                                     \
-        v1 ^= v2;                                                              \
-        v2 = ROTL(v2, 32);                                                     \
-    } while (0)
+
 
 uint64_t siphash(const uint8_t *in, const size_t inlen, const uint8_t *k) {
 #ifndef UNALIGNED_LE_CPU

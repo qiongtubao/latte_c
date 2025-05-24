@@ -86,3 +86,11 @@ size_t object_hash_compute_size(latte_object_t* o, size_t sample_size) {
     }
     return asize;
 }
+
+object_type_t object_hash_type = {
+    "hash",
+    free_hash_object,
+    object_hash_compute_size,
+    NULL,
+    NULL
+};

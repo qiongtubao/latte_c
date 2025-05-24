@@ -20,4 +20,10 @@ uint32_t crc32c_unmask(uint32_t masked_crc);
 
 //crc32-jamcrc算法
 uint32_t crc32jamcrc(const char *buffer, int len);
+
+//crc64
+void crc64_init(void);
+uint64_t crc64(uint64_t crc, const unsigned char *s, uint64_t l);
+
+
 #endif

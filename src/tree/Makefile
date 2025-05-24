@@ -2,7 +2,7 @@ WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=avl_tree.o b_plus_tree.o
 LIB_OBJ?=
 TEST_MAIN?=tree_test
-LIB_MODULES?=zmalloc iterator utils log vector
+LIB_MODULES?=zmalloc iterator utils log vector debug
 MODULE?=tree
 BUILD_INCLUDE=avl_tree.h b_plus_tree.h
 

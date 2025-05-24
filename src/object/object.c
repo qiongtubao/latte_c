@@ -3,6 +3,8 @@
 #include "dict/dict.h"
 #include "log/log.h"
 #include "debug/latte_debug.h"
+#include <string.h>
+#include "io/io.h"
 
 latte_object_t* latte_object_new(int type, void* ptr) {
     latte_object_t* o = zmalloc(sizeof(*o));
@@ -15,16 +17,8 @@ latte_object_t* latte_object_new(int type, void* ptr) {
 
 void latte_object_decr_ref_count(latte_object_t* o) {
     if (o->refcount == 1) {
-        switch(o->type) {
-            case OBJ_STRING: free_string_object(o); break;
-            case OBJ_LIST: free_list_object(o); break;
-            case OBJ_SET: free_set_object(o); break;
-            case OBJ_ZSET: free_zset_object(o); break;     
-            case OBJ_HASH: free_hash_object(o); break;
-            // case OBJ_MODULE: freeModuleObject(o); break;
-            // case OBJ_STREAM: freeStreamObject(o); break;
-            default: latte_panic("Unknown object type"); break;
-        }
+        object_type_t* type = vector_get(global_object_factory.object_types, o->type);
+        type->free(o);
         zfree(o);
     } else {
         if (o->refcount <= 0) latte_panic("decrRefCount against refcount <= 0");
@@ -66,167 +60,78 @@ char* str_encoding(int encoding) {
 }
 
 
-size_t object_compute_size(latte_object_t *key, latte_object_t* o, size_t sample_size, int dbid) {
-    sds ele, ele2;
-    dict_t *d;
-    latte_iterator_t *di;
-    // struct dict_entry_t *de;
-    size_t asize = 0, elesize = 0, samples = 0;
 
-    if (o->type == OBJ_STRING) {
-        asize =  object_string_compute_size(o, sample_size);
-    } else if (o->type == OBJ_LIST) {
-        asize = object_list_compute_size(o, sample_size);
-        // if (o->encoding == OBJ_ENCODING_QUICKLIST) {
-        //     quick_list_t *ql = o->ptr;
-        //     quick_list_node_t *node = ql->head;
-        //     asize = sizeof(*o)+sizeof(quick_list_t);
-        //     do {
-        //         elesize += sizeof(quick_list_node_t)+ziplistBlobLen(node->zl);
-        //         samples++;
-        //     } while ((node = node->next) && samples < sample_size);
-        //     asize += (double)elesize/samples*ql->len;
-        // } else if (o->encoding == OBJ_ENCODING_ZIPLIST) {
-        //     asize = sizeof(*o)+ziplistBlobLen(o->ptr);
-        // } else {
-        //     serverPanic("Unknown list encoding");
-        // }
-    } else if (o->type == OBJ_SET) {
-        asize = object_set_compute_size(o, sample_size);
-        // if (o->encoding == OBJ_ENCODING_HT) {
-        //     d = o->ptr;
-        //     di = dict_get_latte_iterator(d);
-        //     asize = sizeof(*o)+sizeof(dict_t)+(sizeof(struct dict_entry_t*)*dictSlots(d));
-        //     while((de = dictNext(di)) != NULL && samples < sample_size) {
-        //         ele = dictGetKey(de);
-        //         elesize += sizeof(struct dict_entry_t) + sdsZmallocSize(ele);
-        //         samples++;
-        //     }
-        //     dictReleaseIterator(di);
-        //     if (samples) asize += (double)elesize/samples*dictSize(d);
-        // } else if (o->encoding == OBJ_ENCODING_INTSET) {
-        //     int_set_t *is = o->ptr;
-        //     asize = sizeof(*o)+sizeof(*is)+(size_t)is->encoding*is->length;
-        // } else {
-        //     // serverPanic("Unknown set encoding");
-        //     exit(0);
-        // }
-    } else if (o->type == OBJ_ZSET) {
-        asize = object_zset_compute_size(o, sample_size);
-        // if (o->encoding == OBJ_ENCODING_ZIPLIST) {
-        //     asize = sizeof(*o)+(ziplistBlobLen(o->ptr));
-        // } else if (o->encoding == OBJ_ENCODING_SKIPLIST) {
-        //     d = ((zset_t*)o->ptr)->dict;
-        //     zskiplist *zsl = ((zset*)o->ptr)->zsl;
-        //     zskiplistNode *znode = zsl->header->level[0].forward;
-        //     asize = sizeof(*o)+sizeof(zset)+sizeof(zskiplist)+sizeof(dict_t)+
-        //             (sizeof(struct dict_entry_t*)*dictSlots(d))+
-        //             zmalloc_size(zsl->header);
-        //     while(znode != NULL && samples < sample_size) {
-        //         elesize += sdsZmallocSize(znode->ele);
-        //         elesize += sizeof(struct dict_entry_t) + zmalloc_size(znode);
-        //         samples++;
-        //         znode = znode->level[0].forward;
-        //     }
-        //     if (samples) asize += (double)elesize/samples*dictSize(d);
-        // } else {
-        //     serverPanic("Unknown sorted set encoding");
-        // }
-    } else if (o->type == OBJ_HASH) {
-        asize = object_hash_compute_size(o, sample_size);
-        // if (o->encoding == OBJ_ENCODING_ZIPLIST) {
-        //     asize = sizeof(*o)+(ziplistBlobLen(o->ptr));
-        // } else if (o->encoding == OBJ_ENCODING_HT) {
-        //     d = o->ptr;
-        //     di = dictGetIterator(d);
-        //     asize = sizeof(*o)+sizeof(dict_t)+(sizeof(struct dict_entry_t*)*dictSlots(d));
-        //     while((de = dictNext(di)) != NULL && samples < sample_size) {
-        //         ele = dictGetKey(de);
-        //         ele2 = dictGetVal(de);
-        //         elesize += sdsZmallocSize(ele) + sdsZmallocSize(ele2);
-        //         elesize += sizeof(struct dict_entry_t);
-        //         samples++;
-        //     }
-        //     dictReleaseIterator(di);
-        //     if (samples) asize += (double)elesize/samples*dictSize(d);
-        // } else {
-        //     serverPanic("Unknown hash encoding");
-        // }
-    } else if (o->type == OBJ_STREAM) {
-        asize = object_stream_compute_size(o, sample_size);
-        // stream *s = o->ptr;
-        // asize = sizeof(*o)+sizeof(*s);
-        // asize += streamRadixTreeMemoryUsage(s->rax);
+uint64_t object_type_hash_callback(const void *key) {
+    return dict_gen_case_hash_function((unsigned char*)key, strlen((char*)key));
+}
 
-        // /* Now we have to add the listpacks. The last listpack is often non
-        //  * complete, so we estimate the size of the first N listpacks, and
-        //  * use the average to compute the size of the first N-1 listpacks, and
-        //  * finally add the real size of the last node. */
-        // raxIterator ri;
-        // raxStart(&ri,s->rax);
-        // raxSeek(&ri,"^",NULL,0);
-        // size_t lpsize = 0, samples = 0;
-        // while(samples < sample_size && raxNext(&ri)) {
-        //     unsigned char *lp = ri.data;
-        //     /* Use the allocated size, since we overprovision the node initially. */
-        //     lpsize += zmalloc_size(lp);
-        //     samples++;
-        // }
-        // if (s->rax->numele <= samples) {
-        //     asize += lpsize;
-        // } else {
-        //     if (samples) lpsize /= samples; /* Compute the average. */
-        //     asize += lpsize * (s->rax->numele-1);
-        //     /* No need to check if seek succeeded, we enter this branch only
-        //      * if there are a few elements in the radix tree. */
-        //     raxSeek(&ri,"$",NULL,0);
-        //     raxNext(&ri);
-        //     /* Use the allocated size, since we overprovision the node initially. */
-        //     asize += zmalloc_size(ri.data);
-        // }
-        // raxStop(&ri);
+int object_type_compare_callback(dict_t*privdata, const void *key1, const void *key2) {
+    int l1,l2;
+    DICT_NOTUSED(privdata);
+    l1 = strlen((char*) key1);
+    l2 = strlen((char*) key2);
+    if(l1 != l2) return 0;
+    return memcmp(key1, key2,l1) == 0;
+}
 
-        // /* Consumer groups also have a non trivial memory overhead if there
-        //  * are many consumers and many groups, let's count at least the
-        //  * overhead of the pending entries in the groups and consumers
-        //  * PELs. */
-        // if (s->cgroups) {
-        //     raxStart(&ri,s->cgroups);
-        //     raxSeek(&ri,"^",NULL,0);
-        //     while(raxNext(&ri)) {
-        //         streamCG *cg = ri.data;
-        //         asize += sizeof(*cg);
-        //         asize += streamRadixTreeMemoryUsage(cg->pel);
-        //         asize += sizeof(streamNACK)*raxSize(cg->pel);
+static dict_func_t object_type_name = {
+    object_type_hash_callback,
+    NULL,
+    NULL,
+    object_type_compare_callback,
+    NULL,
+    NULL,
+    NULL
+};
 
-        //         /* For each consumer we also need to add the basic data
-        //          * structures and the PEL memory usage. */
-        //         raxIterator cri;
-        //         raxStart(&cri,cg->consumers);
-        //         raxSeek(&cri,"^",NULL,0);
-        //         while(raxNext(&cri)) {
-        //             streamConsumer *consumer = cri.data;
-        //             asize += sizeof(*consumer);
-        //             asize += sdslen(consumer->name);
-        //             asize += streamRadixTreeMemoryUsage(consumer->pel);
-        //             /* Don't count NACKs again, they are shared with the
-        //              * consumer group PEL. */
-        //         }
-        //         raxStop(&cri);
-        //     }
-        //     raxStop(&ri);
-        // }
-    } else if (o->type == OBJ_MODULE) {
-        asize = object_module_compute_size(key, o, sample_size, dbid);
-        // moduleValue *mv = o->ptr;
-        // moduleType *mt = mv->type;
-        // if (mt->mem_usage != NULL) {
-        //     asize = mt->mem_usage(mv->value);
-        // } else {
-        //     asize = 0;
-        // }
-    } else {
-        latte_panic("Unknown object type");
+
+void object_init() {
+    global_object_factory.object_types = vector_new();
+    global_object_factory.type_names = dict_new(&object_type_name);
+
+    register_object_type(&object_string_type);
+    register_object_type(&object_list_type);
+    register_object_type(&object_set_type);
+    register_object_type(&object_zset_type);
+    register_object_type(&object_hash_type);
+    register_object_type(&object_stream_type);
+}
+
+int register_object_type(object_type_t* type) {
+    dict_entry_t* entry = dict_find(global_object_factory.type_names, type->name);
+    if (entry != NULL) return -1;
+    size_t index = vector_size(global_object_factory.object_types);
+    if (vector_push(global_object_factory.object_types, type) != 0) {
+        return -2;
     }
-    return asize;
+    if (dict_add(global_object_factory.type_names, type->name, (void*)index) != 0) {
+        vector_pop(global_object_factory.object_types);
+        return -3;
+    }
+    return 0;
+}
+
+size_t object_compute_size(latte_object_t *o, size_t sample) {
+    object_type_t* type = vector_get(global_object_factory.object_types, o->type);
+    return type->compute(o, sample);
+}
+
+void object_free(latte_object_t* o) {
+    object_type_t* type = vector_get(global_object_factory.object_types, o->type);
+    return type->free(o);
+}
+
+latte_object_t* object_load(io_t* io, vector_t* types, int* size) {
+    uint8_t byte;
+    io_read(io, &byte, 1);
+    object_type_t* otype = vector_get(types, byte);
+    latte_assert(otype != NULL);
+    return otype->load(io, size);
+}
+
+int object_save(latte_object_t* o, io_t* io) {
+    unsigned char typechar = o->type;
+    io_write(io, &typechar, 1);
+    object_type_t* type = vector_get(global_object_factory.object_types, o->type);
+    return type->save(o, io);
 }

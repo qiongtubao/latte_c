@@ -190,4 +190,34 @@ latte_iterator_t* dict_get_latte_iterator(dict_t *d);
 int private_dict_cmp(dict_t* a, dict_t* b, cmp_func cmp);
 void* dict_fetch_value(dict_t *d, const void *key);
 
+
+int siptlw(int c);
+#define ROTL(x, b) (uint64_t)(((x) << (b)) | ((x) >> (64 - (b))))
+
+
+#define SIPROUND                                                               \
+    do {                                                                       \
+        v0 += v1;                                                              \
+        v1 = ROTL(v1, 13);                                                     \
+        v1 ^= v0;                                                              \
+        v0 = ROTL(v0, 32);                                                     \
+        v2 += v3;                                                              \
+        v3 = ROTL(v3, 16);                                                     \
+        v3 ^= v2;                                                              \
+        v0 += v3;                                                              \
+        v3 = ROTL(v3, 21);                                                     \
+        v3 ^= v0;                                                              \
+        v2 += v1;                                                              \
+        v1 = ROTL(v1, 17);                                                     \
+        v1 ^= v2;                                                              \
+        v2 = ROTL(v2, 32);                                                     \
+    } while (0)
+
+/* The default hashing function uses SipHash implementation
+ * in siphash.c. */
+
+uint64_t siphash(const uint8_t *in, const size_t inlen, const uint8_t *k);
+uint64_t siphash_nocase(const uint8_t *in, const size_t inlen, const uint8_t *k);
+static uint8_t dict_hash_function_seed[16];
+
 #endif

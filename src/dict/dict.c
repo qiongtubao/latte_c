@@ -32,11 +32,6 @@ uint8_t *dict_get_hash_function_seed(void) {
     return dict_hash_function_seed;
 }
 
-/* The default hashing function uses SipHash implementation
- * in siphash.c. */
-
-uint64_t siphash(const uint8_t *in, const size_t inlen, const uint8_t *k);
-uint64_t siphash_nocase(const uint8_t *in, const size_t inlen, const uint8_t *k);
 
 uint64_t dict_gen_hash_function(const void *key, size_t len) {
     return siphash(key,len,dict_hash_function_seed);

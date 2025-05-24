@@ -68,4 +68,10 @@ size_t object_zset_compute_size(latte_object_t* o, size_t sample_size) {
         latte_panic("Unknown sorted set encoding");
     }
     return asize;
-}
+}object_type_t object_zset_type = {
+    "zset",
+    free_zset_object,
+    object_zset_compute_size,
+    NULL,
+    NULL
+};

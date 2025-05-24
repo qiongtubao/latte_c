@@ -62,3 +62,11 @@ size_t object_set_compute_size(latte_object_t* o, size_t sample_size) {
     }
     return asize;
 }
+
+object_type_t object_set_type = {
+    "set",
+    free_set_object,
+    object_set_compute_size,
+    NULL,
+    NULL
+};

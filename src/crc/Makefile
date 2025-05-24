@@ -1,5 +1,5 @@
 WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=crc16xmodem.o crc32c.o
+BUILD_OBJ?=crc16xmodem.o crc32c.o crc64.o
 LIB_OBJ?=
 TEST_MAIN?=crc_test
 MODULE?=crc

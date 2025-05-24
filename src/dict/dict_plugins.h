@@ -40,4 +40,10 @@ int dict_sds_key_case_compare(dict_t*privdata, const void *key1,
 
 /* sds key set dict type */
 extern dict_func_t sds_key_set_dict_type;
+
+/** sds case */
+uint64_t dict_sds_case_hash(const void *key);
+int dict_sds_key_case_compare(dict_t*privdata, const void *key1,
+        const void *key2);
+
 #endif

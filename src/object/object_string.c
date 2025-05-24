@@ -332,7 +332,7 @@ latte_object_t* get_decode_object(latte_object_t* o) {
     }
 }
 
-size_t object_string_compute_size(latte_object_t* o, size_t sample_size) {
+size_t object_string_compute_size(latte_object_t* o, size_t sample) {
     size_t asize = 0;
     if (o->encoding == OBJ_ENCODING_INT) {
         asize = sizeof(*o);
@@ -351,3 +351,11 @@ void free_string_object(latte_object_t *o) {
         sds_delete(o->ptr);
     }
 }   
+
+object_type_t object_string_type = {
+    "string",
+    free_string_object,
+    object_string_compute_size,
+    NULL,
+    NULL
+};
