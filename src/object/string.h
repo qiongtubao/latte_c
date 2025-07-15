@@ -31,7 +31,7 @@ int get_double_from_object(const latte_object_t* o, double *target);
 // int get_double_from_object_or_reply()
 int get_long_double_from_object(latte_object_t* o, long double *target);
 int get_long_long_from_object(latte_object_t* o, long long *target);
-
+int get_sds_from_object(latte_object_t* o, sds* target);
 
 latte_object_t* try_object_encoding(latte_object_t* o);
 latte_object_t* get_decode_object(latte_object_t* o);

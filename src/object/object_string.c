@@ -256,6 +256,13 @@ int get_long_long_from_object(latte_object_t* o, long long *target) {
     return 0;
 }
 
+int get_sds_from_object(latte_object_t* o, sds *target) {
+    if (o->type != OBJ_STRING) {
+        return -1;
+    }
+    *target = o->ptr;
+    return 0;
+}
 
 /* Convert a string into a long. Returns 1 if the string could be parsed into a
  * (non-overflowing) long, 0 otherwise. The value will be set to the parsed
