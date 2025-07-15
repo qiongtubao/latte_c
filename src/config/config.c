@@ -83,7 +83,7 @@ int config_set_sds(config_manager_t* c, char* key, sds_t value) {
     config_rule_t* rule = config_get_rule(c, key);
     if (rule == NULL) return 0;
     value_t* v = &rule->value;
-    latte_assert(value_is_null(v) || value_is_sds(v), "config set fail: type is not sds ");
+    latte_assert_with_info(value_is_null(v) || value_is_sds(v), "config set fail: type is not sds ");
     if (value_is_sds(v) && sds_cmp(value_get_sds(v),value) == 0) return 0;
     if (rule->check_update == NULL || rule->check_update(rule, (void*)value_get_sds(v), (void*)value)) {
         value_set_sds(v, value);
@@ -96,7 +96,7 @@ int config_set_int64(config_manager_t* c, char* key, int64_t value) {
     config_rule_t* rule = config_get_rule(c, key);
     if (rule == NULL) return 0;
     value_t* v = &rule->value;
-    latte_assert(value_is_null(v) || value_is_int64(v), "config set fail: type is not int64 ");
+    latte_assert_with_info(value_is_null(v) || value_is_int64(v), "config set fail: type is not int64 ");
     if (value_get_int64(v) == value) return 0;
     if (rule->check_update == NULL  || rule->check_update(rule, (void*)value_get_int64(v), (void*)value)) {
         value_set_int64(v, value);
@@ -110,7 +110,7 @@ int config_set_array(config_manager_t* c, char* key, vector_t* value) {
     config_rule_t* rule = config_get_rule(c, key);
     if (rule == NULL) return 0;
     value_t* v = &rule->value;
-    latte_assert(value_is_null(v) || value_is_array(v), "config set fail: type is not array ");
+    latte_assert_with_info(value_is_null(v) || value_is_array(v), "config set fail: type is not array ");
     if (private_vector_cmp(value_get_array(v) ,value, value_cmp) == 0) return 0;
     if (rule->check_update == NULL  || rule->check_update(rule, (void*)value_get_array(v), (void*)value)) {
         value_set_array(v, value);
@@ -240,13 +240,13 @@ int load_config_from_file(config_manager_t* c, char *filename) {
 
 sds_t write_config_sds(sds_t config, char* key, config_rule_t* rule) {
     value_t* v = &rule->value;
-    latte_assert(value_is_sds(v), "write_config_sds :value is not sds");
+    latte_assert_with_info(value_is_sds(v), "write_config_sds :value is not sds");
     return sds_cat_printf(config, "%s %s", key, value_get_sds(v));
 }
 
 sds_t write_config_sds_array(sds_t config, char* key, config_rule_t* rule) {
     value_t* v = &rule->value;
-    latte_assert(value_is_array(v), "write_config_array :value is not array");
+    latte_assert_with_info(value_is_array(v), "write_config_array :value is not array");
     vector_t* array = value_get_array(v);
     latte_iterator_t* it = vector_get_iterator(array);
     sds result = sds_empty_len(100);

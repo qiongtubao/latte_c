@@ -33,7 +33,7 @@
 #endif
 
 // 检查并打印错误信息
-void latte_assert(int condition, const char *message, ...);
+void latte_assert_with_info(int condition, const char *message, ...);
 
 int ll2string(char *s, size_t len, long long value);
 sds_t ll2sds(long long value);

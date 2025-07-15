@@ -69,7 +69,7 @@ int json_map_put_longdouble(json_t* root, sds_t key, long double ld) {
 }
 
 json_t* json_map_get_value(json_t* root, char* key) {
-    latte_assert(value_is_map(root), "json is not map!!!");
+    latte_assert_with_info(value_is_map(root), "json is not map!!!");
     dict_entry_t* entry = dict_find(root->value.map_value, key);
     if (entry == NULL) return NULL;
     return dict_get_val(entry);

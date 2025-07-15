@@ -477,7 +477,7 @@ sds_t ull2sds(unsigned long long ull) {
 }
 
 
-void latte_assert(int condition, const char *message, ...) {
+void latte_assert_with_info(int condition, const char *message, ...) {
     if (!condition) {
         va_list args;
         va_start(args, message);

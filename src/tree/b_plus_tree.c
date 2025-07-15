@@ -19,7 +19,7 @@ b_plus_tree_t* b_plus_tree_new(b_plus_tree_func_t* type, int order) {
 
 
 b_plus_tree_node_t* b_plus_tree_node_new(int order, int isLeaf) {
-    latte_assert(order > 1, "b_plus_tree_node_new order <= 1");
+    latte_assert_with_info(order > 1, "b_plus_tree_node_new order <= 1");
     b_plus_tree_node_t* node = zmalloc(sizeof(b_plus_tree_node_t));
     node->isLeaf = isLeaf;
     node->numKeys = 0;
@@ -179,7 +179,7 @@ void b_plus_tree_node_split(b_plus_tree_node_t* parent_node, b_plus_tree_t *tree
         
     // }
     parent_node->children[index + 1] = new_node;
-    latte_assert(child_node->numKeys  != 0 , "child_node numkeys != 0\n");
+    latte_assert_with_info(child_node->numKeys  != 0 , "child_node numkeys != 0\n");
     //ord = 2 (1)
     //ord = 3 (1)
     //ord = 4 (2)
@@ -273,9 +273,9 @@ void* b_plus_tree_find(b_plus_tree_t* tree, void* key) {
 }
 
 void b_plus_tree_update(b_plus_tree_t* tree, void* key, void* data) {
-    latte_assert(tree->root != NULL, "tree not data");
+    latte_assert_with_info(tree->root != NULL, "tree not data");
     void** oldData = private_b_plus_tree_find(tree, tree->root, key);
-    latte_assert(oldData != NULL , "bplus tree update find fail!");
+    latte_assert_with_info(oldData != NULL , "bplus tree update find fail!");
     if (tree->type->free_node != NULL) tree->type->free_node(*oldData);
     *oldData = data;
 }
@@ -474,7 +474,7 @@ void b_plus_tree_borrow_key_from_sibling(b_plus_tree_t* tree, b_plus_tree_node_t
         parent->keys[index - 1] =  sibling->keys[sibling->numKeys - 1];
         parent->data[index - 1] =  sibling->data[sibling->numKeys - 1];
     } else { 
-        latte_assert(sibling->numKeys >=2 , "borrow sibling node num_keys < 2");
+        latte_assert_with_info(sibling->numKeys >=2 , "borrow sibling node num_keys < 2");
         leaf->keys[leaf->numKeys] = sibling->keys[0];
         leaf->data[leaf->numKeys] = sibling->data[0];
         printf("leaf[last] = %d, %d = %d", sibling->keys[0],parent->keys[index],sibling->keys[1]);
