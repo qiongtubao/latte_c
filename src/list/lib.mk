@@ -1,9 +1,9 @@
 
 
 ifneq ($(USED_LIST), yes) 
-include $(WORKSPACE)/src/zmalloc/lib.mk
-include $(WORKSPACE)/src/iterator/lib.mk
-include $(WORKSPACE)/src/lzf/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/iterator/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/lzf/lib.mk
 FINAL_CC_CFLAGS+= -I../list
 ../list/list.o:
 	cd ../list && make list.o

@@ -1,18 +1,18 @@
-WORKSPACE?=$(CURDIR)/../..
+LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=config.o
 LIB_OBJ?=
 TEST_MAIN?=config_test
 MODULE?=config
 BUILD_INCLUDE=config.h
 LIB_MODULES?=zmalloc sds dict utils value
-include $(WORKSPACE)/mks/sys.mk
-include $(WORKSPACE)/mks/final.mk
-include $(WORKSPACE)/mks/malloc.mk
-include $(WORKSPACE)/mks/latte.mk
-include $(WORKSPACE)/mks/info.mk
-# echo $(foreach module,$(LIB_MODULES),$(WORKSPACE)/src/$(module)/lib.mk)
-include $(WORKSPACE)/src/zmalloc/lib.mk
-include $(WORKSPACE)/src/dict/lib.mk
-include $(WORKSPACE)/src/sds/lib.mk
-include $(WORKSPACE)/src/utils/lib.mk
-include $(WORKSPACE)/src/value/lib.mk
+include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
+include $(LATTE_LIB_WORKSPACE)/mks/final.mk
+include $(LATTE_LIB_WORKSPACE)/mks/malloc.mk
+include $(LATTE_LIB_WORKSPACE)/mks/latte.mk
+include $(LATTE_LIB_WORKSPACE)/mks/info.mk
+# echo $(foreach module,$(LIB_MODULES),$(LATTE_LIB_WORKSPACE)/src/$(module)/lib.mk)
+include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/dict/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/sds/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/value/lib.mk

@@ -1,13 +1,13 @@
 
 
 ifneq ($(USED_CONFIG), yes) 
-include $(WORKSPACE)/src/dict/lib.mk
-include $(WORKSPACE)/src/zmalloc/lib.mk
-include $(WORKSPACE)/src/utils/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/dict/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
 FINAL_CC_CFLAGS+= -I../config 
 
 ../config/config.o:
-	cd $(WORKSPACE)/src/config && make config.o
+	cd $(LATTE_LIB_WORKSPACE)/src/config && make config.o
 
 LIB_OBJ+= ../config/config.o 
 USED_CONFIG=yes

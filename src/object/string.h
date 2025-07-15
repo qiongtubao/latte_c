@@ -2,7 +2,7 @@
 #ifndef __LATTE_OBJECT_STRING_H
 #define __LATTE_OBJECT_STRING_H
 #include <sds/sds.h>
-#include "object/object.h"
+#include "object.h"
 #define OBJ_SHARED_INTEGERS 10000
 typedef struct shared_integers_objects_t {
     latte_object_t* integers[OBJ_SHARED_INTEGERS];

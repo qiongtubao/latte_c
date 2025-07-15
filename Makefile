@@ -1,24 +1,24 @@
 
 # must set 
-WORKSPACE?=$(CURDIR)
+LATTE_LIB_WORKSPACE?=$(CURDIR)
 MODULES?=sds zmalloc utils log ae server connection
 BUILD_DIR?=out
 ALL_OBJ=$(shell sh -c 'cat $(BUILD_DIR)/objs.list')
 DEPENDENCY_TARGETS=
 
 
-include $(WORKSPACE)/mks/sys.mk
-include $(WORKSPACE)/mks/final.mk
-include $(WORKSPACE)/mks/malloc.mk
-include $(WORKSPACE)/mks/latte.mk
-include $(WORKSPACE)/mks/info.mk
+include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
+include $(LATTE_LIB_WORKSPACE)/mks/final.mk
+include $(LATTE_LIB_WORKSPACE)/mks/malloc.mk
+include $(LATTE_LIB_WORKSPACE)/mks/latte.mk
+include $(LATTE_LIB_WORKSPACE)/mks/info.mk
 
 persist-settings: 
 	-(cd ./deps && $(MAKE) $(DEPENDENCY_TARGETS))
 
 LATTE_LIBS=
 ifeq ($(MALLOC),jemalloc)
-	LATTE_LIBS+= $(WORKSPACE)/deps/jemalloc/lib/libjemalloc.a
+	LATTE_LIBS+= $(LATTE_LIB_WORKSPACE)/deps/jemalloc/lib/libjemalloc.a
 endif
 # $@：当前目标
 # $^：当前规则中的所有依赖
@@ -41,7 +41,7 @@ build: persist-settings
 	$(MAKE) latte_lib	
 
 latte_lib: 	
-	cd $(BUILD_DIR) && cp $(WORKSPACE)/deps/jemalloc/lib/libjemalloc.a ./lib/ && $(AR) $(ARFLAGS) ./lib/liblatte.a  $(ALL_OBJ) $(LATTE_LIBS)
+	cd $(BUILD_DIR) && cp $(LATTE_LIB_WORKSPACE)/deps/jemalloc/lib/libjemalloc.a ./lib/ && $(AR) $(ARFLAGS) ./lib/liblatte.a  $(ALL_OBJ) $(LATTE_LIBS)
 
 %_test_lib: build
 	cd src/$* && $(MAKE) test_lib BUILD_DIR=../../$(BUILD_DIR)

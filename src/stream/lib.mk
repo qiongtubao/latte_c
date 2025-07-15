@@ -2,7 +2,7 @@
 
 
 ifneq ($(USED_STREAM), yes) 
-include $(WORKSPACE)/src/rax/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/rax/lib.mk
 FINAL_CC_CFLAGS+= -I../stream
 LIB_OBJ+= ../stream/stream.o
 USED_STREAM=yes
