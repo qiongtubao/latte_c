@@ -109,7 +109,6 @@ struct dict_t {
 #define dict_hash_key(d, key) (d)->type->hashFunction(key)
 
 
-#define dict_get_val(he) ((he)->v.val)
 
 
 #define dict_set_val(d, entry, _val_) do { \
@@ -154,7 +153,7 @@ typedef enum {
 } dict_resize_enable_enum;
 int dict_resize(dict_t*d);
 int dict_delete_key(dict_t*ht, const void *key);
-
+void* dict_fetch_value(dict_t *d, const void *key);
 
 
 

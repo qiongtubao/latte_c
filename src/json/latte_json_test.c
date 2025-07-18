@@ -113,7 +113,7 @@ value_t* getMapTestValue(value_t* root) {
     assert(value_is_map(root));
     dict_entry_t* entry = dict_find(root->value.map_value, "test");
     assert(entry != NULL);
-    return dict_get_val(entry);
+    return dict_get_entry_val(entry);
 }
 int test_decode_int() {
     printf("test 1\n");

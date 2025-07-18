@@ -278,7 +278,7 @@ int addParallelTask(parallelTask* ptask, sds_t name, asyncTask* child) {
         assert(DICT_OK == dict_add(ptask->tasks, name, task));
         ptask->num++;
     } else {
-        task = dict_get_val(entry);
+        task = dict_get_entry_val(entry);
     }
     addSeriesTask(task, child);
     if (entry == NULL && ptask->task.status == DOING_TASK_STATUS) {

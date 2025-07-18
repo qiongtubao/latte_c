@@ -30,7 +30,7 @@ int json_map_put_value(json_t* root, sds_t key, json_t* v) {
     if (!value_is_map(root)) return 0;
     dict_entry_t* node = dict_find(root->value.map_value, key);
     if (node != NULL) {
-        json_t* old_v = (json_t*)dict_get_val(node);
+        json_t* old_v = (json_t*)dict_get_entry_val(node);
         value_delete(old_v);
         dict_set_val(root->value.map_value, node, v);
         return 1;
@@ -72,7 +72,7 @@ json_t* json_map_get_value(json_t* root, char* key) {
     latte_assert_with_info(value_is_map(root), "json is not map!!!");
     dict_entry_t* entry = dict_find(root->value.map_value, key);
     if (entry == NULL) return NULL;
-    return dict_get_val(entry);
+    return dict_get_entry_val(entry);
 }
 
 // list 

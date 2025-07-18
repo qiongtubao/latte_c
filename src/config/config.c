@@ -58,7 +58,7 @@ void config_manager_delete(config_manager_t* c) {
 config_rule_t* config_get_rule(struct config_manager_t* c, char* key) {
     dict_entry_t* entry = dict_find(c->rules, key);
     if (entry == NULL) return NULL;
-    return dict_get_val(entry);
+    return dict_get_entry_val(entry);
 }
 
 value_t* config_get(config_manager_t* c, char* key) {
@@ -119,15 +119,7 @@ int config_set_array(config_manager_t* c, char* key, vector_t* value) {
     return 0;
 }
 
-// int configSetLongLong(config* c, char* key, long long value) {
-//     dict_entry_t* entry = dict_find(c->rules, key);
-//     if (entry == NULL) return 0;
-//     config_rule_t* rule = dict_get_val(entry);
-//     if (rule->update(rule, rule->value, ll2ptr(value))) {
-//         rule->value = *(void **)(&value);
-//     }
-//     return 1;
-// }
+
 
 int config_register_rule(config_manager_t* c, sds_t key, config_rule_t* rule) {
     
