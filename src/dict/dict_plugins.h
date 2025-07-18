@@ -5,7 +5,10 @@
 #include "dict.h"
 /* key sds_t*/
 uint64_t dict_sds_hash(const void *key);
+uint64_t dict_sds_case_hash(const void *key);
 int dict_sds_key_compare(dict_t*privdata, const void *key1,
+        const void *key2);
+int dict_sds_key_case_compare(dict_t*privdata, const void *key1,
         const void *key2);
 void dict_sds_destructor(dict_t*privdata, void *val);
 void *dict_sds_dup(dict_t*d, const void *key);
