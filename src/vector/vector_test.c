@@ -99,6 +99,24 @@ int test_vector_cmp() {
     return 1;
 }
 
+int test_vector_add() {
+    vector_t* v = vector_new();
+    vector_add(v, (void*)1);
+    assert(vector_get(v, 0) == (void*)1);
+
+    vector_add(v, (void*)2);
+    assert(vector_get(v, 1) == (void*)2);
+
+    vector_remove(v, (void*)1);
+    assert(vector_get(v, 0) == NULL);
+    
+    vector_add(v, (void*)3);
+    assert(vector_get(v, 0) == (void*)3);
+
+    vector_delete(v);
+    return 1;
+}
+
 int test_api(void) {
     {
 #ifdef LATTE_TEST
@@ -110,6 +128,8 @@ int test_api(void) {
             test_sort_vector() == 1);
         test_cond("test vector cmp fuinction", 
             test_vector_cmp() == 1);
+        test_cond("test vector add fuinction", 
+            test_vector_add() == 1);
     } test_report()
     return 1;
 }
