@@ -7,11 +7,9 @@ include $(LATTE_LIB_WORKSPACE)/src/list/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/func_task/lib.mk
 
 FINAL_CC_CFLAGS+= -I../ae
-LIB_OBJ+= ../ae/ae.o ../ae/monotonic.o
+LIB_OBJ+= ../ae/ae.o 
 USED_AE=yes
 ../ae/ae.o:
 	cd ../ae && make ae.o
 	
-../ae/monotonic.o:
-	cd ../ae && make monotonic.o
 endif

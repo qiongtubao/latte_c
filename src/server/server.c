@@ -181,6 +181,10 @@ int send_clients(latte_func_task_t* task) {
 
 int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
     // LATTE_LIB_LOG(LOG_INFO, "serverCron");
+    latte_server_t* server = (latte_server_t*)clientData;
+    cron_manager_run(server->cron_manager, server);
+    LATTE_LIB_LOG(LOG_INFO, "serverCron");
+    return 1;
 }
 //启动latte server
 int start_latte_server(latte_server_t* server) {
@@ -220,7 +224,7 @@ int start_latte_server(latte_server_t* server) {
     /* Create the timer callback, this is our way to process many background
      * operations incrementally, like clients timeout, eviction of unaccessed
      * expired keys and so forth. */
-    if (aeCreateTimeEvent(server->el, 1, serverCron, NULL, NULL) == AE_ERR) {
+    if (aeCreateTimeEvent(server->el, 1, serverCron, server, NULL) == AE_ERR) {
         // serverPanic("Can't create event loop timers.");
         exit(1);
     }
@@ -325,6 +329,7 @@ void init_latte_server(latte_server_t* server) {
     server->acceptTcpHandler = acceptTcpHandler;
     server->next_client_id = 0;
     server->clients_pending_write = list_new();
+    server->cron_manager = cron_manager_new();
 }
 
 void destory_latte_server(latte_server_t* server) {
@@ -335,6 +340,10 @@ void destory_latte_server(latte_server_t* server) {
     if (server->clients_index != NULL) {
         raxFree(server->clients_index);
         server->clients_index = NULL;
+    }
+    if (server->cron_manager != NULL) {
+        cron_manager_delete(server->cron_manager);
+        server->cron_manager = NULL;
     }
     server->acceptTcpHandler = NULL;
 }

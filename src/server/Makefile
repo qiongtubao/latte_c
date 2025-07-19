@@ -1,10 +1,10 @@
 LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=server.o client.o
+BUILD_OBJ?=server.o client.o cron.o
 LIB_OBJ?=
 TEST_MAIN?=server_test
 LIB_MODULES?=zmalloc sds list endianconv connection ae rax log value func_task
 MODULE?=server
-BUILD_INCLUDE=server.h client.h
+BUILD_INCLUDE=server.h client.h cron.h
 
 include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
 include $(LATTE_LIB_WORKSPACE)/mks/final.mk

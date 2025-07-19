@@ -11,6 +11,8 @@
 #include <arpa/inet.h>
 #include "server.h"
 #include "client.h"
+#include "cron.h"
+#include "log/log.h"
 
 #define PORT 8081
 #define BUFFER_SIZE 1024
@@ -53,6 +55,12 @@ vector_t* test_bind_vector_new() {
     }
     return v;
 }
+
+void print_cron(void* arg) {
+    struct latte_server_t* server = (struct latte_server_t*)arg;
+    log_error("latte_lib","print_cron\n");
+}
+
 void *server_thread(void *arg) {
     struct latte_server_t* server = zmalloc(sizeof(struct latte_server_t));
     server->port = PORT;
@@ -63,12 +71,14 @@ void *server_thread(void *arg) {
     init_latte_server(server);
     server->createClient = createLatteClient;
     server->freeClient = freeLatteClient;
+
+    cron_t* cron = cron_new(print_cron, 1);
+    cron_manager_add_cron(server->cron_manager, cron);
     start_latte_server(server);
 }
 
 int test_server() {
-    log_init();
-    log_add_stdout("latte_lib", LOG_DEBUG);
+    
     pthread_t server_thread_id;
 
     // 创建线程启动Server
@@ -133,6 +143,8 @@ int test_api(void) {
         #ifdef LATTE_TEST
             // ..... private
         #endif
+        log_init();
+        log_add_stdout("latte_lib", LOG_DEBUG);
         test_cond("test server function", 
             test_server() == 1);
     

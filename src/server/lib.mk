@@ -10,7 +10,7 @@ include $(LATTE_LIB_WORKSPACE)/src/endianconv/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/value/lib.mk
 FINAL_CC_CFLAGS+= -I../server
-LIB_OBJ+= ../server/server.o ../server/client.o
+LIB_OBJ+= ../server/server.o ../server/client.o ../server/cron.o
 USED_SERVER=yes
 ../server/server.o:
 		cd ../server && make server.o
@@ -18,5 +18,7 @@ USED_SERVER=yes
 ../server/client.o:
 		cd ../server && make client.o
 
+../server/cron.o:
+		cd ../server && make cron.o
 endif
 
