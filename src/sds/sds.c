@@ -1148,3 +1148,20 @@ size_t sds_zmalloc_size(sds s) {
     void *sh = sds_alloc_ptr(s);
     return zmalloc_size(sh);
 }
+
+
+/* Apply tolower() to every character of the sds string 's'. */
+void sds_to_lower(sds_t s) {
+    size_t len = sds_len(s), j;
+
+    for (j = 0; j < len; j++) s[j] = tolower(s[j]);
+}
+
+
+
+/* Apply toupper() to every character of the sds string 's'. */
+void sds_to_upper(sds_t s) {
+    size_t len = sds_len(s), j;
+
+    for (j = 0; j < len; j++) s[j] = toupper(s[j]);
+}
