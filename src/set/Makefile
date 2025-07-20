@@ -1,4 +1,6 @@
+
 LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
+
 BUILD_OBJ?= avl_set.o hash_set.o set.o int_set.o
 LIB_OBJ?=
 TEST_MAIN?=set_test
