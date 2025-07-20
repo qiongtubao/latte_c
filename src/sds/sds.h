@@ -365,6 +365,11 @@ sds_t sds_resize(sds_t s, size_t size, int would_regrow);
 size_t sds_find_lastof(sds_t haystack, const char *needle);
 int sds_starts_with(sds_t str, const char *prefix);
 sds_t sds_reset(sds_t s, char* data, int len);
-sds sds_cat_vprintf(sds s, const char *fmt, va_list ap);
-sds sds_map_chars(sds s, const char *from, const char *to, size_t setlen);
+sds_t sds_cat_vprintf(sds_t s, const char *fmt, va_list ap);
+sds_t sds_map_chars(sds_t s, const char *from, const char *to, size_t setlen);
+sds_t sds_remove_free_space(sds_t s, int would_regrow);
+size_t sds_zmalloc_size(sds_t s);
+
+void sds_to_upper(sds_t s);
+void sds_to_lower(sds_t s);
 #endif

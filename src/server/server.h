@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include "utils/atomic.h"
 #include "log/log.h"
+#include "cron.h"
 
 /* Error codes */
 #define SERVER_OK                    0
@@ -55,6 +56,7 @@ typedef struct latte_server_t {
     unsigned int maxclients;
     rax *clients_index;         /* Active clients dictionary by client ID. */
     list_t* clients_pending_write;
+    cron_manager_t* cron_manager;
 } latte_server_t;
 
 

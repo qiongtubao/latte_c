@@ -1,16 +1,18 @@
-WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=list.o
+LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
+BUILD_OBJ?=list.o listpack.o quicklist.o ziplist.o
 LIB_OBJ?=
 TEST_MAIN?=list_test
-LIB_MODULES?=zmalloc iterator
+LIB_MODULES?=zmalloc iterator sds
 MODULE?=list
-BUILD_INCLUDE=list.h
+BUILD_INCLUDE=list.h quicklist.h
 
-include $(WORKSPACE)/mks/sys.mk
-include $(WORKSPACE)/mks/final.mk
-include $(WORKSPACE)/mks/malloc.mk
-include $(WORKSPACE)/mks/latte.mk
-include $(WORKSPACE)/mks/info.mk
-include $(WORKSPACE)/src/zmalloc/lib.mk
-include $(WORKSPACE)/src/sds/lib.mk
-include $(WORKSPACE)/src/iterator/lib.mk
+include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
+include $(LATTE_LIB_WORKSPACE)/mks/final.mk
+include $(LATTE_LIB_WORKSPACE)/mks/malloc.mk
+include $(LATTE_LIB_WORKSPACE)/mks/latte.mk
+include $(LATTE_LIB_WORKSPACE)/mks/info.mk
+include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/sds/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/iterator/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/lzf/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk

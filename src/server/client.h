@@ -27,7 +27,7 @@ typedef struct client_reply_block_t {
     char buf[];
 } client_reply_block_t;
 /* latteClient */
-typedef int (*handle_func)(struct latte_client_t* client);
+typedef int (*handle_func)(struct latte_client_t* client, int nread);
 typedef struct latte_client_t {
     uint64_t id;
     connection *conn;

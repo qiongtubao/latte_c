@@ -85,39 +85,39 @@ void value_set_constant_char(value_t* v, char* c) {
 
 
 sds_t value_get_sds(value_t* v) {
-    latte_assert(value_is_sds(v), "value is not sds");
+    latte_assert_with_info(value_is_sds(v), "value is not sds");
     return v->value.sds_value;
 }
 
 int64_t value_get_int64(value_t* v) {
-    latte_assert(value_is_int64(v), "value is not int64\n");
+    latte_assert_with_info(value_is_int64(v), "value is not int64\n");
     return v->value.i64_value;
 }
 
 uint64_t value_get_uint64(value_t* v) {
-    latte_assert(value_is_uint64(v), "value is not uint64");
+    latte_assert_with_info(value_is_uint64(v), "value is not uint64");
     return v->value.i64_value;
 }
 
 long double value_get_long_double(value_t* v) {
-    latte_assert(value_is_long_double(v), "value is not long double");
+    latte_assert_with_info(value_is_long_double(v), "value is not long double");
     return v->value.ld_value;
 }
 bool value_get_bool(value_t* v) {
-    latte_assert(value_is_bool(v), "value is not boolean");
+    latte_assert_with_info(value_is_bool(v), "value is not boolean");
     return v->value.bool_value;
 }
 vector_t* value_get_array(value_t* v) {
-    latte_assert(value_is_array(v), "value is not array");
+    latte_assert_with_info(value_is_array(v), "value is not array");
     return v->value.array_value;
 }
 dict_t* value_get_map(value_t* v) {
-    latte_assert(value_is_map(v), "value is not map");
+    latte_assert_with_info(value_is_map(v), "value is not map");
     return v->value.map_value;
 }
 
 char* value_get_constant_char(value_t* v) {
-    latte_assert(value_is_constant_char(v), "value is not constant char");
+    latte_assert_with_info(value_is_constant_char(v), "value is not constant char");
     return v->value.sds_value;
 }
 

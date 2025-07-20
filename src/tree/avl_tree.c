@@ -18,7 +18,7 @@ void avl_tree_delete(avl_tree_t* tree) {
 }
 
 void avl_tree_clear(avl_tree_t* tree) {
-
+    avl_node_recursively(&tree->root, tree->type);
 }
 
 int avl_node_get_height(avl_node_t* node) {

@@ -647,71 +647,12 @@ int dict_delete_key(dict_t*ht, const void *key) {
     return dict_generic_delete(ht,key,0) ? DICT_OK : DICT_ERR;
 }
 
+void* dict_fetch_value(dict_t *d, const void *key) {
+    dict_entry_t* he;
 
-
-
-/**
- * 
- *   about iterator module
- * 
- */
-// dict_iterator_t *dict_get_iterator(dict_t*d)
-// {
-//     dict_iterator_t *iter = zmalloc(sizeof(*iter));
-
-//     iter->d = d;
-//     iter->table = 0;
-//     iter->index = -1;
-//     iter->safe = 0;
-//     iter->entry = NULL;
-//     iter->nextEntry = NULL;
-//     return iter;
-// }
-
-// dict_entry_t*dict_next(dict_iterator_t *iter)
-// {
-//     while (1) {
-//         if (iter->entry == NULL) {
-//             if (iter->index == -1 && iter->table == 0) {
-//                 if (iter->safe)
-//                     dict_pause_rehashing(iter->d);
-//                 else
-//                     iter->fingerprint = dictFingerprint(iter->d);
-//             }
-//             iter->index++;
-//             if (iter->index >= (long) DICTHT_SIZE(iter->d->ht_size_exp[iter->table])) {
-//                 if (dict_is_rehashing(iter->d) && iter->table == 0) {
-//                     iter->table++;
-//                     iter->index = 0;
-//                 } else {
-//                     break;
-//                 }
-//             }
-//             iter->entry = iter->d->ht_table[iter->table][iter->index];
-//         } else {
-//             iter->entry = iter->nextEntry;
-//         }
-//         if (iter->entry) {
-//             /* We need to save the 'next' here, the iterator user
-//              * may delete the entry we are returning. */
-//             iter->nextEntry = iter->entry->next;
-//             return iter->entry;
-//         }
-//     }
-//     return NULL;
-// }
-
-
-// void dict_iterator_delete(dict_iterator_t *iter)
-// {
-//     if (!(iter->index == -1 && iter->table == 0)) {
-//         if (iter->safe)
-//             dict_resume_rehashing(iter->d);
-//         else
-//             assert(iter->fingerprint == dictFingerprint(iter->d));
-//     }
-//     zfree(iter);
-// }
+    he = dict_find(d, key);
+    return he ? dict_get_entry_val(he) : NULL;
+}
 
 #define dict_iterator_dict_ptr(iter)  ((dict_t*)iter->sup.sup.data) 
 

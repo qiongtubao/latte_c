@@ -1,16 +1,19 @@
-WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=ae.o monotonic.o
+LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
+BUILD_OBJ?=ae.o 
 LIB_OBJ?=
 TEST_MAIN?=ae_test
 MODULE?=ae
-BUILD_INCLUDE?=ae.h monotonic.h
-LIB_MODULES?=anet zmalloc dict log func_task
+BUILD_INCLUDE?=ae.h 
+LIB_MODULES?=anet zmalloc dict log func_task utils
 
-include $(WORKSPACE)/mks/sys.mk
-include $(WORKSPACE)/mks/final.mk
-include $(WORKSPACE)/mks/malloc.mk
-include $(WORKSPACE)/mks/latte.mk
-include $(WORKSPACE)/mks/info.mk
-include $(WORKSPACE)/src/zmalloc/lib.mk
-include $(WORKSPACE)/src/log/lib.mk
-include $(WORKSPACE)/src/anet/lib.mk
+include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
+include $(LATTE_LIB_WORKSPACE)/mks/final.mk
+include $(LATTE_LIB_WORKSPACE)/mks/malloc.mk
+include $(LATTE_LIB_WORKSPACE)/mks/latte.mk
+include $(LATTE_LIB_WORKSPACE)/mks/info.mk
+include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/anet/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/list/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/func_task/lib.mk

@@ -80,7 +80,7 @@ void* mem_pool_alloc(mem_pool_t* mem_pool) {
         }
     }
     result = list_rpop(mem_pool->frees);
-    latte_assert(set_add(mem_pool->used, result) == 1, "used add item fail");
+    latte_assert_with_info(set_add(mem_pool->used, result) == 1, "used add item fail");
 end:
     latte_mutex_unlock(mem_pool->mutex);
     return result;

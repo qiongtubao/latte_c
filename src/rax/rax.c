@@ -5,6 +5,19 @@
 #include <assert.h>
 #include <stdio.h>
 
+#ifdef RAX_DEBUG_MSG
+#define debugf(...)                                                            \
+    if (raxDebugMsg) {                                                         \
+        printf("%s:%s:%d:\t", __FILE__, __func__, __LINE__);                   \
+        printf(__VA_ARGS__);                                                   \
+        fflush(stdout);                                                        \
+    }
+
+#define debugnode(msg,n) raxDebugShowNode(msg,n)
+#else
+#define debugf(...)
+#define debugnode(msg,n)
+#endif
 
 #define rax_malloc zmalloc
 #define rax_realloc zrealloc
@@ -1250,4 +1263,466 @@ void raxFreeWithCallback(rax *rax, void (*free_callback)(void*)) {
 /* Free a whole radix tree. */
 void raxFree(rax *rax) {
     raxFreeWithCallback(rax,NULL);
+}
+
+
+/* Append characters at the current key string of the iterator 'it'. This
+ * is a low level function used to implement the iterator, not callable by
+ * the user. Returns 0 on out of memory, otherwise 1 is returned. */
+int raxIteratorAddChars(raxIterator *it, unsigned char *s, size_t len) {
+    if (len == 0) return 1;
+    if (it->key_max < it->key_len+len) {
+        unsigned char *old = (it->key == it->key_static_string) ? NULL :
+                                                                  it->key;
+        size_t new_max = (it->key_len+len)*2;
+        it->key = rax_realloc(old,new_max);
+        if (it->key == NULL) {
+            it->key = (!old) ? it->key_static_string : old;
+            errno = ENOMEM;
+            return 0;
+        }
+        if (old == NULL) memcpy(it->key,it->key_static_string,it->key_len);
+        it->key_max = new_max;
+    }
+    /* Use memmove since there could be an overlap between 's' and
+     * it->key when we use the current key in order to re-seek. */
+    memmove(it->key+it->key_len,s,len);
+    it->key_len += len;
+    return 1;
+}
+
+/* Remove the specified number of chars from the right of the current
+ * iterator key. */
+void raxIteratorDelChars(raxIterator *it, size_t count) {
+    it->key_len -= count;
+}
+
+/* Do an iteration step towards the next element. At the end of the step the
+ * iterator key will represent the (new) current key. If it is not possible
+ * to step in the specified direction since there are no longer elements, the
+ * iterator is flagged with RAX_ITER_EOF.
+ *
+ * If 'noup' is true the function starts directly scanning for the next
+ * lexicographically smaller children, and the current node is already assumed
+ * to be the parent of the last key node, so the first operation to go back to
+ * the parent will be skipped. This option is used by raxSeek() when
+ * implementing seeking a non existing element with the ">" or "<" options:
+ * the starting node is not a key in that particular case, so we start the scan
+ * from a node that does not represent the key set.
+ *
+ * The function returns 1 on success or 0 on out of memory. */
+int raxIteratorNextStep(raxIterator *it, int noup) {
+    if (it->flags & RAX_ITER_EOF) {
+        return 1;
+    } else if (it->flags & RAX_ITER_JUST_SEEKED) {
+        it->flags &= ~RAX_ITER_JUST_SEEKED;
+        return 1;
+    }
+
+    /* Save key len, stack items and the node where we are currently
+     * so that on iterator EOF we can restore the current key and state. */
+    size_t orig_key_len = it->key_len;
+    size_t orig_stack_items = it->stack.items;
+    raxNode *orig_node = it->node;
+
+    while(1) {
+        int children = it->node->iscompr ? 1 : it->node->size;
+        if (!noup && children) {
+            debugf("GO DEEPER\n");
+            /* Seek the lexicographically smaller key in this subtree, which
+             * is the first one found always going towards the first child
+             * of every successive node. */
+            if (!raxStackPush(&it->stack,it->node)) return 0;
+            raxNode **cp = raxNodeFirstChildPtr(it->node);
+            if (!raxIteratorAddChars(it,it->node->data,
+                it->node->iscompr ? it->node->size : 1)) return 0;
+            memcpy(&it->node,cp,sizeof(it->node));
+            /* Call the node callback if any, and replace the node pointer
+             * if the callback returns true. */
+            if (it->node_cb && it->node_cb(&it->node))
+                memcpy(cp,&it->node,sizeof(it->node));
+            /* For "next" step, stop every time we find a key along the
+             * way, since the key is lexicographically smaller compared to
+             * what follows in the sub-children. */
+            if (it->node->iskey) {
+                it->data = raxGetData(it->node);
+                return 1;
+            }
+        } else {
+            /* If we finished exploring the previous sub-tree, switch to the
+             * new one: go upper until a node is found where there are
+             * children representing keys lexicographically greater than the
+             * current key. */
+            while(1) {
+                int old_noup = noup;
+
+                /* Already on head? Can't go up, iteration finished. */
+                if (!noup && it->node == it->rt->head) {
+                    it->flags |= RAX_ITER_EOF;
+                    it->stack.items = orig_stack_items;
+                    it->key_len = orig_key_len;
+                    it->node = orig_node;
+                    return 1;
+                }
+                /* If there are no children at the current node, try parent's
+                 * next child. */
+                unsigned char prevchild = it->key[it->key_len-1];
+                if (!noup) {
+                    it->node = raxStackPop(&it->stack);
+                } else {
+                    noup = 0;
+                }
+                /* Adjust the current key to represent the node we are
+                 * at. */
+                int todel = it->node->iscompr ? it->node->size : 1;
+                raxIteratorDelChars(it,todel);
+
+                /* Try visiting the next child if there was at least one
+                 * additional child. */
+                if (!it->node->iscompr && it->node->size > (old_noup ? 0 : 1)) {
+                    raxNode **cp = raxNodeFirstChildPtr(it->node);
+                    int i = 0;
+                    while (i < it->node->size) {
+                        debugf("SCAN NEXT %c\n", it->node->data[i]);
+                        if (it->node->data[i] > prevchild) break;
+                        i++;
+                        cp++;
+                    }
+                    if (i != it->node->size) {
+                        debugf("SCAN found a new node\n");
+                        raxIteratorAddChars(it,it->node->data+i,1);
+                        if (!raxStackPush(&it->stack,it->node)) return 0;
+                        memcpy(&it->node,cp,sizeof(it->node));
+                        /* Call the node callback if any, and replace the node
+                         * pointer if the callback returns true. */
+                        if (it->node_cb && it->node_cb(&it->node))
+                            memcpy(cp,&it->node,sizeof(it->node));
+                        if (it->node->iskey) {
+                            it->data = raxGetData(it->node);
+                            return 1;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+/* 转到迭代器“it”作用域中的下一个元素。
+* 如果到达 EOF（即内存不足），则返回 0，否则返回 1。
+* 如果由于 OOM 而返回 0，则 errno 设置为 ENOMEM。*/
+int raxNext(raxIterator* it) {
+    if (!raxIteratorNextStep(it, 0)) {
+        errno = ENOMEM;
+        return 0;
+    }
+    if (it->flags & RAX_ITER_EOF) {
+        errno = 0;
+        return 0;
+    }
+    return 1;
+}
+
+/* Seek the greatest key in the subtree at the current node. Return 0 on
+ * out of memory, otherwise 1. This is a helper function for different
+ * iteration functions below. */
+int raxSeekGreatest(raxIterator *it) {
+    while(it->node->size) {
+        if (it->node->iscompr) {
+            if (!raxIteratorAddChars(it,it->node->data,
+                it->node->size)) return 0;
+        } else {
+            if (!raxIteratorAddChars(it,it->node->data+it->node->size-1,1))
+                return 0;
+        }
+        raxNode **cp = raxNodeLastChildPtr(it->node);
+        if (!raxStackPush(&it->stack,it->node)) return 0;
+        memcpy(&it->node,cp,sizeof(it->node));
+    }
+    return 1;
+}
+
+
+/* Like raxIteratorNextStep() but implements an iteration step moving
+ * to the lexicographically previous element. The 'noup' option has a similar
+ * effect to the one of raxIteratorNextStep(). */
+int raxIteratorPrevStep(raxIterator *it, int noup) {
+    if (it->flags & RAX_ITER_EOF) {
+        return 1;
+    } else if (it->flags & RAX_ITER_JUST_SEEKED) {
+        it->flags &= ~RAX_ITER_JUST_SEEKED;
+        return 1;
+    }
+
+    /* Save key len, stack items and the node where we are currently
+     * so that on iterator EOF we can restore the current key and state. */
+    size_t orig_key_len = it->key_len;
+    size_t orig_stack_items = it->stack.items;
+    raxNode *orig_node = it->node;
+
+    while(1) {
+        int old_noup = noup;
+
+        /* Already on head? Can't go up, iteration finished. */
+        if (!noup && it->node == it->rt->head) {
+            it->flags |= RAX_ITER_EOF;
+            it->stack.items = orig_stack_items;
+            it->key_len = orig_key_len;
+            it->node = orig_node;
+            return 1;
+        }
+
+        unsigned char prevchild = it->key[it->key_len-1];
+        if (!noup) {
+            it->node = raxStackPop(&it->stack);
+        } else {
+            noup = 0;
+        }
+
+        /* Adjust the current key to represent the node we are
+         * at. */
+        int todel = it->node->iscompr ? it->node->size : 1;
+        raxIteratorDelChars(it,todel);
+
+        /* Try visiting the prev child if there is at least one
+         * child. */
+        if (!it->node->iscompr && it->node->size > (old_noup ? 0 : 1)) {
+            raxNode **cp = raxNodeLastChildPtr(it->node);
+            int i = it->node->size-1;
+            while (i >= 0) {
+                debugf("SCAN PREV %c\n", it->node->data[i]);
+                if (it->node->data[i] < prevchild) break;
+                i--;
+                cp--;
+            }
+            /* If we found a new subtree to explore in this node,
+             * go deeper following all the last children in order to
+             * find the key lexicographically greater. */
+            if (i != -1) {
+                debugf("SCAN found a new node\n");
+                /* Enter the node we just found. */
+                if (!raxIteratorAddChars(it,it->node->data+i,1)) return 0;
+                if (!raxStackPush(&it->stack,it->node)) return 0;
+                memcpy(&it->node,cp,sizeof(it->node));
+                /* Seek sub-tree max. */
+                if (!raxSeekGreatest(it)) return 0;
+            }
+        }
+
+        /* Return the key: this could be the key we found scanning a new
+         * subtree, or if we did not find a new subtree to explore here,
+         * before giving up with this node, check if it's a key itself. */
+        if (it->node->iskey) {
+            it->data = raxGetData(it->node);
+            return 1;
+        }
+    }
+}
+
+/* Seek an iterator at the specified element.
+ * Return 0 if the seek failed for syntax error or out of memory. Otherwise
+ * 1 is returned. When 0 is returned for out of memory, errno is set to
+ * the ENOMEM value. */
+int raxSeek(raxIterator *it, const char *op, unsigned char *ele, size_t len) {
+    int eq = 0, lt = 0, gt = 0, first = 0, last = 0;
+
+    it->stack.items = 0; /* Just resetting. Initialized by raxStart(). */
+    it->flags |= RAX_ITER_JUST_SEEKED;
+    it->flags &= ~RAX_ITER_EOF;
+    it->key_len = 0;
+    it->node = NULL;
+
+    /* Set flags according to the operator used to perform the seek. */
+    if (op[0] == '>') {
+        gt = 1;
+        if (op[1] == '=') eq = 1;
+    } else if (op[0] == '<') {
+        lt = 1;
+        if (op[1] == '=') eq = 1;
+    } else if (op[0] == '=') {
+        eq = 1;
+    } else if (op[0] == '^') {
+        first = 1;
+    } else if (op[0] == '$') {
+        last = 1;
+    } else {
+        errno = 0;
+        return 0; /* Error. */
+    }
+
+    /* If there are no elements, set the EOF condition immediately and
+     * return. */
+    if (it->rt->numele == 0) {
+        it->flags |= RAX_ITER_EOF;
+        return 1;
+    }
+
+    if (first) {
+        /* Seeking the first key greater or equal to the empty string
+         * is equivalent to seeking the smaller key available. */
+        return raxSeek(it,">=",NULL,0);
+    }
+
+    if (last) {
+        /* Find the greatest key taking always the last child till a
+         * final node is found. */
+        it->node = it->rt->head;
+        if (!raxSeekGreatest(it)) return 0;
+        assert(it->node->iskey);
+        it->data = raxGetData(it->node);
+        return 1;
+    }
+
+    /* We need to seek the specified key. What we do here is to actually
+     * perform a lookup, and later invoke the prev/next key code that
+     * we already use for iteration. */
+    int splitpos = 0;
+    size_t i = raxLowWalk(it->rt,ele,len,&it->node,NULL,&splitpos,&it->stack);
+
+    /* Return OOM on incomplete stack info. */
+    if (it->stack.oom) return 0;
+
+    if (eq && i == len && (!it->node->iscompr || splitpos == 0) &&
+        it->node->iskey)
+    {
+        /* We found our node, since the key matches and we have an
+         * "equal" condition. */
+        if (!raxIteratorAddChars(it,ele,len)) return 0; /* OOM. */
+        it->data = raxGetData(it->node);
+    } else if (lt || gt) {
+        /* Exact key not found or eq flag not set. We have to set as current
+         * key the one represented by the node we stopped at, and perform
+         * a next/prev operation to seek. */
+        raxIteratorAddChars(it, ele, i-splitpos);
+
+        /* We need to set the iterator in the correct state to call next/prev
+         * step in order to seek the desired element. */
+        debugf("After initial seek: i=%d len=%d key=%.*s\n",
+            (int)i, (int)len, (int)it->key_len, it->key);
+        if (i != len && !it->node->iscompr) {
+            /* If we stopped in the middle of a normal node because of a
+             * mismatch, add the mismatching character to the current key
+             * and call the iterator with the 'noup' flag so that it will try
+             * to seek the next/prev child in the current node directly based
+             * on the mismatching character. */
+            if (!raxIteratorAddChars(it,ele+i,1)) return 0;
+            debugf("Seek normal node on mismatch: %.*s\n",
+                (int)it->key_len, (char*)it->key);
+
+            it->flags &= ~RAX_ITER_JUST_SEEKED;
+            if (lt && !raxIteratorPrevStep(it,1)) return 0;
+            if (gt && !raxIteratorNextStep(it,1)) return 0;
+            it->flags |= RAX_ITER_JUST_SEEKED; /* Ignore next call. */
+        } else if (i != len && it->node->iscompr) {
+            debugf("Compressed mismatch: %.*s\n",
+                (int)it->key_len, (char*)it->key);
+            /* In case of a mismatch within a compressed node. */
+            int nodechar = it->node->data[splitpos];
+            int keychar = ele[i];
+            it->flags &= ~RAX_ITER_JUST_SEEKED;
+            if (gt) {
+                /* If the key the compressed node represents is greater
+                 * than our seek element, continue forward, otherwise set the
+                 * state in order to go back to the next sub-tree. */
+                if (nodechar > keychar) {
+                    if (!raxIteratorNextStep(it,0)) return 0;
+                } else {
+                    if (!raxIteratorAddChars(it,it->node->data,it->node->size))
+                        return 0;
+                    if (!raxIteratorNextStep(it,1)) return 0;
+                }
+            }
+            if (lt) {
+                /* If the key the compressed node represents is smaller
+                 * than our seek element, seek the greater key in this
+                 * subtree, otherwise set the state in order to go back to
+                 * the previous sub-tree. */
+                if (nodechar < keychar) {
+                    if (!raxSeekGreatest(it)) return 0;
+                    it->data = raxGetData(it->node);
+                } else {
+                    if (!raxIteratorAddChars(it,it->node->data,it->node->size))
+                        return 0;
+                    if (!raxIteratorPrevStep(it,1)) return 0;
+                }
+            }
+            it->flags |= RAX_ITER_JUST_SEEKED; /* Ignore next call. */
+        } else {
+            debugf("No mismatch: %.*s\n",
+                (int)it->key_len, (char*)it->key);
+            /* If there was no mismatch we are into a node representing the
+             * key, (but which is not a key or the seek operator does not
+             * include 'eq'), or we stopped in the middle of a compressed node
+             * after processing all the key. Continue iterating as this was
+             * a legitimate key we stopped at. */
+            it->flags &= ~RAX_ITER_JUST_SEEKED;
+            if (it->node->iscompr && it->node->iskey && splitpos && lt) {
+                /* If we stopped in the middle of a compressed node with
+                 * perfect match, and the condition is to seek a key "<" than
+                 * the specified one, then if this node is a key it already
+                 * represents our match. For instance we may have nodes:
+                 *
+                 * "f" -> "oobar" = 1 -> "" = 2
+                 *
+                 * Representing keys "f" = 1, "foobar" = 2. A seek for
+                 * the key < "foo" will stop in the middle of the "oobar"
+                 * node, but will be our match, representing the key "f".
+                 *
+                 * So in that case, we don't seek backward. */
+                it->data = raxGetData(it->node);
+            } else {
+                if (gt && !raxIteratorNextStep(it,0)) return 0;
+                if (lt && !raxIteratorPrevStep(it,0)) return 0;
+            }
+            it->flags |= RAX_ITER_JUST_SEEKED; /* Ignore next call. */
+        }
+    } else {
+        /* If we are here just eq was set but no match was found. */
+        it->flags |= RAX_ITER_EOF;
+        return 1;
+    }
+    return 1;
+}
+
+/* Return the number of elements inside the radix tree. */
+uint64_t raxSize(rax *rax) {
+    return rax->numele;
+}
+
+/* Initialize a Rax iterator. This call should be performed a single time
+ * to initialize the iterator, and must be followed by a raxSeek() call,
+ * otherwise the raxPrev()/raxNext() functions will just return EOF. */
+void raxStart(raxIterator *it, rax *rt) {
+    it->flags = RAX_ITER_EOF; /* No crash if the iterator is not seeked. */
+    it->rt = rt;
+    it->key_len = 0;
+    it->key = it->key_static_string;
+    it->key_max = RAX_ITER_STATIC_LEN;
+    it->data = NULL;
+    it->node_cb = NULL;
+    raxStackInit(&it->stack);
+}
+
+/* Free the iterator. */
+void raxStop(raxIterator *it) {
+    if (it->key != it->key_static_string) rax_free(it->key);
+    raxStackFree(&it->stack);
+}
+
+/* Find a key in the rax: return 1 if the item is found, 0 otherwise.
+ * If there is an item and 'value' is passed in a non-NULL pointer,
+ * the value associated with the item is set at that address. */
+int raxFind(rax *rax, unsigned char *s, size_t len, void **value) {
+    raxNode *h;
+
+    debugf("### Lookup: %.*s\n", (int)len, s);
+    int splitpos = 0;
+    size_t i = raxLowWalk(rax,s,len,&h,NULL,&splitpos,NULL);
+    if (i != len || (h->iscompr && splitpos != 0) || !h->iskey)
+        return 0;
+    if (value != NULL) *value = raxGetData(h);
+    return 1;
 }

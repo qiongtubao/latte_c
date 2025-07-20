@@ -24,9 +24,9 @@
 #define lp_free zfree
 #define lp_malloc_size zmalloc_usable_size
 
-unsigned char *lpNew(size_t capacity);
-unsigned char *lpPrepend(unsigned char *lp, unsigned char *s, uint32_t slen);
-unsigned char *lpAppend(unsigned char *lp, unsigned char *s, uint32_t slen);
-size_t lpBytes(unsigned char *lp);
-void lpRepr(unsigned char *lp);
+unsigned char *lp_new(size_t capacity);
+unsigned char *lp_prepend(unsigned char *lp, unsigned char *s, uint32_t slen);
+unsigned char *lp_append(unsigned char *lp, unsigned char *s, uint32_t slen);
+size_t lp_bytes(unsigned char *lp);
+void lp_repr(unsigned char *lp);
 #endif //LATTE_C_LISTPACK_H

@@ -252,7 +252,7 @@ int test_tree_random_add(int index) {
         long r = random_long(100,10000);
         if(NULL != dict_find(d, (void*)r)) continue;
         assert(DICT_OK == dict_add(d, (void*)r, (void*)r));
-        vector_push(data, r);
+        vector_push(data, (void*)r);
         b_plus_tree_insert_or_update(tree, (void*)r, (void*)r); 
         avl_tree_put(avl_tree, (void*)r, (void*)r);
     }

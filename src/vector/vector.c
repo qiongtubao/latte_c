@@ -201,3 +201,22 @@ int private_vector_cmp(vector_t* a, vector_t* b, cmp_func cmp) {
     }
     return cmp_result;
 }
+
+void vector_remove(vector_t* v, void* element) {
+    for (int i = 0; i < v->count; i++) {
+        if (v->data[i] == element) {
+            v->data[i] = NULL;
+        }
+    }
+}
+
+int vector_add(vector_t* v, void* element) {
+    for (int i = 0; i < v->count; i++) {
+        if (v->data[i] == NULL) {
+            v->data[i] = element;
+            return i;
+        }
+    }
+    vector_push(v, element);
+    return v->count - 1;
+}

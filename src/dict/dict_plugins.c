@@ -9,6 +9,10 @@ uint64_t dict_sds_hash(const void *key) {
     return dict_gen_hash_function((unsigned char*)key, sds_len((char*)key));
 }
 
+uint64_t dict_sds_case_hash(const void *key) {
+    return dict_gen_case_hash_function((unsigned char*)key, sds_len((char*)key));
+}
+
 int dict_sds_key_compare(dict_t*privdata, const void *key1,
         const void *key2)
 {
@@ -19,6 +23,12 @@ int dict_sds_key_compare(dict_t*privdata, const void *key1,
     l2 = sds_len((sds)key2);
     if (l1 != l2) return 0;
     return memcmp(key1, key2, l1) == 0;
+}
+
+int dict_sds_key_case_compare(dict_t*privdata, const void *key1,
+    const void *key2) {
+    DICT_NOTUSED(privdata);
+    return strcasecmp(key1, key2) == 0;
 }
 
 void dict_sds_destructor(dict_t*privdata, void *val) {
@@ -57,3 +67,12 @@ int dict_ptr_key_compare(dict_t* privdata, const void *key1,
     UNUSED(privdata);
     return key1 == key2;
 }
+
+dict_func_t sds_key_set_dict_type = {
+        dict_sds_hash,
+        NULL,
+        NULL,
+        dict_sds_key_compare,
+        dict_sds_destructor,
+        NULL
+};

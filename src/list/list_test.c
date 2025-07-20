@@ -5,6 +5,7 @@
 #include "sds/sds.h"
 #include "list.h"
 #include "iterator/iterator.h"
+#include "quicklist.h"
 
 void valueSdsFree(void* node) {
     sds_delete((sds)node);
@@ -67,6 +68,15 @@ int test_list() {
     return 1;
 }
 
+
+int test_quick_list() {
+    struct quick_list_t* list = quick_list_create();
+    quick_list_push_head(list, "hello", 6);
+    quick_list_repr(list , 1);
+    quick_list_release(list);
+    return 1;
+}
+
 int test_api(void) {
 
     {
@@ -75,6 +85,7 @@ int test_api(void) {
             test_list_iterator() == 1);
         test_cond("list function test", 
             test_list() == 1);
+        test_cond("quick_list function", test_quick_list());
     } test_report()
     return 1;
 }

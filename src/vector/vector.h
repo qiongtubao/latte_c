@@ -18,6 +18,8 @@ void vector_delete(vector_t* v);
 void vector_resize(vector_t* v, size_t new_capacity);
 int vector_push(vector_t* v, void* element);
 void* vector_pop(vector_t* v);
+void vector_remove(vector_t* v, void* element);
+int vector_add(vector_t* v, void* element);
 // size_t vector_size(vector_t* v);
 #define vector_size(v) v->count
 

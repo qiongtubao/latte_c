@@ -51,8 +51,8 @@ else
 endif
 
 # sys diff
-include $(WORKSPACE)/mks/uname_s_final/$(uname_S).mk
-include $(WORKSPACE)/mks/uname_m_final/$(uname_M).mk
+include $(LATTE_LIB_WORKSPACE)/mks/uname_s_final/$(uname_S).mk
+include $(LATTE_LIB_WORKSPACE)/mks/uname_m_final/$(uname_M).mk
 
 #FINAL_CC_CFLAGS
 FINAL_CC_CFLAGS=$(STD) $(WARN) $(OPT) $(DEBUG) $(CFLAGS) $(LATTE_CFLAGS)

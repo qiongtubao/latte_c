@@ -5,6 +5,9 @@
 #include "listpack.h"
 #include <stdio.h>
 #include "utils/utils.h"
+#include <string.h>
+#include <stdlib.h>
+
 /* Create a new, empty listpack.
  * On success the new listpack is returned, otherwise an error is returned.
  * Pre-allocate at least `capacity` bytes of memory,
@@ -202,7 +205,7 @@ unsigned char *lpSkip(unsigned char *p) {
     return p;
 }
 
-unsigned char *lpNew(size_t capacity) {
+unsigned char *lp_new(size_t capacity) {
     unsigned char *lp = lp_malloc(capacity > LP_HDR_SIZE+1 ? capacity : LP_HDR_SIZE+1);
     if (lp == NULL) return NULL;
     lpSetTotalBytes(lp, LP_HDR_SIZE + 1);
@@ -217,7 +220,7 @@ void lpFree(unsigned char *lp) {
 }
 
 /* Return the total number of bytes the listpack is composed of. */
-size_t lpBytes(unsigned char *lp) {
+size_t lp_bytes(unsigned char *lp) {
     return lpGetTotalBytes(lp);
 }
 
@@ -227,7 +230,7 @@ size_t lpBytes(unsigned char *lp) {
 unsigned char *lpFirst(unsigned char *lp) {
     unsigned char *p = lp + LP_HDR_SIZE; /* Skip the header. */
     if (p[0] == LP_EOF) return NULL;
-    lpAssertValidEntry(lp, lpBytes(lp), p);
+    lpAssertValidEntry(lp, lp_bytes(lp), p);
     return p;
 }
 
@@ -604,7 +607,7 @@ unsigned char *lpInsert(unsigned char *lp, unsigned char *elestr, unsigned char 
 /* Append the specified element 'ele' of length 'size' at the end of the
  * listpack. It is implemented in terms of lpInsert(), so the return value is
  * the same as lpInsert(). */
-unsigned char *lpAppend(unsigned char *lp, unsigned char *ele, uint32_t size) {
+unsigned char *lp_append(unsigned char *lp, unsigned char *ele, uint32_t size) {
     uint64_t listpack_bytes = lpGetTotalBytes(lp);
     unsigned char *eofptr = lp + listpack_bytes - 1;
     return lpInsert(lp,ele,NULL,size,eofptr,LP_BEFORE,NULL);
@@ -612,9 +615,9 @@ unsigned char *lpAppend(unsigned char *lp, unsigned char *ele, uint32_t size) {
 
 
 /* Append the specified element 's' of length 'slen' at the head of the listpack. */
-unsigned char *lpPrepend(unsigned char *lp, unsigned char *s, uint32_t slen) {
+unsigned char *lp_prepend(unsigned char *lp, unsigned char *s, uint32_t slen) {
     unsigned char *p = lpFirst(lp);
-    if (!p) return lpAppend(lp, s, slen);
+    if (!p) return lp_append(lp, s, slen);
     return lpInsert(lp, s, NULL, slen, p, LP_BEFORE, NULL);
 }
 
@@ -643,7 +646,7 @@ unsigned char *lpNext(unsigned char *lp, unsigned char *p) {
     assert(p);
     p = lpSkip(p);
     if (p[0] == LP_EOF) return NULL;
-    lpAssertValidEntry(lp, lpBytes(lp), p);
+    lpAssertValidEntry(lp, lp_bytes(lp), p);
     return p;
 }
 
@@ -720,7 +723,7 @@ unsigned long lpLength(unsigned char *lp) {
  *
  * Similarly, there is no error returned since the listpack normally can be
  * assumed to be valid, so that would be a very high API cost. */
-static inline unsigned char *lpGetWithSize(unsigned char *p, int64_t *count, unsigned char *intbuf, uint64_t *entry_size) {
+static inline unsigned char *lp_get_with_size(unsigned char *p, int64_t *count, unsigned char *intbuf, uint64_t *entry_size) {
     int64_t val;
     uint64_t uval, negstart, negmax;
 
@@ -810,18 +813,18 @@ static inline unsigned char *lpGetWithSize(unsigned char *p, int64_t *count, uns
     }
 }
 
-unsigned char *lpGet(unsigned char *p, int64_t *count, unsigned char *intbuf) {
-    return lpGetWithSize(p, count, intbuf, NULL);
+unsigned char *lp_get(unsigned char *p, int64_t *count, unsigned char *intbuf) {
+    return lp_get_with_size(p, count, intbuf, NULL);
 }
 
 /* Print info of listpack which is used in debugCommand */
-void lpRepr(unsigned char *lp) {
+void lp_repr(unsigned char *lp) {
     unsigned char *p, *vstr;
     int64_t vlen;
     unsigned char intbuf[LP_INTBUF_SIZE];
     int index = 0;
 
-    printf("{total bytes %zu} {num entries %lu}\n", lpBytes(lp), lpLength(lp));
+    printf("{total bytes %zu} {num entries %lu}\n", lp_bytes(lp), lpLength(lp));
 
     p = lpFirst(lp);
     while(p) {
@@ -850,7 +853,7 @@ void lpRepr(unsigned char *lp) {
         }
         printf("\n");
 
-        vstr = lpGet(p, &vlen, intbuf);
+        vstr = lp_get(p, &vlen, intbuf);
         printf("\t[str]");
         if (vlen > 40) {
             if (fwrite(vstr, 40, 1, stdout) == 0) perror("fwrite");

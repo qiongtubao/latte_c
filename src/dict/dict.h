@@ -65,6 +65,8 @@ struct dict_t {
     /* Keep small vars at end for optimal (minimal) struct padding */
     int16_t pauserehash; /* If >0 rehashing is paused (<0 indicates coding error) */
     signed char ht_size_exp[2]; /* exponent of size. (size = 1<<exp) */
+
+    void* metadata[]; //增加expire 针对单个subkey
 };
 
 
@@ -107,7 +109,6 @@ struct dict_t {
 #define dict_hash_key(d, key) (d)->type->hashFunction(key)
 
 
-#define dict_get_val(he) ((he)->v.val)
 
 
 #define dict_set_val(d, entry, _val_) do { \
@@ -152,7 +153,7 @@ typedef enum {
 } dict_resize_enable_enum;
 int dict_resize(dict_t*d);
 int dict_delete_key(dict_t*ht, const void *key);
-
+void* dict_fetch_value(dict_t *d, const void *key);
 
 
 

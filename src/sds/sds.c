@@ -1130,3 +1130,38 @@ sds sds_map_chars(sds s, const char *from, const char *to, size_t setlen) {
     }
     return s;
 }
+
+sds sds_remove_free_space(sds s, int would_regrow) {
+    return sds_resize(s, sds_len(s), would_regrow);
+}
+
+
+/* Return the pointer of the actual SDS allocation (normally SDS strings
+ * are referenced by the start of the string buffer). */
+void *sds_alloc_ptr(sds s) {
+    return (void*) (s-sdsHdrSize(s[-1]));
+}
+/* Return the size consumed from the allocator, for the specified SDS string,
+ * including internal fragmentation. This function is used in order to compute
+ * the client output buffer size. */
+size_t sds_zmalloc_size(sds s) {
+    void *sh = sds_alloc_ptr(s);
+    return zmalloc_size(sh);
+}
+
+
+/* Apply tolower() to every character of the sds string 's'. */
+void sds_to_lower(sds_t s) {
+    size_t len = sds_len(s), j;
+
+    for (j = 0; j < len; j++) s[j] = tolower(s[j]);
+}
+
+
+
+/* Apply toupper() to every character of the sds string 's'. */
+void sds_to_upper(sds_t s) {
+    size_t len = sds_len(s), j;
+
+    for (j = 0; j < len; j++) s[j] = toupper(s[j]);
+}

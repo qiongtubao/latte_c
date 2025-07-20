@@ -1,15 +1,15 @@
 ifneq ($(USED_ERROR), yes) 
-include $(WORKSPACE)/src/zmalloc/lib.mk
-include $(WORKSPACE)/src/sds/lib.mk
-include $(WORKSPACE)/src/set/lib.mk
-include $(WORKSPACE)/src/utils/lib.mk
-include $(WORKSPACE)/src/list/lib.mk
-include $(WORKSPACE)/src/log/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/sds/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/set/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/list/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
 FINAL_CC_CFLAGS+= -I../error
 
 
 ../error/error.o:
-	cd $(WORKSPACE)/src/error && make error.o
+	cd $(LATTE_LIB_WORKSPACE)/src/error && make error.o
 
 
 

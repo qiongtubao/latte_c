@@ -30,7 +30,7 @@
 struct logger_t* get_logger_by_tag(char* tag) {
   dict_entry_t* entry = dict_find(global_logger_factory.loggers, tag);
   if (entry == NULL) return NULL;
-  return dict_get_val(entry);
+  return dict_get_entry_val(entry);
 }
 
 struct logger_t* logger_new() {
