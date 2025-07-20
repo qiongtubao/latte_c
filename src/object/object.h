@@ -4,7 +4,7 @@
 #include <limits.h>
 #include <inttypes.h>
 #include <ctype.h>
-
+#include <stddef.h>
 /* The actual Redis Object */
 #define OBJ_STRING 0    /* String object. */
 #define OBJ_LIST 1      /* List object. */
