@@ -1711,3 +1711,18 @@ void raxStop(raxIterator *it) {
     if (it->key != it->key_static_string) rax_free(it->key);
     raxStackFree(&it->stack);
 }
+
+/* Find a key in the rax: return 1 if the item is found, 0 otherwise.
+ * If there is an item and 'value' is passed in a non-NULL pointer,
+ * the value associated with the item is set at that address. */
+int raxFind(rax *rax, unsigned char *s, size_t len, void **value) {
+    raxNode *h;
+
+    debugf("### Lookup: %.*s\n", (int)len, s);
+    int splitpos = 0;
+    size_t i = raxLowWalk(rax,s,len,&h,NULL,&splitpos,NULL);
+    if (i != len || (h->iscompr && splitpos != 0) || !h->iskey)
+        return 0;
+    if (value != NULL) *value = raxGetData(h);
+    return 1;
+}
