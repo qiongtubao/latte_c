@@ -151,7 +151,7 @@ void readQueryFromClient(connection *conn) {
         return;
     } 
     sds_incr_len(c->querybuf,nread);
-    if (c->exec(c)) {
+    if (c->exec(c, nread)) {
         //清理掉c->querybuf
         sds_range(c->querybuf,c->qb_pos,-1);
         c->qb_pos = 0;

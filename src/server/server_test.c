@@ -19,7 +19,7 @@
 
 
 
-int echoHandler(struct latte_client_t* lc) {
+int echoHandler(struct latte_client_t* lc, int nread) {
     // struct client* c = (struct client*)lc; 
     if (strncmp(lc->querybuf, "quit", 4) == 0) {
         lc->qb_pos = 4;
