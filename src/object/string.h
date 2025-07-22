@@ -7,7 +7,7 @@
 typedef struct shared_integers_objects_t {
     latte_object_t* integers[OBJ_SHARED_INTEGERS];
 } shared_integers_objects_t;
-struct shared_integers_objects_t shared_integers;
+extern struct shared_integers_objects_t shared_integers;
 
 void init_shared_integers();
 
