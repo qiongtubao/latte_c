@@ -1,4 +1,12 @@
 #include "localtime.h"
+#include <limits.h>
+#include <time.h>
+#include <sys/time.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+#include <stddef.h>
 
 static int _is_leap_year(time_t year) {
     if (year % 4) return 0;         /* A year not divisible by 4 is not leap. */
@@ -53,3 +61,67 @@ void nolocks_localtime(struct tm *tmp, time_t t, time_t tz, int dst) {
     tmp->tm_mday = days+1;  /* Add 1 since our 'days' is zero-based. */
     tmp->tm_year -= 1900;   /* Surprisingly tm_year is year-1900. */
 }
+
+long get_time_zone(void) {
+#if defined(__linux__) || defined(__sun)
+    return timezone;
+#else
+    struct timeval tv;
+    struct timezone tz;
+
+    gettimeofday(&tv, &tz);
+
+    return tz.tz_minuteswest * 60L;
+#endif
+}
+
+/* Return the UNIX time in milliseconds */
+mstime_t mstime(void) {
+    return ustime()/1000;
+}
+ustime_t ustime(void) {
+    struct timeval tv;
+    ustime_t ust;
+
+    gettimeofday(&tv, NULL);
+    ust = ((long long)tv.tv_sec)*1000000;
+    ust += tv.tv_usec;
+    return ust;
+}
+
+int get_daylight_active(time_t ut) {
+    if (ut == 0) {
+        ut = ustime() / 1000000;
+    }
+    struct tm tm;
+    localtime_r(&ut, &tm);
+    return tm.tm_isdst;
+}
+
+
+
+
+unsigned long current_monitonic_time()
+{
+  struct timespec tp;
+  clock_gettime(CLOCK_MONOTONIC, &tp);
+  return tp.tv_sec * 1000 * 1000 * 1000UL + tp.tv_nsec;
+}
+
+// long _updateGetDaylightActive(int updated) {
+//     if (!updated && start_update_cache_timed) {
+//         return daylight_active;
+//     }
+//     struct tm tm;
+//     time_t ut = start_update_cache_timed? nowustime: ustime() / 1000000;
+//     localtime_r(&ut,&tm);
+//     if (updated) daylight_active = tm.tm_isdst;
+//     return tm.tm_isdst;
+// }
+// long get_day_light_active() {
+//     return _updateGetDaylightActive(0);
+// }
+
+// long update_day_light_active() {
+//     return _updateGetDaylightActive(1);
+// }

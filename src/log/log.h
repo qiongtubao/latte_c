@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include "zmalloc/zmalloc.h"
+#include <sys/time.h>
 
 #define LOG_VERSION "0.0.1"
 
@@ -48,15 +49,16 @@ enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 
 
 
-typedef struct {
+typedef struct log_event_t {
   va_list ap;
   const char *fmt;
   const char *file;
-  struct tm *time;
+  struct timeval time;
   void *udata;
   int line;
   int level;
   const char* func;
+  int pid;
 } log_event_t;
 
 typedef void (*log_func)(log_event_t *ev);
@@ -80,8 +82,9 @@ struct logger_t {
 
 static struct logger_factory_t {
     dict_t* loggers;
+    long timezone;      //暂时把这2个属性先放这里  以后是否会移动到time模块  之后再说
+    int daylight_active; 
 } global_logger_factory;
-
 void log_init();
 
 

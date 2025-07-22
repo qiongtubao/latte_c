@@ -2,14 +2,23 @@
 #define __LATTE_LOCALTIME_H
 #include <time.h>
 
-static int is_leap_year(time_t year) {
-    if (year % 4) return 0;         /* A year not divisible by 4 is not leap. */
-    else if (year % 100) return 1;  /* If div by 4 and not 100 is surely leap. */
-    else if (year % 400) return 0;  /* If div by 100 *and* not by 400 is not leap. */
-    else return 1;                  /* If div by 100 and 400 is leap. */
-}
+typedef long long mstime_t; /* millisecond time type. */
+typedef long long ustime_t; /* microsecond time type. */
 
-
+long get_time_zone();
+int get_daylight_active(time_t t);
 void nolocks_localtime(struct tm *tmp, time_t t, time_t tz, int dst);
+ustime_t ustime(void);
+mstime_t mstime(void);
+unsigned long  current_monitonic_time();
+
+
+// static long long nowustime;
+// static long daylight_active;
+// static int start_update_cache_timed = 0;
+// long get_time_zone();
+// long get_day_light_active();
+// long update_day_light_active();
+
 
 #endif

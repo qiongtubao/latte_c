@@ -9,15 +9,14 @@ int test_nolocks_localtime() {
     /* Obtain timezone and daylight info. */
     tzset(); /* Now 'timezome' global is populated. */
     time_t t = time(NULL);
-    struct tm *aux = localtime(&t);
-    int daylight_active = aux->tm_isdst;
+    int daylight_active = get_daylight_active(0);
 
     struct tm tm;
     char buf[1024];
 
-    nolocks_localtime(&tm,t,timezone,daylight_active);
+    nolocks_localtime(&tm,t,get_time_zone(),daylight_active);
     strftime(buf,sizeof(buf),"%d %b %H:%M:%S",&tm);
-    printf("[timezone: %d, dl: %d] %s\n", (int)timezone, (int)daylight_active, buf);
+    printf("[timezone: %d, dl: %d] %s\n", (int)get_time_zone(), (int)daylight_active, buf);
     return 1;
 }
 

@@ -58,17 +58,7 @@ int string2d(const char *s, size_t slen, double *dp);
 int sds2d(sds_t value, double* dp);
 int d2string(char *buf, size_t len, double value);
 sds_t d2sds(double value);
-long long ustime(void);
-long long nstime(void);
 
-static long long nowustime;
-static long daylight_active;
-static int start_update_cache_timed = 0;
-long get_time_zone();
-long get_day_light_active();
-long update_day_light_active();
-
-unsigned long  current_monitonic_time();
 
 
 //

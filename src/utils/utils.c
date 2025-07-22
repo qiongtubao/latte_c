@@ -194,57 +194,6 @@ sds_t ll2sds(long long ll) {
     return buffer;
 }
 
-long long ustime(void) {
-    struct timeval tv;
-    long long ust;
-
-    gettimeofday(&tv, NULL);
-    ust = ((long long)tv.tv_sec)*1000000;
-    ust += tv.tv_usec;
-    return ust;
-}
-
-unsigned long current_monitonic_time()
-{
-  struct timespec tp;
-  clock_gettime(CLOCK_MONOTONIC, &tp);
-  return tp.tv_sec * 1000 * 1000 * 1000UL + tp.tv_nsec;
-}
-
-/*
- * Gets the proper timezone in a more portable fashion
- * i.e timezone variables are linux specific.
- */
-long get_time_zone(void) {
-#if defined(__linux__) || defined(__sun)
-    return timezone;
-#else
-    struct timeval tv;
-    struct timezone tz;
-
-    gettimeofday(&tv, &tz);
-
-    return tz.tz_minuteswest * 60L;
-#endif
-}
-long _updateGetDaylightActive(int updated) {
-    if (!updated && start_update_cache_timed) {
-        return daylight_active;
-    }
-    struct tm tm;
-    time_t ut = start_update_cache_timed? nowustime: ustime() / 1000000;
-    localtime_r(&ut,&tm);
-    if (updated) daylight_active = tm.tm_isdst;
-    return tm.tm_isdst;
-}
-long get_day_light_active() {
-    return _updateGetDaylightActive(0);
-}
-
-long update_day_light_active() {
-    return _updateGetDaylightActive(1);
-}
-
 
 /* Convert a string into a double. Returns 1 if the string could be parsed
  * into a (non-overflowing) double, 0 otherwise. The value will be set to
