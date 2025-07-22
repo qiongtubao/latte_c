@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "time/localtime.h"
 
 struct logger_t* get_logger_by_tag(char* tag) {
   dict_entry_t* entry = dict_find(global_logger_factory.loggers, tag);
@@ -82,8 +83,18 @@ static dict_func_t logger_dict_type = {
     NULL,
     NULL
 };
+
+/*
+ * Gets the proper timezone in a more portable fashion
+ * i.e timezone variables are linux specific.
+ */
+
+
+
 void log_init() {
   global_logger_factory.loggers = dict_new(&logger_dict_type);
+  global_logger_factory.timezone = get_time_zone();
+  global_logger_factory.daylight_active = get_daylight_active(0);
 }
 
 static const char *level_strings[] = {
@@ -97,38 +108,91 @@ static const char *level_colors[] = {
 #endif
 
 
+// static void stdout_callback(log_event_t *ev) {
+//   char buf[16];
+//   buf[strftime(buf, sizeof(buf), "%H:%M:%S", ev->time)] = '\0';
+// #ifdef LOG_USE_COLOR
+//   fprintf(
+//     ev->udata, "%s %s%-5s\x1b[0m \x1b[90m%s:%s:%d:\x1b[0m ",
+//     buf, level_colors[ev->level], level_strings[ev->level],
+//     ev->file, ev->func, ev->line);
+// #else
+//   fprintf(
+//     ev->udata, "%s %-5s %s:%s:%d: ",
+//     buf, level_strings[ev->level], ev->file, ev->func, ev->line);
+// #endif
+//   vfprintf(ev->udata, ev->fmt, ev->ap);
+//   fprintf(ev->udata, "\n");
+//   fflush(ev->udata);
+// }
 static void stdout_callback(log_event_t *ev) {
-  char buf[16];
-  buf[strftime(buf, sizeof(buf), "%H:%M:%S", ev->time)] = '\0';
+    char buf[64]; // 足够容纳 HH:MM:SS,mmm 格式
+
+
+    struct tm tm;
+    nolocks_localtime(&tm,ev->time.tv_sec,global_logger_factory.timezone,global_logger_factory.daylight_active);
+
+    int off = strftime(buf,sizeof(buf),"%d %b %Y %H:%M:%S.",&tm);
+    snprintf(buf+off,sizeof(buf)-off,"%03d",(int)ev->time.tv_usec/1000);
+
 #ifdef LOG_USE_COLOR
-  fprintf(
-    ev->udata, "%s %s%-5s\x1b[0m \x1b[90m%s:%s:%d:\x1b[0m ",
-    buf, level_colors[ev->level], level_strings[ev->level],
-    ev->file, ev->func, ev->line);
+    fprintf(
+        ev->udata, "%s %s%-5s\x1b[0m \x1b[90m%s:%s:%d:\x1b[0m ",
+        buf, level_colors[ev->level], level_strings[ev->level],
+        ev->file, ev->func, ev->line);
 #else
-  fprintf(
-    ev->udata, "%s %-5s %s:%s:%d: ",
-    buf, level_strings[ev->level], ev->file, ev->func, ev->line);
+    fprintf(
+        ev->udata, "%s %d %-5s %s:%s:%d: ",
+        buf, ev->pid, level_strings[ev->level], ev->file, ev->func, ev->line);
 #endif
-  vfprintf(ev->udata, ev->fmt, ev->ap);
-  fprintf(ev->udata, "\n");
-  fflush(ev->udata);
+
+    vfprintf(ev->udata, ev->fmt, ev->ap);
+    fprintf(ev->udata, "\n");
+    fflush(ev->udata);
 }
+
+// static void file_callback(log_event_t *ev) {
+//   char buf[64];
+//   buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
+//   FILE* fp = fopen((sds)ev->udata, "w+");
+//   fprintf(
+//     fp, "%s %-5s %s:%s:%d: ",
+//     buf, level_strings[ev->level], ev->file, ev->func, ev->line);
+//   vfprintf(fp, ev->fmt, ev->ap);
+//   fprintf(fp, "\n");
+//   fflush(fp);
+//   fclose(fp);
+// }
+
 
 
 static void file_callback(log_event_t *ev) {
-  char buf[64];
-  buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
-  FILE* fp = fopen((sds)ev->udata, "w+");
-  fprintf(
-    fp, "%s %-5s %s:%s:%d: ",
-    buf, level_strings[ev->level], ev->file, ev->func, ev->line);
-  vfprintf(fp, ev->fmt, ev->ap);
-  fprintf(fp, "\n");
-  fflush(fp);
-  fclose(fp);
-}
+    char buf[64];
 
+
+    struct tm tm;
+    nolocks_localtime(&tm,ev->time.tv_sec,global_logger_factory.timezone,global_logger_factory.daylight_active);
+
+    int off = strftime(buf,sizeof(buf),"%d %b %Y %H:%M:%S.",&tm);
+    snprintf(buf+off,sizeof(buf)-off,"%03d",(int)ev->time.tv_usec/1000);
+
+    // 打开文件（注意："w+" 会清空文件内容，建议使用 "a+"）
+    FILE* fp = fopen((const char*)ev->udata, "a+");
+    if (!fp) {
+        // 如果文件打开失败，可以考虑记录错误或忽略
+        return;
+    }
+
+    // 打印日志头
+    fprintf(fp, "%s %d %-5s %s:%s:%d: ",
+            buf, ev->pid,level_strings[ev->level], ev->file, ev->func, ev->line);
+
+    // 打印日志内容
+    vfprintf(fp, ev->fmt, ev->ap);
+    fprintf(fp, "\n");
+    fflush(fp);
+    fclose(fp);
+}
 
 static void lock(struct logger_t* logger)   {
   if (logger->lock) { logger->lock(true, logger->udata); }
@@ -190,11 +254,9 @@ int log_add_stdout(char* tag, int level) {
 
 
 static void init_event(log_event_t *ev, void *udata) {
-  if (!ev->time) {
-    time_t t = time(NULL);
-    ev->time = localtime(&t);
-  }
+  gettimeofday(&ev->time, NULL);
   ev->udata = udata;
+  ev->pid = getpid();
 }
 
 

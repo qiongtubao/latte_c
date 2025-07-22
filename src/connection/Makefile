@@ -4,7 +4,7 @@ LIB_OBJ?=
 TEST_MAIN?=connection_test
 MODULE?=connection
 BUILD_INCLUDE=connection.h
-LIB_MODULES?=zmalloc sds dict utils ae anet
+LIB_MODULES?=zmalloc sds dict utils ae anet time
 include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
 include $(LATTE_LIB_WORKSPACE)/mks/final.mk
 include $(LATTE_LIB_WORKSPACE)/mks/malloc.mk
@@ -17,3 +17,4 @@ include $(LATTE_LIB_WORKSPACE)/src/sds/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/ae/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/anet/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/time/lib.mk

@@ -6,6 +6,7 @@
 #include "utils/utils.h"
 #include <sys/time.h>
 #include <string.h>
+#include "time/localtime.h"
 
 /* Redis performs most of the I/O in a nonblocking way, with the exception
  * of the SYNC command where the slave does it in a blocking way, and
@@ -265,9 +266,7 @@ static int connSocketBlockingConnect(connection *conn, const char *addr, int por
 
 
 
-static long long mstime(void) {
-    return ustime()/1000;
-}
+
 /* Write the specified payload to 'fd'. If writing the whole payload will be
  * done within 'timeout' milliseconds the operation succeeds and 'size' is
  * returned. Otherwise the operation fails, -1 is returned, and an unspecified
