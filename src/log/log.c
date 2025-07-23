@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "time/localtime.h"
 
 struct logger_t* get_logger_by_tag(char* tag) {
