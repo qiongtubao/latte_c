@@ -9,9 +9,10 @@
 #include "time/localtime.h"
 #include "sds/sds.h"
 
-static int thread_id = 0;
+static __thread int thread_id = -1;
 bool is_main_thread();
 int  get_thread_id();
+void set_thread_id(int tid);
 
 
 #define LATTE_THREAD_RUNNING 0

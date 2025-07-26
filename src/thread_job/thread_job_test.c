@@ -8,6 +8,7 @@
 #include "utils/utils.h"
 
 #include "thread_job.h"
+#include "thread_consumer_job.h"
 
 void* add(int argc, void** args, latte_error_t* error) {
     latte_assert_with_info(argc == 2, "argc is not 2");
@@ -29,6 +30,26 @@ int thread_job_test() {
     return 1;
 }
 
+void* add2(int argc, void** args, latte_error_t* error) {
+    latte_assert_with_info(argc == 1, "argc is not 1 (%d)", argc);
+    long a = (long)args[0];
+    return (void*)(a + a + 1);
+}
+
+int thread_consumer_job_test() {
+    latte_thread_consumer_job_manager_t* manager = latte_thread_consumer_job_manager_new(2, 10);
+    latte_thread_consumer_job_manager_adjust(manager, 2);
+    for (long i = 0; i < 100000000; i++) {
+        latte_job_t job = {
+            .run = add2,
+            .argc = 1,
+            .args = (void*[]){(void*)(long)i}
+        };
+        latte_thread_consumer_job_manager_push(manager, &job);
+    }
+    latte_thread_consumer_job_manager_delete(manager);
+    return 1;
+}
 
 int test_api(void) {
     {
@@ -37,8 +58,12 @@ int test_api(void) {
         #endif
         log_init();
         assert(log_add_stdout("test", LOG_DEBUG) == 1);
+        assert(log_add_stdout("latte_lib", LOG_DEBUG) == 1);
         test_cond("about thread_pool_test function", 
             thread_job_test() == 1);
+
+        test_cond("about thread_consumer_job_test function", 
+            thread_consumer_job_test() == 1);
     } test_report()
     return 1;
 }

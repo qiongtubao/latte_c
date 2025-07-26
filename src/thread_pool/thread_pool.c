@@ -3,12 +3,15 @@
 #include "utils/utils.h"
 
 bool is_main_thread() {
-    return thread_id == 0;
+    return thread_id == -1;
 }
 int  get_thread_id() {
     return thread_id;
 }
 
+void set_thread_id(int tid) {
+    thread_id = tid;
+}
 
 
 
