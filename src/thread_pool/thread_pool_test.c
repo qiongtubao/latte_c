@@ -87,6 +87,7 @@ latte_thread_t* create_test_thread_func(int tid) {
     ctx->queue->free = zfree;
 
     thread->ctx = ctx;
+    thread->name = sds_cat_fmt(sds_empty(), "test_thread_%d", tid);
     
     if (pthread_create(&thread->thread_id, NULL, test_start, thread)) {
         log_info("test", "pthread_create fail \n");
