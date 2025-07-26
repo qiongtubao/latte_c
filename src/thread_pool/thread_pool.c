@@ -53,6 +53,19 @@ bool latte_thread_pool_delete_thread(thread_pool_t* pool) {
     return true;
 }
 
+#define UNUSED(V) ((void)V)
+void latte_set_cpu_affinity(const char* cpu_list) {
+    #ifdef USE_SETCPUAFFINITY
+    setcpuaffinity(cpu_list);
+#else
+    UNUSED(cpu_list);
+#endif
+}
 
+
+void latte_make_thread_killable() {
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+}
 
 

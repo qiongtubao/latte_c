@@ -1,6 +1,6 @@
 
 LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=thread_pool.o 
+BUILD_OBJ?=thread_pool.o set_cpu_affinity.o
 TEST_MAIN?=thread_pool_test
 BUILD_INCLUDE?=thread_pool.h 
 MODULE?=thread_pool 

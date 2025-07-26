@@ -149,7 +149,7 @@
     ANNOTATE_HAPPENS_BEFORE(&var);  \
     while(!__sync_bool_compare_and_swap(&var,var,value,__sync_synchronize)); \
 } while(0)
-#define REDIS_ATOMIC_API "sync-builtin"
+#define LATTE_ATOMIC_API "sync-builtin"
 
 #else
 #error "Unable to determine atomic operations for your platform"

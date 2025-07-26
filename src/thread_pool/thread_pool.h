@@ -25,6 +25,8 @@ typedef struct latte_thread_t {
     int status; 
     void* ctx;
     pthread_t thread_id;
+    pthread_mutex_t mutex;
+    // pthread_cond_t cond;
 } latte_thread_t;
 
 typedef struct thread_pool_t {
@@ -33,6 +35,7 @@ typedef struct thread_pool_t {
     void (*delete_thread_func)(latte_thread_t* thread);
     size_t max_thread_num;
     size_t min_thread_num;
+    char* cpu_list;
 } thread_pool_t;
 thread_pool_t* latte_thread_pool_new(size_t min_thread_num, 
     size_t max_thread_num, 
@@ -42,6 +45,12 @@ thread_pool_t* latte_thread_pool_new(size_t min_thread_num,
 bool latte_thread_pool_add_thread(thread_pool_t* pool);
 bool latte_thread_pool_delete_thread(thread_pool_t* pool);
 void latte_thread_pool_delete(thread_pool_t* pool);
+
+//utils
+void setcpuaffinity(const char *cpulist);
+void latte_set_cpu_affinity(const char* cpu_list);  // 设置线程的cpu亲和性
+void latte_make_thread_killable();                  // 设置线程可被取消 
+
 
 
 #endif
