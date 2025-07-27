@@ -16,6 +16,7 @@ typedef struct latte_job_t {
 } latte_job_t;
 
 latte_job_t* latte_job_new(void* (*run)(int argc, void** args, latte_error_t* error), int argc, void** args);
+void latte_job_init(latte_job_t* job, void* (*run)(int argc, void** args, latte_error_t* error), int argc, void** args);
 void latte_job_delete(latte_job_t* job);
 void latte_job_run(latte_job_t* job);
 

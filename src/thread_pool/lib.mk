@@ -6,10 +6,13 @@ include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/time/lib.mk
 FINAL_CC_CFLAGS+= -I../thread_pool
 
-LIB_OBJ+= ../thread_pool/thread_pool.o 
+LIB_OBJ+= ../thread_pool/thread_pool.o ../thread_pool/set_cpu_affinity.o
 USED_THREAD_POOL=yes
 ../thread_pool/thread_pool.o:
 		cd ../thread_pool && make thread_pool.o
+
+../thread_pool/set_cpu_affinity.o:
+		cd ../thread_pool && make set_cpu_affinity.o
 
 
 endif

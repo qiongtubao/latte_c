@@ -29,6 +29,10 @@ int add(int a, int b) {
     return a + b;
 }
 
+void* test_null(test_thread_task_t* task, int a, int b) {
+    return NULL;
+}
+
 void* test_start(void* arg) {
     latte_thread_t* thread = (latte_thread_t*)arg;
     test_thread_ctx_t* ctx = (test_thread_ctx_t*)thread->ctx;
@@ -44,6 +48,7 @@ void* test_start(void* arg) {
         while (list_length(ctx->queue) == 0) {
             if (thread->status == LATTE_THREAD_STOP) {
                 pthread_mutex_unlock(&thread->mutex);
+                list_delete(queue_cache);
                 return NULL;
             }
             if (ctx->idle_time == -1) {
@@ -61,17 +66,17 @@ void* test_start(void* arg) {
         latte_iterator_t* iterator =  list_get_latte_iterator(queue_cache, 0);
         while (latte_iterator_has_next(iterator)) {
             test_thread_task_t* task = (test_thread_task_t*)latte_iterator_next(iterator);
-            add(task->a, task->b);
+            test_null(task, task->a, task->b);
             ctx->pop_count++;
             if (ustime() - start_time <= 1000000) {
                 qps++;
-                continue;
             } else {
                 log_debug("test", "thread %d qps: %lld\n", thread->tid, qps);
                 qps = 0;
                 start_time = ustime();
             }
         }
+        latte_iterator_delete(iterator);
         list_empty(queue_cache);
     }
 }
@@ -102,20 +107,20 @@ latte_thread_t* create_test_thread_func(int tid) {
 void delete_test_thread_func(latte_thread_t* thread) {
     latte_assert_with_info(thread->ctx != NULL, "thread->ctx is NULL");
     
-        test_thread_ctx_t* ctx = (test_thread_ctx_t*)thread->ctx;
-        thread->status = LATTE_THREAD_STOP;
-        pthread_mutex_lock(&thread->mutex);
-        pthread_cond_signal(&ctx->cond);
-        pthread_mutex_unlock(&thread->mutex);
-        int rest = pthread_join(thread->thread_id, NULL);
-        latte_assert_with_info(rest == 0, "pthread_join fail");
-        latte_assert_with_info(ctx->pop_count == ctx->push_count, "pop_count: %lld, push_count: %lld", ctx->pop_count, ctx->push_count);
-        pthread_mutex_destroy(&thread->mutex);
-        pthread_cond_destroy(&ctx->cond);
-        list_delete(ctx->queue);
-        
-        zfree(ctx);
-        thread->ctx = NULL;
+    test_thread_ctx_t* ctx = (test_thread_ctx_t*)thread->ctx;
+    thread->status = LATTE_THREAD_STOP;
+    pthread_mutex_lock(&thread->mutex);
+    pthread_cond_signal(&ctx->cond);
+    pthread_mutex_unlock(&thread->mutex);
+    int rest = pthread_join(thread->thread_id, NULL);
+    latte_assert_with_info(rest == 0, "pthread_join fail");
+    latte_assert_with_info(ctx->pop_count == ctx->push_count, "pop_count: %lld, push_count: %lld", ctx->pop_count, ctx->push_count);
+    pthread_mutex_destroy(&thread->mutex);
+    pthread_cond_destroy(&ctx->cond);
+    list_delete(ctx->queue);
+    
+    zfree(ctx);
+    thread->ctx = NULL;
     
     if (thread->name != NULL) {
         sds_delete(thread->name);
@@ -145,7 +150,7 @@ void thread_pool_add_task(thread_pool_t* pool, int i, void* task) {
 
 int thread_pool_test() {
     time_point_t start_time = ustime();
-    thread_pool_t* pool = latte_thread_pool_new(2, 10, create_test_thread_func, delete_test_thread_func); 
+    thread_pool_t* pool = latte_thread_pool_new(5, 10, create_test_thread_func, delete_test_thread_func); 
     for (int i = 0; i < 10000000; i++) {
         test_thread_task_t* task = zmalloc(sizeof(test_thread_task_t));
         task->a = i;

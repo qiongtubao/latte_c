@@ -29,6 +29,9 @@ endif
 %_test:
 	cd src/$* && $(MAKE) test
 
+%_asan_test:
+	cd src/$* && $(MAKE) asan_test
+
 %_module:
 	cd src/$* && $(MAKE) install_lib BUILD_DIR=../../$(BUILD_DIR)
 

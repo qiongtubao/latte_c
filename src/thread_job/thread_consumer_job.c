@@ -7,12 +7,15 @@
 
 latte_job_consumer_queue_t* latte_job_consumer_queue_new(size_t size) {
     latte_job_consumer_queue_t* queue = (latte_job_consumer_queue_t*)zmalloc(sizeof(latte_job_consumer_queue_t));
-    queue->ring_buffer = (latte_job_t**)zcalloc(sizeof(latte_job_t) * size);
+    queue->ring_buffer = (latte_job_t*)zcalloc(sizeof(latte_job_t) * size);
     queue->size = size;
     for (size_t i = 0; i < size; i++) {
         queue->ring_buffer[i].run = NULL;
         queue->ring_buffer[i].argc = 0;
         queue->ring_buffer[i].args = NULL;
+        queue->ring_buffer[i].error.state = NULL;
+        queue->ring_buffer[i].error.code = Ok.code;
+        queue->ring_buffer[i].result = NULL;
     }
     queue->head = 0;
     queue->tail = 0;
@@ -106,7 +109,7 @@ void* thread_consumer_main(void* arg) {
             pthread_mutex_unlock(&thread->mutex);
             continue;
         }
-        for (size_t i = 0; i < jobs_to_process; i++) {
+    for (size_t i = 0; i < jobs_to_process; i++) {
             latte_job_t job;
             latte_job_consumer_queue_peek(queue, &job);
             latte_job_run(&job);

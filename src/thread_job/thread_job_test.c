@@ -16,13 +16,17 @@ void* add(int argc, void** args, latte_error_t* error) {
     latte_assert_with_info(args[1] != NULL, "args[1] is NULL");
     long a = (long)args[0];
     long b = (long)args[1];
+    zfree(args);
     return (void*)(a + b);
 }
 
 
 
 int thread_job_test() {
-    latte_job_t* job = latte_job_new(add, 2, (void*[]){(void*)(long)1, (void*)(long)2});
+    long* args = zmalloc(sizeof(long) * 2);
+        args[0] = (void*)(long)1;
+        args[1] = (void*)(long)2;
+    latte_job_t* job = latte_job_new(add, 2, args);
     latte_job_run(job);
     latte_assert_with_info(job->result == (void*)(long)3, "job->result is not 3");
     latte_assert_with_info(job->error.code == COk, "job->error.code is not COk");
@@ -30,21 +34,16 @@ int thread_job_test() {
     return 1;
 }
 
-void* add2(int argc, void** args, latte_error_t* error) {
-    latte_assert_with_info(argc == 1, "argc is not 1 (%d)", argc);
-    long a = (long)args[0];
-    return (void*)(a + a + 1);
+void* test(int argc, void** args, latte_error_t* error) {
+    return NULL;
 }
 
 int thread_consumer_job_test() {
-    latte_thread_consumer_job_manager_t* manager = latte_thread_consumer_job_manager_new(2, 10);
-    latte_thread_consumer_job_manager_adjust(manager, 2);
+    latte_thread_consumer_job_manager_t* manager = latte_thread_consumer_job_manager_new(5, 50);
+    latte_thread_consumer_job_manager_adjust(manager, 5);
     for (long i = 0; i < 100000000; i++) {
-        latte_job_t job = {
-            .run = add2,
-            .argc = 1,
-            .args = (void*[]){(void*)(long)i}
-        };
+        latte_job_t job;
+        latte_job_init(&job, test, 0, NULL);
         latte_thread_consumer_job_manager_push(manager, &job);
     }
     latte_thread_consumer_job_manager_delete(manager);

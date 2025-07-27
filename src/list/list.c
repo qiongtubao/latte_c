@@ -411,6 +411,7 @@ void protected_latte_list_iterator_delete(latte_iterator_t* iterator) {
         list_delete(it->list);
         it->list = NULL;
     }
+    zfree(it);
 }
 
 latte_iterator_func latte_list_iterator_func = {
