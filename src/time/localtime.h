@@ -4,6 +4,8 @@
 
 typedef long long mstime_t; /* millisecond time type. */
 typedef long long ustime_t; /* microsecond time type. */
+typedef long long time_point_t; /* time point type. */
+typedef long long time_duration_t; /* time duration type. */
 
 long get_time_zone();
 int get_daylight_active(time_t t);

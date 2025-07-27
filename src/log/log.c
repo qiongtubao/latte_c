@@ -37,6 +37,15 @@ struct logger_t* get_logger_by_tag(char* tag) {
 
 struct logger_t* logger_new() {
   struct logger_t* logger = zmalloc(sizeof(struct logger_t));
+  for (int i = 0; i < MAX_CALLBACKS; i++) {
+    logger->callbacks[i].fn = NULL;
+    logger->callbacks[i].udata = NULL;
+    logger->callbacks[i].level = LOG_DEBUG;
+    logger->lock = NULL;
+    logger->udata = NULL;
+    logger->level = LOG_DEBUG;
+    logger->quiet = false;
+  }
   return logger; 
 }
 
