@@ -59,6 +59,7 @@ dict_func_t dict_thread_single_object_func = {
 
 
 void* thread_single_object_get(char* name) {
+    thread_single_object_manager_init();
     dict_t* object = (dict_t*)pthread_getspecific(thread_single_object_manager->latte_thread_key);
     if (object == NULL) {
         return NULL;
@@ -71,6 +72,7 @@ void* thread_single_object_get(char* name) {
 }
 
 void thread_single_object_delete(char* name) {
+    thread_single_object_manager_init();
     dict_t* object = (dict_t*)pthread_getspecific(thread_single_object_manager->latte_thread_key);
     if (object == NULL) {
         return;
@@ -88,6 +90,7 @@ void thread_single_object_delete(char* name) {
 }
 
 void* thread_single_object_set(char* name, void* value) {
+    thread_single_object_manager_init();
     dict_t* object = (dict_t*)pthread_getspecific(thread_single_object_manager->latte_thread_key);
     if (object == NULL) {
         object = dict_new(&dict_thread_single_object_func);
