@@ -57,7 +57,7 @@ int test_api() {
         #ifdef LATTE_TEST
             // ..... private method test
         #endif
-        thread_single_object_manager_init();
+        
         test_cond("thread_single_object function", 
             test_api_register() == 1);
     }
