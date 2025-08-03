@@ -25,6 +25,10 @@
 静态对象
 global_xxx
 
+模块
+初始化    xxx_module_init
+释放      xxx_module_destroy
+
 
 # 模块规范
 

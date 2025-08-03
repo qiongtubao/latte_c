@@ -28,7 +28,7 @@ void* get_tid(void* arg) {
 }
 
 int test_api_register() {
-    thread_single_object_register(sds_new("tid"), destroy_tid);
+    thread_single_object_register("tid", destroy_tid);
     tid_t* tid_obj = (tid_t*)thread_single_object_get("tid");
     test_cond("thread_single_object register", tid_obj == NULL);
     tid_obj = create_tid();
@@ -57,9 +57,10 @@ int test_api() {
         #ifdef LATTE_TEST
             // ..... private method test
         #endif
-        thread_single_object_manager_init();
+        thread_single_object_module_init();
         test_cond("thread_single_object function", 
             test_api_register() == 1);
+        thread_single_object_module_destroy();
     }
     return 1;
 }
