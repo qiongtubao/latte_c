@@ -55,7 +55,7 @@ int test_api(void) {
         #ifdef LATTE_TEST
             // ..... private
         #endif
-        log_init();
+        log_module_init();
         assert(log_add_stdout("test", LOG_DEBUG) == 1);
         assert(log_add_stdout("latte_lib", LOG_DEBUG) == 1);
         test_cond("about thread_pool_test function", 

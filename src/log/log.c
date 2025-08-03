@@ -101,7 +101,7 @@ static dict_func_t logger_dict_type = {
 
 
 
-void log_init() {
+void log_module_init() {
   global_logger_factory.loggers = dict_new(&logger_dict_type);
   global_logger_factory.timezone = get_time_zone();
   global_logger_factory.daylight_active = get_daylight_active(0);

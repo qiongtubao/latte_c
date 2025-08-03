@@ -23,14 +23,24 @@ bool init_io_uring(struct io_uring* io_uring_instance) {
     return true;
 }
 
+io_uring_thread_info_t* io_uring_thread_info_new() {
+    io_uring_thread_info_t* thread_info = (io_uring_thread_info_t*)zmalloc(sizeof(struct io_uring_thread_info_t));
+    init_io_uring(&thread_info->io_uring_instance);
+    thread_info->reqs_submitted = 0;
+    thread_info->reqs_finished = 0;
+    return thread_info;
+}
+
+void io_uring_thread_info_delete(void* arg) {
+    struct io_uring_thread_info_t* thread_info = (struct io_uring_thread_info_t*)arg;
+    io_uring_queue_exit(&thread_info->io_uring_instance);
+    zfree(thread_info);
+}
+
 struct io_uring_thread_info_t* get_or_new_thread_info() {
     struct io_uring_thread_info_t* thread_info = (struct io_uring_thread_info_t*)thread_single_object_get(SINGLE_IO_URING);
     if (thread_info == NULL) {
-        
-        thread_info = (io_uring_thread_info_t*)zmalloc(sizeof(struct io_uring_thread_info_t));
-        init_io_uring(&thread_info->io_uring_instance);
-        thread_info->reqs_submitted = 0;
-        thread_info->reqs_finished = 0;
+        thread_info = io_uring_thread_info_new();
         thread_single_object_set(SINGLE_IO_URING, thread_info);
     }
     return thread_info;
@@ -74,8 +84,9 @@ void handle_cqe( struct io_uring_cqe* cqe) {
         break;
     }
     latte_assert_with_info(req->callback != NULL, "callback is NULL");
-    req->callback(req);
     req->is_finished = true;
+    req->callback(req);
+    
 }
 
 
@@ -103,5 +114,27 @@ int async_io_each_finishd() {
     return count;
 }
 
+static bool is_init = false;
+
+int async_io_module_init() {
+    thread_single_object_module_init();
+    thread_single_object_register(SINGLE_IO_URING, io_uring_thread_info_delete);
+    return 1;
+}
 
 
+int async_io_module_destroy() {
+    thread_single_object_delete(SINGLE_IO_URING);
+    thread_single_object_unregister(SINGLE_IO_URING);
+    return 1;
+}
+
+int async_io_module_thread_init() {
+    
+    return 1;
+}
+
+int async_io_module_thread_destroy() {
+    thread_single_object_delete(SINGLE_IO_URING);
+    return 1;
+}

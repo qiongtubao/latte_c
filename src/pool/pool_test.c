@@ -24,7 +24,7 @@ int test_mem_pool() {
 }
 
 int test_api(void) {
-    log_init();
+    log_module_init();
     assert(log_add_stdout(LATTE_LIB, LOG_DEBUG) == 1);
     {
 #ifdef LATTE_TEST

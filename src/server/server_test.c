@@ -143,7 +143,7 @@ int test_api(void) {
         #ifdef LATTE_TEST
             // ..... private
         #endif
-        log_init();
+        log_module_init();
         log_add_stdout("latte_lib", LOG_DEBUG);
         test_cond("test server function", 
             test_server() == 1);

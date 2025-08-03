@@ -85,7 +85,7 @@ static struct logger_factory_t {
     long timezone;      //暂时把这2个属性先放这里  以后是否会移动到time模块  之后再说
     int daylight_active; 
 } global_logger_factory;
-void log_init();
+void log_module_init();
 
 
 void log_log(char* tag, int level, char *file, const char* function, int line, char *fmt, ...);

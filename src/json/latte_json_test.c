@@ -216,7 +216,7 @@ int test_decode() {
 }
 
 int test_api(void) {
-    log_init();
+    log_module_init();
     assert(log_add_stdout(LATTE_LIB, LOG_DEBUG) == 1);
     {
         

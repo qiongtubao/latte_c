@@ -335,7 +335,7 @@ int test_tree_run() {
 
 
 int test_api(void) {
-    log_init();
+    log_module_init();
     assert(log_add_stdout(LATTE_LIB, LOG_DEBUG) == 1);
     {
         #ifdef LATTE_TEST

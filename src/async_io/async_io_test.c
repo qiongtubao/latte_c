@@ -16,7 +16,7 @@
 #include <time.h>
 
 #define MAX_EVENTS 1024
-#define PORT 8080
+#define PORT 28080
 #define CLIENT_THREADS 4
 #define BUFFER_SIZE 16
 
@@ -36,6 +36,7 @@ static long long qps_counter = 0;
 
 void server_send_ok( async_io_request_t* request) {
     qps_counter++;
+    async_io_request_delete(request);
 }
 // 服务端线程函数
 void *server_thread(void *arg) {
@@ -45,7 +46,7 @@ void *server_thread(void *arg) {
     struct sockaddr_in addr;
     struct io_uring ring;
 
-    
+    async_io_module_thread_init();
     // 创建服务器socket
     if ((server_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)) == -1) {
         perror("socket");
@@ -168,7 +169,7 @@ void *server_thread(void *arg) {
             } 
             else {
                 // 处理客户端数据
-                struct conn_info *ci = malloc(sizeof(struct conn_info));
+                struct conn_info *ci = zmalloc(sizeof(struct conn_info));
                 if (!ci) {
                     perror("malloc");
                     close(events[i].data.fd);
@@ -208,6 +209,7 @@ void *server_thread(void *arg) {
                         break;
                     }
                 }
+                zfree(ci);
                 // pthread_mutex_lock(&counter_mutex);
                 
                 // pthread_mutex_unlock(&counter_mutex);
@@ -218,12 +220,14 @@ void *server_thread(void *arg) {
     close(epoll_fd);
     close(timer_fd);
     io_uring_queue_exit(&ring);
+    async_io_module_thread_destroy();
     return NULL;
 }
 
 // 客户端线程函数
 void *client_thread(void *arg) {
     thread_info* info = (thread_info*)arg;
+    async_io_module_thread_init();
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
         perror("client socket");
@@ -272,6 +276,7 @@ void *client_thread(void *arg) {
     }
     
     close(sock);
+    async_io_module_thread_destroy();
     return NULL;
 }
 
@@ -301,21 +306,23 @@ int test_server(bool server_read_async_io, bool server_write_async_io, bool clie
             continue;
         }
     }
-    sleep(30);
-    server_info.is_stop = true;
+    sleep(10);
+    
     client_info.is_stop = true;
-    pthread_join(server_tid, NULL);
+    
     for (int i = 0; i < CLIENT_THREADS; i++) {
         pthread_join(client_tids[i], NULL);
     }
-    
+    server_info.is_stop = true;
+    pthread_join(server_tid, NULL);
     return 1;
 }
 
 
 
 int test_api(void) {
-    log_init();
+    log_module_init();
+    async_io_module_init();
     assert(log_add_stdout(LATTE_LIB, LOG_DEBUG) == 1);
     {
         
@@ -323,6 +330,7 @@ int test_api(void) {
             test_server(false, true, false, false) == 1);
         
     } test_report()
+    async_io_module_destroy();
     return 1;
 }
 

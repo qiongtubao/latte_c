@@ -30,8 +30,12 @@ typedef struct async_io_request_t {
 
 async_io_request_t* net_write_request_new(int fd, char* buf, size_t len, void* ctx, void (*callback)( async_io_request_t* request));
 async_io_request_t* net_read_request_new(int fd, char* buf, size_t len, void* ctx, void (*callback)( async_io_request_t* request));
+void async_io_request_delete(async_io_request_t* request);
 
-
+int async_io_module_init();
+int async_io_module_destroy();
+int async_io_module_thread_init();
+int async_io_module_thread_destroy();
 
 
 int async_io_net_read(async_io_request_t* request);
