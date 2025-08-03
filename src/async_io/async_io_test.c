@@ -10,7 +10,6 @@
 #include <netinet/in.h>
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
-#include <liburing.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
@@ -44,7 +43,6 @@ void *server_thread(void *arg) {
     int server_fd, epoll_fd, timer_fd;
     struct epoll_event ev, events[MAX_EVENTS];
     struct sockaddr_in addr;
-    struct io_uring ring;
 
     async_io_module_thread_init();
     // 创建服务器socket
@@ -103,12 +101,7 @@ void *server_thread(void *arg) {
         exit(EXIT_FAILURE);
     }
     
-    // 初始化io_uring
-    if (io_uring_queue_init(1024, &ring, 0) < 0) {
-        perror("io_uring_init");
-        exit(EXIT_FAILURE);
-    }
-    
+
     printf("Server started on port %d\n", PORT);
 
     while (!info->is_stop) {
@@ -219,7 +212,6 @@ void *server_thread(void *arg) {
     close(server_fd);
     close(epoll_fd);
     close(timer_fd);
-    io_uring_queue_exit(&ring);
     async_io_module_thread_destroy();
     return NULL;
 }

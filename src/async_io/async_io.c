@@ -1,6 +1,10 @@
 
 
+
+#ifdef HAVE_LIBURING
 #include "async_io_iouring.c"
+#endif
+#include "async_io.h"
 #include "zmalloc/zmalloc.h"
 
 async_io_request_t* async_io_request_new(int fd, char* buf, size_t len, void* ctx, void (*callback)(async_io_request_t* request)) {

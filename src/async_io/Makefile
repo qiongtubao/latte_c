@@ -14,6 +14,5 @@ include $(LATTE_LIB_WORKSPACE)/src/sds/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/debug/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/thread_single_object/lib.mk
-
 include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
-FINAL_CC_LIBS+= -luring
+include $(LATTE_LIB_WORKSPACE)/mks/async_io.mk
