@@ -90,7 +90,7 @@ void handle_cqe( struct io_uring_cqe* cqe) {
 }
 
 
-int async_io_each_finishd() {
+int async_io_each_finished() {
     struct io_uring_thread_info_t* thread_info = get_or_new_thread_info();
     if (thread_info->reqs_submitted == thread_info->reqs_finished) {
         return 0;

@@ -20,6 +20,8 @@
 #define PROTO_MBULK_BIG_ARG     (1024*32)
 
 #define NET_MAX_WRITES_PER_EVENT (1024*64)
+
+#define CLIENT_ASYNC_IO_MAX_SIZE 1024  //buffer size
 /* 该结构用于表示客户端的输出缓冲区，
 * 它实际上是一个这样的块的链接列表，即：客户端->回复。 */
 typedef struct client_reply_block_t {
@@ -44,6 +46,8 @@ typedef struct latte_client_t {
     size_t reply_bytes;
 
     size_t sentlen;
+    async_io_request_t* async_io_request_cache;
+    struct list_node_t* async_io_client_node;
 } latte_client_t;
 
 void protected_init_latte_client(latte_client_t* client);

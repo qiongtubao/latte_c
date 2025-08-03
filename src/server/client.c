@@ -1,9 +1,18 @@
 #include "client.h"
 #include <assert.h>
 #include <string.h>
+// #ifdef USE_ASYNC_IO
+#include "async_io/async_io.h"
+// #endif
 sds_t latte_client_info_to_sds(latte_client_t* client);
 
 
+void client_async_io_write_finished(async_io_request_t* request) {
+    latte_client_t* client = request->ctx;
+    list_del_node(client->server->clients_async_pending_write, client->async_io_client_node);
+    client->async_io_client_node = NULL;
+    request->len = -1;
+}
 
 /**client **/
 void protected_init_latte_client(latte_client_t* client) {
@@ -15,6 +24,10 @@ void protected_init_latte_client(latte_client_t* client) {
     client->reply_bytes = 0;
     client->bufpos = 0;
     client->sentlen = 0;
+    client->async_io_request_cache = net_write_request_new(-1, 
+        zmalloc(CLIENT_ASYNC_IO_MAX_SIZE), 
+        -1, client, client_async_io_write_finished);
+    client->async_io_client_node = NULL;
 }
 
 
@@ -22,7 +35,7 @@ void clientAcceptHandler(connection *conn) {
     latte_client_t *c = connGetPrivateData(conn);
 
     if (connGetState(conn) != CONN_STATE_CONNECTED) {
-        log_error("latte_c", "Error accepting a client connection: %s\n", connGetLastError(conn));
+        LATTE_LIB_LOG(LOG_ERROR, "Error accepting a client connection: %s\n", connGetLastError(conn));
         free_latte_client_async(c);
         return;
     }
@@ -42,7 +55,7 @@ void init_latte_client(struct aeEventLoop* el, latte_client_t* c, struct connect
     if (connAccept(el, conn, clientAcceptHandler) == CONNECTION_ERR) {
         char conninfo[100];
         if (connGetState(conn) == CONN_STATE_ERROR) {
-            log_error("latte_c", "Error accepting a client connection: %s (conn: %s)\n", 
+            LATTE_LIB_LOG(LOG_ERROR, "Error accepting a client connection: %s (conn: %s)\n", 
                 connGetLastError(conn), 
                 connGetInfo(conn, conninfo, sizeof(conninfo))
             );
@@ -62,6 +75,7 @@ void destory_latte_client(latte_client_t* client) {
 
 
 void link_latte_client(latte_server_t* server, latte_client_t* c) {
+    LATTE_LIB_LOG(LOG_DEBUG,"link_latte_client %d", c->conn->fd);
     list_add_node_tail(server->clients, c);
     /* 请注意，我们记住了存储客户端的链表节点，这样在 unlinkClient() 中移除客户端将不需要进行线性扫描，而只需要进行一个常数时间的操作。 */
     c->client_list_node = list_last(server->clients);
@@ -77,6 +91,7 @@ void link_latte_client(latte_server_t* server, latte_client_t* c) {
  * 这是由freeClient()和replicationCacheMaster()使用的。
  */
 void unlink_latte_client(latte_client_t* c) {
+    LATTE_LIB_LOG(LOG_DEBUG,"unlink_latte_client %d", c->conn->fd);
     latte_server_t* server = c->server;
     list_node_t *ln;
     if (c->conn) {
@@ -92,7 +107,7 @@ void unlink_latte_client(latte_client_t* c) {
 }
 
 void free_latte_client(latte_client_t *c) {
-    log_debug("latte_c","freeClient %d\n", c->conn->fd);
+    LATTE_LIB_LOG(LOG_DEBUG,"freeClient %d\n", c->conn->fd);
     latte_server_t* server = c->server;
     unlink_latte_client(c);
     destory_latte_client(c);
@@ -106,7 +121,7 @@ void free_latte_client_async(latte_client_t *c) {
     free_latte_client(c);
 }
 
-void readQueryFromClient(connection *conn) {
+void readQueryFromClient(connection *conn) { 
     latte_client_t *c = connGetPrivateData(conn);
     int nread, readlen;
     size_t qblen;
@@ -142,7 +157,7 @@ void readQueryFromClient(connection *conn) {
         if (connGetState(conn) == CONN_STATE_CONNECTED) {
             return;
         } else {
-            log_error("latte_c", "Reading from client: %s\n",connGetLastError(c->conn));
+            LATTE_LIB_LOG(LOG_ERROR, "Reading from client: %s\n",connGetLastError(c->conn));
             free_latte_client_async(c);
             return;
         }
@@ -151,6 +166,7 @@ void readQueryFromClient(connection *conn) {
         return;
     } 
     sds_incr_len(c->querybuf,nread);
+    LATTE_LIB_LOG(LOG_DEBUG, "readQueryFromClient exec %s %d", c->querybuf, nread);
     if (c->exec(c, nread)) {
         //清理掉c->querybuf
         sds_range(c->querybuf,c->qb_pos,-1);
@@ -202,6 +218,21 @@ void _add_reply_proto_to_list(latte_client_t* c, const char* s, size_t len) {
 }
 
 void add_reply_proto(latte_client_t* c, const char* s, size_t len) {
+    //TODO use async_io 
+    // #ifdef USE_ASYNC_IO
+    if (c->server->use_async_io && len < CLIENT_ASYNC_IO_MAX_SIZE) {
+        LATTE_LIB_LOG(LOG_DEBUG, "add_reply_proto use async_io %d", len);
+        memcpy(c->async_io_request_cache->buf, s, len); 
+        c->async_io_request_cache->len = len;
+        if (async_io_net_write(c->async_io_request_cache)) {
+            list_add_node_tail(c->server->clients_async_pending_write, c);
+            return;
+        } else {
+            c->async_io_request_cache->len = -1;
+        }
+    }
+    // #endif
+    LATTE_LIB_LOG(LOG_DEBUG, "add_reply_proto use buffer %d", len);
     list_add_node_tail(c->server->clients_pending_write, c);
     if (_add_reply_to_buffer(c,s,len) != 0)
         _add_reply_proto_to_list(c,s,len);
@@ -220,6 +251,7 @@ int clientHasPendingReplies(latte_client_t *c) {
  * set to 0. So when handler_installed is set to 0 the function must be
  * thread safe. */
 int writeToClient(latte_client_t *c, int handler_installed) {
+    LATTE_LIB_LOG(LOG_DEBUG, "writeToClient %d", c->conn->fd);
     /* Update total number of writes on server */
     // atomicIncr(c->server.stat_total_writes_processed, 1);
     

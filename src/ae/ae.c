@@ -51,6 +51,7 @@ aeEventLoop *aeCreateEventLoop(int setsize) {
     eventLoop->maxfd = -1;
     eventLoop->beforesleep = NULL;
     eventLoop->beforesleeps = list_new();
+    eventLoop->beforesleeps->free = latte_func_task_delete;
     eventLoop->aftersleep = NULL;
     eventLoop->aftersleeps = list_new();
     eventLoop->flags = 0;
@@ -119,6 +120,14 @@ void aeDeleteEventLoop(aeEventLoop *eventLoop) {
         next_te = te->next;
         zfree(te);
         te = next_te;
+    }
+    if (eventLoop->beforesleeps != NULL) {
+        list_delete(eventLoop->beforesleeps);
+        eventLoop->beforesleeps = NULL;
+    }
+    if (eventLoop->aftersleeps != NULL) {
+        list_delete(eventLoop->aftersleeps);
+        eventLoop->aftersleeps = NULL;
     }
     zfree(eventLoop);
 }

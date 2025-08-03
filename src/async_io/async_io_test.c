@@ -123,7 +123,7 @@ void *server_thread(void *arg) {
         //     qps_counter++;
         // }
         // io_uring_cq_advance(&ring, count);
-        async_io_each_finishd();
+        async_io_each_finished();
         // 等待epoll事件
         int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
         if (nfds == -1) {

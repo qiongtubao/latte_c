@@ -59,3 +59,12 @@ jobs:
           sudo apt-get install -y lcov liburing-dev
           echo run async_io_asan_test
           make async_io_asan_test
+  server_asan_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: server_asan_test
+        run: |
+          sudo apt-get install -y lcov liburing-dev
+          echo run server_asan_test
+          make server_asan_test

@@ -35,11 +35,11 @@ int listenToPort(struct latte_server_t* server,char* neterr, vector_t* bind, int
         if (strchr(addr, ':')) {
             sfd->fd[sfd->count] = anetTcp6Server(neterr,port,addr,tcp_backlog);
         } else {
-            sfd->fd[sfd->count] = anetTcpServer(neterr,port,addr,tcp_backlog);
+            sfd->fd[sfd->count] = anetTcpServer(neterr ,port,"*",tcp_backlog);
         }
         if (sfd->fd[sfd->count] == ANET_ERR) {
             int net_errno = errno;
-            log_error("latte_c",
+            LATTE_LIB_LOG(LOG_ERROR,
                 "Warning: Could not create_server TCP listening socket %s:%d: %s\n",
                 addr, port, neterr);
             if (net_errno == EADDRNOTAVAIL && optional) {
@@ -129,10 +129,18 @@ void sendReplyToClient(connection *conn) {
  * need to use a syscall in order to install the writable event handler,
  * get it called, and so forth. */
 int handleClientsWithPendingWrites(latte_server_t* server) {
+    
+    while (server->clients_async_pending_write != NULL 
+        && list_length(server->clients_async_pending_write) != 0) {
+        LATTE_LIB_LOG(LOG_DEBUG, "handleClientsWithPendingWrites async_io_each_finished");
+        async_io_each_finished();
+    }
+    
     list_iterator_t li;
     list_node_t* ln;
     int processed = list_length(server->clients_pending_write);
     if (processed == 0) return 0;
+    LATTE_LIB_LOG(LOG_DEBUG, "handleClientsWithPendingWrites processed %d", processed);
     // LATTE_LIB_LOG(LL_DEBUG, "processed %d", processed);
     list_rewind(server->clients_pending_write, &li);
     while((ln = list_next(&li))) {
@@ -142,10 +150,16 @@ int handleClientsWithPendingWrites(latte_server_t* server) {
 
         /* If a client is protected, don't do anything,
          * that may trigger write error or recreate handler. */
-        if (c->flags & CLIENT_PROTECTED) continue;
+        if (c->flags & CLIENT_PROTECTED) {
+            LATTE_LIB_LOG(LOG_DEBUG, "CLIENT_PROTECTED (fd)%d (flags)%d", c->conn->fd, c->flags);
+            continue;
+        }
 
         /* Don't write to clients that are going to be closed anyway. */
-        if (c->flags & CLIENT_CLOSE_ASAP) continue;
+        if (c->flags & CLIENT_CLOSE_ASAP) {
+            LATTE_LIB_LOG(LOG_DEBUG, "CLIENT_CLOSE_ASAP (fd)%d (flags)%d", c->conn->fd, c->flags);
+            continue;
+        }
 
         /* Try to write buffers to the client socket. */
         if (writeToClient(c,0) == -1) continue;
@@ -217,7 +231,7 @@ int start_latte_server(latte_server_t* server) {
         exit(1);
     }
     aeAddBeforeSleepTask(server->el, latte_func_task_new(send_clients, NULL, 1, server));
-    LATTE_LIB_LOG(LOG_INFO, "start latte server success PID: %lld\n" , getpid());
+    LATTE_LIB_LOG(LOG_INFO, "start latte server success PID: %lld" , getpid());
 
     /* Create the timer callback, this is our way to process many background
      * operations incrementally, like clients timeout, eviction of unaccessed
@@ -244,7 +258,7 @@ static void acceptCommonHandler(latte_server_t* server,connection *conn, int fla
     char conninfo[100];
     UNUSED(ip);
     if (connGetState(conn) != CONN_STATE_ACCEPTING) {
-        log_error("latte_c", "Accepted client connection in error state: %s (conn: %s)",
+        LATTE_LIB_LOG(LOG_ERROR, "Accepted client connection in error state: %s (conn: %s)",
             connGetLastError(conn),
             connGetInfo(conn, conninfo, sizeof(conninfo)));
         connClose(server->el,conn);
@@ -274,7 +288,7 @@ static void acceptCommonHandler(latte_server_t* server,connection *conn, int fla
     /* Create connection and client */
     c = server->createClient();
     if (c == NULL) {
-        log_error("latte_c", "Error registering fd event for the new client: %s (conn: %s)\n",
+        LATTE_LIB_LOG(LOG_ERROR, "Error registering fd event for the new client: %s (conn: %s)\n",
             connGetLastError(conn),
             connGetInfo(conn, conninfo, sizeof(conninfo)));
         connClose(server->el, conn); /* May be already closed, just ignore errors */
@@ -285,11 +299,11 @@ static void acceptCommonHandler(latte_server_t* server,connection *conn, int fla
     c->conn = conn;
     c->id = getClientId(server);
     c->server = server;
-    log_debug("latte_c","create client fd:%d", c->conn->fd);
+    LATTE_LIB_LOG(LOG_DEBUG,"create client fd:%d", c->conn->fd);
 
     if (conn) {
-        connNonBlock(conn);
-        connEnableTcpNoDelay(conn);
+        connNonBlock(conn);         // 设置非阻塞
+        connEnableTcpNoDelay(conn); // 设置TCP_NODELAY
         // if (server.tcpkeepalive)
         //     connKeepAlive(conn,server.tcpkeepalive);
         connSetReadHandler(server->el, conn, readQueryFromClient);
@@ -305,18 +319,17 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     int cport, cfd, max = MAX_ACCEPTS_PER_CALL;
     char cip[NET_IP_STR_LEN];
     latte_server_t* server = (latte_server_t*)(privdata);
-
     while(max--) {
         cfd = anetTcpAccept(server->neterr, fd, cip, sizeof(cip), &cport);
         if (cfd == ANET_ERR) {
             if (errno != EWOULDBLOCK)
-                log_error("latte_c",
+                LATTE_LIB_LOG(LOG_ERROR,
                     "Accepting client connection: %s", server->neterr);
             return;
         }
         anetCloexec(cfd);
         connection * c = connCreateAcceptedSocket(cfd);
-        log_debug("latte_c","Accepted %s:%d %d", cip, cport, cfd);
+        LATTE_LIB_LOG(LOG_INFO ,"Accepted %s:%d %d", cip, cport, cfd);
         acceptCommonHandler(server, c, 0, cip);
     }
 }
@@ -328,6 +341,9 @@ void init_latte_server(latte_server_t* server) {
     server->next_client_id = 0;
     server->clients_pending_write = list_new();
     server->cron_manager = cron_manager_new();
+    server->use_async_io = false;
+    server->ipfd.count = 0;
+    server->clients_async_pending_write = list_new();
 }
 
 void destory_latte_server(latte_server_t* server) {

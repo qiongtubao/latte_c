@@ -26,3 +26,11 @@ void exec_task(latte_func_task_t* task) {
 void callback_task(latte_func_task_t* task) {
     if (task->cb) task->cb(task);
 }
+
+void latte_func_task_delete(latte_func_task_t* task) {
+    if (task->args != NULL) {
+        zfree(task->args);
+        task->args = NULL;
+    }
+    zfree(task);
+}
