@@ -198,6 +198,7 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
     cron_manager_run(server->cron_manager, server);
     return 1;
 }
+
 //启动latte server
 int start_latte_server(latte_server_t* server) {
     LATTE_LIB_LOG(LOG_INFO, "start latte server %lld %lld !!!!!", server->port, server->tcp_backlog);
@@ -245,6 +246,9 @@ int start_latte_server(latte_server_t* server) {
     return 1;
 }
 int stop_latte_server(struct latte_server_t* server) {
+    if (server->use_async_io) {
+        handleClientsWithPendingWrites(server);
+    }
     aeStop(server->el);
     return 1;
 }

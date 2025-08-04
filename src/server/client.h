@@ -21,7 +21,7 @@
 
 #define NET_MAX_WRITES_PER_EVENT (1024*64)
 
-#define CLIENT_ASYNC_IO_MAX_SIZE 1024  //buffer size
+#define CLIENT_ASYNC_IO_MAX_SIZE  (1024*16)  //buffer size
 /* 该结构用于表示客户端的输出缓冲区，
 * 它实际上是一个这样的块的链接列表，即：客户端->回复。 */
 typedef struct client_reply_block_t {

@@ -12,6 +12,7 @@ void client_async_io_write_finished(async_io_request_t* request) {
     list_del_node(client->server->clients_async_pending_write, client->async_io_client_node);
     client->async_io_client_node = NULL;
     request->len = -1;
+    request->is_finished = false;
 }
 
 /**client **/
@@ -224,8 +225,10 @@ void add_reply_proto(latte_client_t* c, const char* s, size_t len) {
         LATTE_LIB_LOG(LOG_DEBUG, "add_reply_proto use async_io %d", len);
         memcpy(c->async_io_request_cache->buf, s, len); 
         c->async_io_request_cache->len = len;
+        c->async_io_request_cache->fd = c->conn->fd;
         if (async_io_net_write(c->async_io_request_cache)) {
             list_add_node_tail(c->server->clients_async_pending_write, c);
+            c->async_io_client_node = list_last(c->server->clients_async_pending_write);
             return;
         } else {
             c->async_io_request_cache->len = -1;

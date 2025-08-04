@@ -46,6 +46,7 @@ int echoHandler(struct latte_client_t* lc, int nread) {
     // struct client* c = (struct client*)lc; 
     if (strncmp(lc->querybuf, "quit", 4) == 0) {
         lc->qb_pos = 4;
+        add_reply_proto(lc, "bye", 3);
         stop_latte_server(lc->server);
         LATTE_LIB_LOG(LOG_DEBUG,"quit");
         return 1;
@@ -93,6 +94,14 @@ void print_cron(void* arg) {
     // log_error("latte_lib","print_cron\n");
 }
 
+int is_linux() {
+    #ifdef __linux__
+        LATTE_LIB_LOG(LOG_DEBUG, "is_linux");
+        return 1;
+    #endif
+    return 0;
+}
+
 void *server_thread(void *arg) {
     struct latte_server_t* server = zmalloc(sizeof(struct latte_server_t));
     server->port = PORT;
@@ -106,6 +115,10 @@ void *server_thread(void *arg) {
     server->tcp_backlog = 512;
     cron_t* cron = cron_new(print_cron, 1);
     cron_manager_add_cron(server->cron_manager, cron);
+    if (is_linux()) {
+        async_io_module_init();
+        server->use_async_io = true;
+    }
     start_latte_server(server);
     //end of server
     while (vector_size(server->bind) > 0) {
@@ -119,6 +132,9 @@ void *server_thread(void *arg) {
     raxFree(server->clients_index);
     list_delete(server->clients_pending_write);
     list_delete(server->clients_async_pending_write);
+    if (is_linux()) {
+        async_io_module_destroy();
+    }
     zfree(server);
 }
 
@@ -173,6 +189,8 @@ int test_server() {
     send(sock, quit, strlen(quit), 0);
     log_debug("latte_c_server", "Quit message sent\n");
 
+    valread = read(sock, buffer, BUFFER_SIZE);
+    assert(strncmp("bye", buffer, 3) == 0);
     // 关闭socket
     close(sock);
 
