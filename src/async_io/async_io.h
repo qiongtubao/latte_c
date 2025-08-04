@@ -42,7 +42,7 @@ int async_io_net_read(async_io_request_t* request);
 int async_io_net_write(async_io_request_t* request);
 int async_io_file_read(async_io_request_t* request);
 int async_io_file_write(async_io_request_t* request);
-int async_io_each_finishd();
+int async_io_each_finished();
 
 
 

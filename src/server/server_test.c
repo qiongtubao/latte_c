@@ -68,7 +68,7 @@ int echoHandler(struct latte_client_t* lc, int nread) {
     return client;
 }
 
-void freeLatteClient(struct latte_client_t* client) {
+void freeLatteClient(latte_client_t* client) {
     sds_delete(client->querybuf);
     zfree(client->async_io_request_cache->buf);
     zfree(client->async_io_request_cache);
@@ -76,6 +76,11 @@ void freeLatteClient(struct latte_client_t* client) {
 
     zfree(client->conn);
     zfree(client);
+}
+
+void _freeLatteClient(void* p) {
+    latte_client_t* client = (latte_client_t*)p;
+    freeLatteClient(client);
 }
 
 vector_t* test_bind_vector_new() {
@@ -120,13 +125,14 @@ void *server_thread(void *arg) {
         server->use_async_io = true;
     }
     start_latte_server(server);
+    LATTE_LIB_LOG(LOG_DEBUG, "server_thread end");
     //end of server
     while (vector_size(server->bind) > 0) {
         value_t* addr = vector_pop(server->bind);
         value_delete(addr);
     }
     vector_delete(server->bind);
-    server->clients->free = freeLatteClient;
+    server->clients->free = _freeLatteClient;
     list_delete(server->clients);
     cron_manager_delete(server->cron_manager);
     raxFree(server->clients_index);
@@ -136,6 +142,7 @@ void *server_thread(void *arg) {
         async_io_module_destroy();
     }
     zfree(server);
+    LATTE_LIB_LOG(LOG_DEBUG, "server_thread end");
 }
 
 int test_server() {

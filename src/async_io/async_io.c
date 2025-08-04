@@ -2,8 +2,11 @@
 
 
 #ifdef HAVE_LIBURING
-#include "async_io_iouring.c"
+    #include "async_io_iouring.c"
+#else
+    #include "async_io_dispatch.c"
 #endif
+
 #include "async_io.h"
 #include "zmalloc/zmalloc.h"
 

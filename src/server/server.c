@@ -246,9 +246,7 @@ int start_latte_server(latte_server_t* server) {
     return 1;
 }
 int stop_latte_server(struct latte_server_t* server) {
-    if (server->use_async_io) {
-        handleClientsWithPendingWrites(server);
-    }
+    call_before_sleep(server->el);
     aeStop(server->el);
     return 1;
 }
