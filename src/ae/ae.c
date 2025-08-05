@@ -33,6 +33,9 @@
     #endif
 #endif
 
+void _latte_func_task_delete(void* task) {
+    latte_func_task_delete((latte_func_task_t*)task);
+}
 
 aeEventLoop *aeCreateEventLoop(int setsize) {
     aeEventLoop *eventLoop;
@@ -51,6 +54,7 @@ aeEventLoop *aeCreateEventLoop(int setsize) {
     eventLoop->maxfd = -1;
     eventLoop->beforesleep = NULL;
     eventLoop->beforesleeps = list_new();
+    eventLoop->beforesleeps->free = _latte_func_task_delete;
     eventLoop->aftersleep = NULL;
     eventLoop->aftersleeps = list_new();
     eventLoop->flags = 0;
@@ -119,6 +123,14 @@ void aeDeleteEventLoop(aeEventLoop *eventLoop) {
         next_te = te->next;
         zfree(te);
         te = next_te;
+    }
+    if (eventLoop->beforesleeps != NULL) {
+        list_delete(eventLoop->beforesleeps);
+        eventLoop->beforesleeps = NULL;
+    }
+    if (eventLoop->aftersleeps != NULL) {
+        list_delete(eventLoop->aftersleeps);
+        eventLoop->aftersleeps = NULL;
     }
     zfree(eventLoop);
 }
@@ -303,6 +315,19 @@ static int processTimeEvents(aeEventLoop *eventLoop) {
     return processed;
 }
 
+void call_before_sleep(aeEventLoop *eventLoop) {
+    if ( eventLoop->beforesleep != NULL ) eventLoop->beforesleep(eventLoop);
+    if ( list_length(eventLoop->beforesleeps) > 0) {
+        list_node_t* ln;
+        list_iterator_t li;
+        list_rewind(eventLoop->beforesleeps, &li);
+        while((ln = list_next(&li))) {
+            latte_func_task_t *t = list_node_value(ln);
+            exec_task(t);
+        }
+    }
+}
+
 /* Process every pending time event, then every pending file event
  * (that may be registered by time event callbacks just processed).
  * Without special flags the function sleeps until some file event
@@ -361,17 +386,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
         }
 
         if ( flags & AE_CALL_BEFORE_SLEEP) {
-            if ( eventLoop->beforesleep != NULL ) eventLoop->beforesleep(eventLoop);
-            if ( list_length(eventLoop->beforesleeps) > 0) {
-                list_node_t* ln;
-                list_iterator_t li;
-                list_rewind(eventLoop->beforesleeps, &li);
-                while((ln = list_next(&li))) {
-                    latte_func_task_t *t = list_node_value(ln);
-                    exec_task(t);
-                }
-
-            }
+            call_before_sleep(eventLoop);
         }
             
 

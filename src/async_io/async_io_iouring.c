@@ -7,6 +7,9 @@
 #include <errno.h>
 #include "debug/latte_debug.h"
 #include "utils/utils.h"
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
 #define SINGLE_IO_URING ("async_io_iouring")
 typedef struct io_uring_thread_info_t {
     struct io_uring io_uring_instance;
@@ -49,6 +52,15 @@ struct io_uring_thread_info_t* get_or_new_thread_info() {
 
 
 int async_io_net_write(async_io_request_t* request) {
+    latte_assert_with_info(request->fd >= 0, "fd is not valid\n");
+    latte_assert_with_info(request->buf != NULL, "buf is not valid\n");
+    latte_assert_with_info(request->len > 0, "len is not valid\n");
+    latte_assert_with_info(request->callback != NULL, "callback is not valid\n");
+    latte_assert_with_info(request->is_finished == false, "request is finished\n");
+    latte_assert_with_info(request->is_canceled == false, "request is canceled\n");
+    latte_assert_with_info(request->error == NULL, "error is not valid\n");
+    latte_assert_with_info(request->type == ASYNC_IO_NET_WRITE, "type is not valid\n");
+    LATTE_LIB_LOG(LOG_DEBUG, "async_io_net_write %d %d", request->fd, request->len);
     struct io_uring_thread_info_t* thread_info = get_or_new_thread_info();
     struct io_uring* io_uring_instance = &thread_info->io_uring_instance;
     struct io_uring_sqe* sqe = io_uring_get_sqe(io_uring_instance);
@@ -62,6 +74,7 @@ int async_io_net_write(async_io_request_t* request) {
 void handle_cqe( struct io_uring_cqe* cqe) {
     async_io_request_t *req = (async_io_request_t *)io_uring_cqe_get_data(cqe);
     latte_assert_with_info(req->is_finished == false, "request is finished");
+    LATTE_LIB_LOG(LOG_DEBUG, "handle_cqe %d %d", req->type, cqe->res);
     switch (req->type)
         {
         case ASYNC_IO_NET_WRITE:
@@ -70,14 +83,14 @@ void handle_cqe( struct io_uring_cqe* cqe) {
             break;
         case ASYNC_IO_NET_READ:
             if (cqe->res < 0) {
-                fprintf(stderr, "Async read socket failed: %d\n", (cqe->res));
-                req->error = error_new(CIOError, "async_io_net_read", "%d",(cqe->res));
+                LATTE_LIB_LOG(LOG_ERROR, "Async read socket(%d) failed: %d %s", req->fd, (cqe->res), strerror(-(cqe->res)));
+                req->error = error_new(CIOError, "async_io_net_read", "%d %s",(cqe->res), strerror(-(cqe->res)));
             }
         break;
         case ASYNC_IO_FILE_READ:
             if (cqe->res < 0) {
-                fprintf(stderr, "Async read file failed: %d\n", (cqe->res));
-                req->error = error_new(CIOError, "async_io_net_read", "%d", (cqe->res));
+                LATTE_LIB_LOG(LOG_ERROR, "Async read file(%d) failed: %d %s ", req->fd, (cqe->res), strerror(-(cqe->res)));
+                req->error = error_new(CIOError, "async_io_net_read", "%d %s", (cqe->res), strerror(-(cqe->res)));
             }
             break;
     default:
@@ -90,7 +103,7 @@ void handle_cqe( struct io_uring_cqe* cqe) {
 }
 
 
-int async_io_each_finishd() {
+int async_io_each_finished() {
     struct io_uring_thread_info_t* thread_info = get_or_new_thread_info();
     if (thread_info->reqs_submitted == thread_info->reqs_finished) {
         return 0;
@@ -102,9 +115,6 @@ int async_io_each_finishd() {
     unsigned count = 0;
     
     io_uring_for_each_cqe(io_uring_instance, head, cqe) {
-        if (cqe->res < 0) {
-            fprintf(stderr, "Async write failed: %d\n", (cqe->res));
-        }
         handle_cqe(cqe);
         count++;
         
@@ -117,20 +127,27 @@ int async_io_each_finishd() {
 static bool is_init = false;
 
 int async_io_module_init() {
+    if (is_init) {
+        return 1;
+    }
     thread_single_object_module_init();
     thread_single_object_register(SINGLE_IO_URING, io_uring_thread_info_delete);
+    is_init = true;
     return 1;
 }
 
 
 int async_io_module_destroy() {
+    if (!is_init) {
+        return 1;
+    }
     thread_single_object_delete(SINGLE_IO_URING);
     thread_single_object_unregister(SINGLE_IO_URING);
+    is_init = false;
     return 1;
 }
 
-int async_io_module_thread_init() {
-    
+int async_io_module_thread_init() {    
     return 1;
 }
 

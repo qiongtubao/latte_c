@@ -60,7 +60,7 @@ static inline void resetEventMask(char *eventsMask, int fd) {
 }
 
 static int aeApiCreate(aeEventLoop *eventLoop) {
-    log_debug("latte_c", "[aeApiCreate] ae use kqueue");
+    LATTE_LIB_LOG(LOG_DEBUG, "[aeApiCreate] ae use kqueue");
     aeApiState *state = zmalloc(sizeof(aeApiState));
 
     if (!state) return -1;

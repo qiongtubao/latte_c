@@ -105,4 +105,6 @@ int aeGetSetSize(aeEventLoop *eventLoop);
 int aeResizeSetSize(aeEventLoop *eventLoop, int setsize);
 void aeSetDontWait(aeEventLoop *eventLoop, int noWait);
 
+
+void call_before_sleep(aeEventLoop *eventLoop);
 #endif

@@ -1,6 +1,7 @@
 #include "thread_single_object.h"
 #include "dict/dict_plugins.h"
 #include "debug/latte_debug.h"
+#include "utils/utils.h"
 
 thread_single_entry_t* thread_single_entry_new(void (*destroy)(void* arg)) {
     thread_single_entry_t* entry = (thread_single_entry_t*)zmalloc(sizeof(thread_single_entry_t));

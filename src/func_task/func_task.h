@@ -20,6 +20,7 @@ typedef struct latte_func_task_t {
 latte_func_task_t* latte_func_task_new(task_fn* exec, callback_fn* cb,int argv, ...);
 void exec_task(latte_func_task_t*);
 void callback_task(latte_func_task_t*);
+void latte_func_task_delete(latte_func_task_t* task);
 
 
 #endif
