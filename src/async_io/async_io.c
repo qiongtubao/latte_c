@@ -1,9 +1,9 @@
 
 
-
+#include "utils/sys_config.h"
 #ifdef HAVE_LIBURING
     #include "async_io_iouring.c"
-#else
+#elif HAVE_DISPATCH
     #include "async_io_dispatch.c"
 #endif
 

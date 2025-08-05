@@ -1,4 +1,7 @@
 # 命名规范
+c 语言系统判断在 utils/sys_config.h 
+
+
 类名  
 ```c
   typedef struct {
@@ -57,3 +60,11 @@ global_xxx
       FINAL_CC_LIBS:= ../../deps/json-c/build/libjson-c.a $(FINAL_CC_LIBS)
       FINAL_CXX_LIBS:= ../../deps/json-c/build/libjson-c.a $(FINAL_CXX_LIBS)
     ```
+
+
+# 测试
+## macos
+make mac_test -j4
+
+## linux
+make asan_test -j4

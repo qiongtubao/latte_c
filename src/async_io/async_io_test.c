@@ -8,8 +8,10 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <sys/epoll.h>
-#include <sys/timerfd.h>
+#include <arpa/inet.h>
+// #include <sys/epoll.h>
+// #include <sys/timerfd.h>
+#include "ae/ae.h"
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
@@ -37,16 +39,93 @@ void server_send_ok( async_io_request_t* request) {
     qps_counter++;
     async_io_request_delete(request);
 }
+
+
+void client_read(aeEventLoop* el, int fd, void* privdata, int mask) {
+    thread_info* info = (thread_info*)privdata;
+    struct conn_info *ci = zmalloc(sizeof(struct conn_info));
+    if (!ci) {
+        perror("malloc");
+        aeDeleteFileEvent(el, ci->fd, AE_READABLE);
+        close(fd);
+        return;
+    }
+    
+    ci->fd = fd;
+    ssize_t len = 0;
+    if (info->read_async_io) {
+        //TODO
+    } else {
+       
+        len = read(ci->fd, ci->buffer, BUFFER_SIZE);
+        if (len <= 0) {
+            aeDeleteFileEvent(el, ci->fd, AE_READABLE);
+            close(ci->fd);
+            free(ci);
+            return;
+        }
+    }
+    if (info->write_async_io) {
+        // 提交异步写请求
+        // struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
+        // if (!sqe) {
+        //     fprintf(stderr, "No free SQEs\n");
+        //     close(ci->fd);
+        //     free(ci);
+        //     continue;
+        // }
+        
+        // io_uring_prep_send(sqe, ci->fd, ci->buffer, len, 0);
+        // io_uring_sqe_set_data(sqe, ci);
+        // io_uring_submit(&ring);
+        async_io_net_write(net_write_request_new(ci->fd, ci->buffer, len, NULL, server_send_ok));
+    } else {
+        if (write(ci->fd, ci->buffer, len) < 0) {
+            printf("client write error\n");
+            perror("client write");
+            return;
+        }
+        qps_counter++;
+    }
+    zfree(ci);
+
+}
+void server_accept(aeEventLoop* el, int fd, void* privdata, int mask) {
+    printf("server_accept\n");
+    struct sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
+    int client_fd = accept(fd, (struct sockaddr *)&client_addr, &addr_len);
+    if (client_fd == -1) {
+        perror("accept");
+        return;
+    }
+    fcntl(client_fd, F_SETFL, O_NONBLOCK);
+    aeCreateFileEvent(el, client_fd, AE_READABLE, client_read, privdata);            
+}
+
+int server_timer(aeEventLoop* el, long long id, void* privdata) {
+    // printf("server_timer\n");
+    // uint64_t expirations;
+    // read(fd, &expirations, sizeof(expirations));
+    
+    // pthread_mutex_lock(&counter_mutex);
+    printf("QPS: %d\n", qps_counter);
+    qps_counter = 0;
+    // pthread_mutex_unlock(&counter_mutex);
+    return 1000;
+}
 // 服务端线程函数
 void *server_thread(void *arg) {
     thread_info* info = (thread_info*)arg;
     int server_fd, epoll_fd, timer_fd;
-    struct epoll_event ev, events[MAX_EVENTS];
+    // struct epoll_event ev, events[MAX_EVENTS];
+    aeEventLoop* el = aeCreateEventLoop(1024);
     struct sockaddr_in addr;
 
     async_io_module_thread_init();
     // 创建服务器socket
-    if ((server_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)) == -1) {
+    //| SOCK_NONBLOCK
+    if ((server_fd = socket(AF_INET, SOCK_STREAM , 0)) == -1) {
         perror("socket");
         exit(EXIT_FAILURE);
     }
@@ -70,41 +149,48 @@ void *server_thread(void *arg) {
     }
     
     // 初始化epoll
-    if ((epoll_fd = epoll_create1(0)) == -1) {
-        perror("epoll_create");
-        exit(EXIT_FAILURE);
-    }
+    // if ((epoll_fd = epoll_create1(0)) == -1) {
+    //     perror("epoll_create");
+    //     exit(EXIT_FAILURE);
+    // }
     
-    ev.events = EPOLLIN;
-    ev.data.fd = server_fd;
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) == -1) {
-        perror("epoll_ctl");
-        exit(EXIT_FAILURE);
-    }
+    // ev.events = EPOLLIN;
+    // ev.data.fd = server_fd;
+    // if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) == -1) {
+    //     perror("epoll_ctl");
+    //     exit(EXIT_FAILURE);
+    // }
+    LATTE_LIB_LOG(LOG_DEBUG, "add server_fd %d server_accept event", server_fd);
+    aeCreateFileEvent(el, server_fd, AE_READABLE, server_accept, info);
     
     // 创建定时器
-    if ((timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK)) == -1) {
-        perror("timerfd_create");
-        exit(EXIT_FAILURE);
-    }
+    // if ((timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK)) == -1) {
+    //     perror("timerfd_create");
+    //     exit(EXIT_FAILURE);
+    // }
     
-    struct itimerspec its = {
-        .it_interval = {.tv_sec = 1, .tv_nsec = 0},
-        .it_value = {.tv_sec = 1, .tv_nsec = 0}
-    };
-    timerfd_settime(timer_fd, 0, &its, NULL);
+    long long timer_id = aeCreateTimeEvent(el, 1000, server_timer, el, NULL);
+    LATTE_LIB_LOG(LOG_DEBUG, "add timeevent %d server_timer event", timer_id);
+    // struct itimerspec its = {
+    //     .it_interval = {.tv_sec = 1, .tv_nsec = 0},
+    //     .it_value = {.tv_sec = 1, .tv_nsec = 0}
+    // };
+    //timerfd_settime(timer_fd, 0, &its, NULL);
     
-    ev.events = EPOLLIN;
-    ev.data.fd = timer_fd;
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, timer_fd, &ev) == -1) {
-        perror("epoll_ctl timer");
-        exit(EXIT_FAILURE);
-    }
+    // ev.events = EPOLLIN;
+    // ev.data.fd = timer_fd;
+    // if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, timer_fd, &ev) == -1) {
+    //     perror("epoll_ctl timer");
+    //     exit(EXIT_FAILURE);
+    // }
     
 
-    printf("Server started on port %d\n", PORT);
-
+    // printf("Server started on port %d\n", PORT);
+    
     while (!info->is_stop) {
+        aeProcessEvents(el, AE_ALL_EVENTS|
+            AE_CALL_BEFORE_SLEEP|
+            AE_CALL_AFTER_SLEEP);
         // 处理io_uring完成事件
         // struct io_uring_cqe *cqe;
         // unsigned head;
@@ -125,93 +211,95 @@ void *server_thread(void *arg) {
         // io_uring_cq_advance(&ring, count);
         async_io_each_finished();
         // 等待epoll事件
-        int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-        if (nfds == -1) {
-            perror("epoll_wait");
-            continue;
-        }
+        // int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+        // if (nfds == -1) {
+        //     perror("epoll_wait");
+        //     continue;
+        // }
         
-        for (int i = 0; i < nfds; i++) {
-            if (events[i].data.fd == timer_fd) {
-                uint64_t expirations;
-                read(timer_fd, &expirations, sizeof(expirations));
+        // for (int i = 0; i < nfds; i++) {
+        //     if (events[i].data.fd == timer_fd) {
+        //         uint64_t expirations;
+        //         read(timer_fd, &expirations, sizeof(expirations));
                 
-                // pthread_mutex_lock(&counter_mutex);
-                printf("QPS: %d\n", qps_counter);
-                qps_counter = 0;
-                // pthread_mutex_unlock(&counter_mutex);
-            } 
-            else if (events[i].data.fd == server_fd) {
-                // 接受新连接
-                struct sockaddr_in client_addr;
-                socklen_t addr_len = sizeof(client_addr);
-                int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_len);
-                if (client_fd == -1) {
-                    perror("accept");
-                    continue;
-                }
+        //         // pthread_mutex_lock(&counter_mutex);
+        //         printf("QPS: %d\n", qps_counter);
+        //         qps_counter = 0;
+        //         // pthread_mutex_unlock(&counter_mutex);
+        //     } 
+        //     else if (events[i].data.fd == server_fd) {
+        //         // 接受新连接
+        //         struct sockaddr_in client_addr;
+        //         socklen_t addr_len = sizeof(client_addr);
+        //         int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_len);
+        //         if (client_fd == -1) {
+        //             perror("accept");
+        //             continue;
+        //         }
                 
-                fcntl(client_fd, F_SETFL, O_NONBLOCK);
+        //         fcntl(client_fd, F_SETFL, O_NONBLOCK);
                 
-                ev.events = EPOLLIN | EPOLLET;
-                ev.data.fd = client_fd;
-                if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-                    perror("epoll_ctl client");
-                    close(client_fd);
-                }
-            } 
-            else {
-                // 处理客户端数据
-                struct conn_info *ci = zmalloc(sizeof(struct conn_info));
-                if (!ci) {
-                    perror("malloc");
-                    close(events[i].data.fd);
-                    continue;
-                }
+        //         // ev.events = EPOLLIN | EPOLLET;
+        //         // ev.data.fd = client_fd;
+        //         // if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
+        //         //     perror("epoll_ctl client");
+        //         //     close(client_fd);
+        //         // }
+        //     } 
+        //     else {
+        //         // 处理客户端数据
+        //         struct conn_info *ci = zmalloc(sizeof(struct conn_info));
+        //         if (!ci) {
+        //             perror("malloc");
+        //             close(events[i].data.fd);
+        //             continue;
+        //         }
                 
-                ci->fd = events[i].data.fd;
-                ssize_t len = 0;
-                if (info->read_async_io) {
-                    //TODO
-                } else {
-                    len = read(ci->fd, ci->buffer, BUFFER_SIZE);
-                    if (len <= 0) {
-                        close(ci->fd);
-                        free(ci);
-                        continue;
-                    }
-                }
-                if (info->write_async_io) {
-                    // 提交异步写请求
-                    // struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
-                    // if (!sqe) {
-                    //     fprintf(stderr, "No free SQEs\n");
-                    //     close(ci->fd);
-                    //     free(ci);
-                    //     continue;
-                    // }
+        //         ci->fd = events[i].data.fd;
+        //         ssize_t len = 0;
+        //         if (info->read_async_io) {
+        //             //TODO
+        //         } else {
+        //             len = read(ci->fd, ci->buffer, BUFFER_SIZE);
+        //             if (len <= 0) {
+        //                 close(ci->fd);
+        //                 free(ci);
+        //                 continue;
+        //             }
+        //         }
+        //         if (info->write_async_io) {
+        //             // 提交异步写请求
+        //             // struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
+        //             // if (!sqe) {
+        //             //     fprintf(stderr, "No free SQEs\n");
+        //             //     close(ci->fd);
+        //             //     free(ci);
+        //             //     continue;
+        //             // }
                     
-                    // io_uring_prep_send(sqe, ci->fd, ci->buffer, len, 0);
-                    // io_uring_sqe_set_data(sqe, ci);
-                    // io_uring_submit(&ring);
-                    async_io_net_write(net_write_request_new(ci->fd, ci->buffer, len, NULL, server_send_ok));
-                } else {
-                    if (write(ci->fd, ci->buffer, len) < 0) {
-                        printf("client write error\n");
-                        perror("client write");
-                        break;
-                    }
-                }
-                zfree(ci);
-                // pthread_mutex_lock(&counter_mutex);
+        //             // io_uring_prep_send(sqe, ci->fd, ci->buffer, len, 0);
+        //             // io_uring_sqe_set_data(sqe, ci);
+        //             // io_uring_submit(&ring);
+        //             async_io_net_write(net_write_request_new(ci->fd, ci->buffer, len, NULL, server_send_ok));
+        //         } else {
+        //             if (write(ci->fd, ci->buffer, len) < 0) {
+        //                 printf("client write error\n");
+        //                 perror("client write");
+        //                 break;
+        //             }
+        //         }
+        //         zfree(ci);
+        //         // pthread_mutex_lock(&counter_mutex);
                 
-                // pthread_mutex_unlock(&counter_mutex);
-            }
-        }
+        //         // pthread_mutex_unlock(&counter_mutex);
+        //     }
+        // }
     }
-    close(server_fd);
-    close(epoll_fd);
-    close(timer_fd);
+    // close(server_fd);
+    // close(epoll_fd);
+    // close(timer_fd);
+    aeStop(el);
+    aeDeleteEventLoop(el);
     async_io_module_thread_destroy();
     return NULL;
 }
@@ -318,6 +406,8 @@ int test_api(void) {
     assert(log_add_stdout(LATTE_LIB, LOG_DEBUG) == 1);
     {
         
+        // test_cond("io net write", 
+        //     test_server(false, false, false, false) == 1);
         test_cond("async io net write", 
             test_server(false, true, false, false) == 1);
         

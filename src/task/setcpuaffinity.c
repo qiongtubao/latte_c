@@ -44,7 +44,7 @@
 #include <pthread.h>
 #include <sched.h>
 #endif
-#include "utils/config.h"
+#include "utils/sys_config.h"
 
 #ifdef USE_SETCPUAFFINITY
 static const char *next_token(const char *q,  int sep) {

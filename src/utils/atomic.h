@@ -50,7 +50,7 @@
  */
 
 #include <pthread.h>
-#include "config.h"
+#include "sys_config.h"
 
 #ifndef __ATOMIC_VAR_H
 #define __ATOMIC_VAR_H
