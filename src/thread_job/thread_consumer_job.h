@@ -5,7 +5,7 @@
 
 #include "thread_job/thread_job.h"
 #include "utils/atomic.h"
-#include "utils/config.h"
+#include "utils/sys_config.h"
 #include "thread_pool/thread_pool.h"
 
 

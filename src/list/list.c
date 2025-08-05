@@ -70,6 +70,21 @@ void list_empty(list_t *list)
     list->len = 0;
 }
 
+int list_for_each_delete(list_t* l, int (*need_delete)(void* value)) {
+    list_node_t* node = l->head;
+    list_node_t* next = NULL;
+    int deleted = 0;
+    while (node) {
+        next = node->next;
+        if (need_delete(node->value)) {
+            list_del_node(l, node);
+            deleted++;
+        }
+        node = next;
+    }
+    return deleted;
+}
+
 /* Free the whole list.
  *
  * This function can't fail. */

@@ -5,7 +5,7 @@
 
 #include "error/error.h"
 #include "utils/atomic.h"
-#include "utils/config.h"
+#include "utils/sys_config.h"
 
 typedef struct latte_job_t {
     void* (*run)(int argc, void** args, latte_error_t* error);

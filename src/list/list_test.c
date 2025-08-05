@@ -23,6 +23,7 @@ int test_list_iterator() {
     }
     assert(i == 2);
     latte_iterator_delete(iter);
+    list_delete(l);
     return 1;
 }
 
@@ -77,6 +78,37 @@ int test_quick_list() {
     return 1;
 }
 
+int test_need_delete(void* value) {
+    return (long)value < 4L;
+}
+
+int test_need_delete2(void* value) {
+    return (long)value < 2L;
+}
+
+int test_list_for_each_delete() {
+    list_t* l = list_new();
+    list_add_node_tail(l, (void*)1L);
+    list_add_node_tail(l, (void*)2L);
+    list_add_node_tail(l, (void*)3L);
+    int deleted = list_for_each_delete(l, test_need_delete);
+    assert(l != NULL);
+    assert(list_length(l) == 0);
+    assert(deleted == 3);
+
+  
+    list_add_node_tail(l, (void*)1L);
+    list_add_node_tail(l, (void*)2L);
+    list_add_node_tail(l, (void*)3L);
+    deleted = list_for_each_delete(l, test_need_delete2);
+    assert(l != NULL);
+    assert(list_length(l) == 2);
+    assert(deleted == 1);
+
+    list_delete(l);
+    return 1;
+}
+
 int test_api(void) {
 
     {
@@ -85,7 +117,8 @@ int test_api(void) {
             test_list_iterator() == 1);
         test_cond("list function test", 
             test_list() == 1);
-        test_cond("quick_list function", test_quick_list());
+        test_cond("quick_list function", test_quick_list() == 1);
+        test_cond("list for each delete", test_list_for_each_delete() == 1);
     } test_report()
     return 1;
 }

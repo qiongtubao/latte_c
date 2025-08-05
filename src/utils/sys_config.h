@@ -1,30 +1,10 @@
 /*
- * Copyright (c) 2009-2012, Salvatore Sanfilippo <antirez at gmail dot com>
+ * Copyright (c) 2009-Present, Redis Ltd.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *   * Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *   * Neither the name of Redis nor the names of its contributors may be used
- *     to endorse or promote products derived from this software without
- *     specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Licensed under your choice of (a) the Redis Source Available License 2.0
+ * (RSALv2); or (b) the Server Side Public License v1 (SSPLv1); or (c) the
+ * GNU Affero General Public License v3 (AGPLv3).
  */
 
 #ifndef __CONFIG_H
@@ -40,13 +20,25 @@
 #include <fcntl.h>
 #endif
 
+#if defined(__APPLE__) && defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 1060
+#define MAC_OS_10_6_DETECTED
+#endif
+
 /* Define latte_fstat to fstat or fstat64() */
-#if defined(__APPLE__) && !defined(MAC_OS_X_VERSION_10_6)
+#if defined(__APPLE__) && !defined(MAC_OS_10_6_DETECTED)
 #define latte_fstat fstat64
 #define latte_stat stat64
 #else
 #define latte_fstat fstat
 #define latte_stat stat
+#endif
+
+#ifndef CACHE_LINE_SIZE
+#if defined(__aarch64__) && defined(__APPLE__)
+#define CACHE_LINE_SIZE 128
+#else
+#define CACHE_LINE_SIZE 64
+#endif
 #endif
 
 /* Test for proc filesystem */
@@ -56,6 +48,7 @@
 #define HAVE_PROC_SMAPS 1
 #define HAVE_PROC_SOMAXCONN 1
 #define HAVE_PROC_OOM_SCORE_ADJ 1
+#define HAVE_EVENT_FD 1
 #endif
 
 /* Test for task_info() */
@@ -72,7 +65,7 @@
 
 /* Test for backtrace() */
 #if defined(__APPLE__) || (defined(__linux__) && defined(__GLIBC__)) || \
-    defined(__FreeBSD__) || ((defined(__OpenBSD__) || defined(__NetBSD__)) && defined(USE_BACKTRACE))\
+    defined(__FreeBSD__) || ((defined(__OpenBSD__) || defined(__NetBSD__) || defined(__sun)) && defined(USE_BACKTRACE))\
  || defined(__DragonFly__) || (defined(__UCLIBC__) && defined(__UCLIBC_HAS_BACKTRACE__))
 #define HAVE_BACKTRACE 1
 #endif
@@ -89,15 +82,22 @@
 /* Test for polling API */
 #ifdef __linux__
 #define HAVE_EPOLL 1
+//默认linux > 5.x 支持iouring  后期如果有需求的话在makefile里加判断  然后终止编译
+#define HAVE_LIBURING 1
+
 #endif
 
 /* Test for accept4() */
-#ifdef __linux__
+#if defined(__linux__) || defined(OpenBSD5_7) || \
+    (__FreeBSD__ >= 10 || __FreeBSD_version >= 1000000) || \
+    (defined(NetBSD8_0) || __NetBSD_Version__ >= 800000000)
 #define HAVE_ACCEPT4 1
 #endif
 
-#if (defined(__APPLE__) && defined(MAC_OS_X_VERSION_10_6)) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined (__NetBSD__)
+#if (defined(__APPLE__) && defined(MAC_OS_10_6_DETECTED)) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined (__NetBSD__)
 #define HAVE_KQUEUE 1
+//默认macos 支持dispatch  如果出现意外的bug 可以在这里加判断
+#define HAVE_DISPATCH 1
 #endif
 
 #ifdef __sun
@@ -106,6 +106,25 @@
 #define HAVE_EVPORT 1
 #define HAVE_PSINFO 1
 #endif
+#endif
+
+/* Test for __builtin_prefetch()
+ * Supported in LLVM since 2.9: https://releases.llvm.org/2.9/docs/ReleaseNotes.html
+ * Supported in GCC since 3.1 but we use 4.8 given it's too old: https://gcc.gnu.org/gcc-3.1/changes.html. */
+#if defined(__clang__) && (__clang_major__ > 2 || (__clang_major__ == 2 && __clang_minor__ >= 9))
+#define HAS_BUILTIN_PREFETCH 1
+#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
+#define HAS_BUILTIN_PREFETCH 1
+#else
+#define HAS_BUILTIN_PREFETCH 0
+#endif
+
+#if HAS_BUILTIN_PREFETCH
+#define latte_prefetch_read(addr) __builtin_prefetch(addr, 0, 3)  /* Read with high locality */
+#define latte_prefetch_write(addr) __builtin_prefetch(addr, 1, 3) /* Write with high locality */
+#else
+#define latte_prefetch_read(addr) ((void)(addr))  /* No-op if unsupported */
+#define latte_prefetch_write(addr) ((void)(addr)) /* No-op if unsupported */
 #endif
 
 /* Define latte_fsync to fdatasync() in Linux and fsync() for all the rest */
@@ -131,7 +150,7 @@
 #endif
 #endif
 
-#if __GNUC__ >= 4
+#if __GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)
 #define latte_unreachable __builtin_unreachable
 #else
 #define latte_unreachable abort
@@ -147,11 +166,17 @@
 
 #if defined(__has_attribute)
 #if __has_attribute(no_sanitize)
-#define latte_NO_SANITIZE(sanitizer) __attribute__((no_sanitize(sanitizer)))
+#define LATTE_NO_SANITIZE(sanitizer) __attribute__((no_sanitize(sanitizer)))
 #endif
 #endif
-#if !defined(latte_NO_SANITIZE)
-#define latte_NO_SANITIZE(sanitizer)
+#if !defined(LATTE_NO_SANITIZE)
+#define LATTE_NO_SANITIZE(sanitizer)
+#endif
+
+#if defined(__clang__)
+#define LATTE_NO_SANITIZE_MSAN(sanitizer) LATTE_NO_SANITIZE(sanitizer)
+#else
+#define LATTE_NO_SANITIZE_MSAN(sanitizer)
 #endif
 
 /* Define rdb_fsync_range to sync_file_range() on Linux, otherwise we use
@@ -249,15 +274,6 @@ void setproctitle(const char *fmt, ...);
 #error "Undefined or invalid BYTE_ORDER"
 #endif
 
-/* Cache line alignment */
-#ifndef CACHE_LINE_SIZE
-#if defined(__aarch64__) && defined(__APPLE__)
-#define CACHE_LINE_SIZE 128
-#else
-#define CACHE_LINE_SIZE 64
-#endif /* __aarch64__ && __APPLE__ */
-#endif /* CACHE_LINE_SIZE */
-
 #if (__i386 || __amd64 || __powerpc__) && __GNUC__
 #define GNUC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #if defined(__clang__)
@@ -302,7 +318,7 @@ void setproctitle(const char *fmt, ...);
 #include <kernel/OS.h>
 #define latte_set_thread_title(name) rename_thread(find_thread(0), name)
 #else
-#if (defined __APPLE__ && defined(MAC_OS_X_VERSION_10_7))
+#if (defined __APPLE__ && defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 1070)
 int pthread_setname_np(const char *name);
 #include <pthread.h>
 #define latte_set_thread_title(name) pthread_setname_np(name)
@@ -316,6 +332,35 @@ int pthread_setname_np(const char *name);
 #if (defined __linux || defined __NetBSD__ || defined __FreeBSD__ || defined __DragonFly__)
 #define USE_SETCPUAFFINITY
 void setcpuaffinity(const char *cpulist);
+#endif
+
+/* Test for posix_fadvise() */
+#if defined(__linux__) || __FreeBSD__ >= 10
+#define HAVE_FADVISE
+#endif
+
+#if defined(__x86_64__) && ((defined(__GNUC__) && __GNUC__ > 5) || (defined(__clang__)))
+    #if defined(__has_attribute) && __has_attribute(target)
+        #define HAVE_POPCNT
+        #define ATTRIBUTE_TARGET_POPCNT __attribute__((target("popcnt")))
+    #else
+        #define ATTRIBUTE_TARGET_POPCNT
+    #endif
+#else
+    #define ATTRIBUTE_TARGET_POPCNT
+#endif
+
+/* Check if we can compile AVX2 code */
+#if defined (__x86_64__) && ((defined(__GNUC__) && __GNUC__ >= 5) || (defined(__clang__) && __clang_major__ >= 4))
+#if defined(__has_attribute) && __has_attribute(target)
+#define HAVE_AVX2
+#endif
+#endif
+
+#if defined (HAVE_AVX2)
+#define ATTRIBUTE_TARGET_AVX2 __attribute__((target("avx2")))
+#else
+#define ATTRIBUTE_TARGET_AVX2
 #endif
 
 #endif

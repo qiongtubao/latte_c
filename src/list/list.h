@@ -59,6 +59,7 @@ void list_rewind_tail(list_t *list, list_iterator_t*li);
 void list_rotate_tail_to_head(list_t *list);
 void list_rotate_head_to_tail(list_t *list);
 void list_join(list_t *l, list_t *o);
+int list_for_each_delete(list_t* l, int (*need_delete)(void* value));
 
 
 

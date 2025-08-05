@@ -12,7 +12,7 @@
 #include <time.h>
 #include <errno.h>
 #include "zmalloc/zmalloc.h"
-#include "utils/config.h"
+#include "utils/sys_config.h"   //这里判断是否HAVE_EVPORT,HAVE_EPOLL,HAVE_KQUEUE
 #include "anet/anet.h"
 #include "log/log.h"
 
