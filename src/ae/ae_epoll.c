@@ -1,12 +1,13 @@
 #include <sys/epoll.h>
-typedef struct aeApiState {
+#include "ae/ae.h"
+typedef struct ae_api_state_t {
     int epfd;
     struct epoll_event *events;
-} aeApiState;
+} ae_api_state_t;
 
-static int aeApiCreate(aeEventLoop *eventLoop) {
+static int ae_api_create(ae_event_loop_t *eventLoop) {
     LATTE_LIB_LOG(LOG_INFO, "[aeApiCreate] ae use epoll");
-    aeApiState *state = zmalloc(sizeof(aeApiState));
+    ae_api_state_t *state = zmalloc(sizeof(ae_api_state_t));
 
     if (!state) return -1;
     state->events = zmalloc(sizeof(struct epoll_event)*eventLoop->setsize);
@@ -25,23 +26,23 @@ static int aeApiCreate(aeEventLoop *eventLoop) {
     return 0;
 }
 
-static int aeApiResize(aeEventLoop *eventLoop, int setsize) {
-    aeApiState *state = eventLoop->apidata;
+static int ae_api_resize(ae_event_loop_t *eventLoop, int setsize) {
+    ae_api_state_t *state = eventLoop->apidata;
 
     state->events = zrealloc(state->events, sizeof(struct epoll_event)*setsize);
     return 0;
 }
 
-static void aeApiFree(aeEventLoop *eventLoop) {
-    aeApiState *state = eventLoop->apidata;
+static void ae_api_free(ae_event_loop_t *eventLoop) {
+    ae_api_state_t *state = eventLoop->apidata;
 
     close(state->epfd);
     zfree(state->events);
     zfree(state);
 }
 
-static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
-    aeApiState *state = eventLoop->apidata;
+static int ae_api_add_event(ae_event_loop_t *eventLoop, int fd, int mask) {
+    ae_api_state_t *state = eventLoop->apidata;
     struct epoll_event ee = {0}; /* avoid valgrind warning */
     /* If the fd was already monitored for some event, we need a MOD
      * operation. Otherwise we need an ADD operation. */
@@ -57,8 +58,8 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
     return 0;
 }
 
-static void aeApiDelEvent(aeEventLoop *eventLoop, int fd, int delmask) {
-    aeApiState *state = eventLoop->apidata;
+static void ae_api_del_event(ae_event_loop_t *eventLoop, int fd, int delmask) {
+    ae_api_state_t *state = eventLoop->apidata;
     struct epoll_event ee = {0}; /* avoid valgrind warning */
     int mask = eventLoop->events[fd].mask & (~delmask);
 
@@ -75,8 +76,8 @@ static void aeApiDelEvent(aeEventLoop *eventLoop, int fd, int delmask) {
     }
 }
 
-static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
-    aeApiState *state = eventLoop->apidata;
+static int ae_api_poll(ae_event_loop_t *eventLoop, struct timeval *tvp) {
+    ae_api_state_t *state = eventLoop->apidata;
     int retval, numevents = 0;
 
     retval = epoll_wait(state->epfd,state->events,eventLoop->setsize,
@@ -100,6 +101,6 @@ static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
     return numevents;
 }
 
-static char *aeApiName(void) {
+static char *ae_api_name(void) {
     return "epoll";
 }

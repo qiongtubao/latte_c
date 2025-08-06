@@ -30,81 +30,100 @@
 /* Macros */
 #define AE_NOTUSED(V) ((void) V)
 
-struct aeEventLoop;
+struct ae_event_loop_t;
 
 /* Types and data structures */
-typedef void aeFileProc(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask);
-typedef int aeTimeProc(struct aeEventLoop *eventLoop, long long id, void *clientData);
-typedef void aeEventFinalizerProc(struct aeEventLoop *eventLoop, void *clientData);
-typedef void aeBeforeSleepProc(struct aeEventLoop *eventLoop);
+typedef void ae_file_proc_func(struct ae_event_loop_t *eventLoop, int fd, void *clientData, int mask);
+typedef int ae_time_proc_func(struct ae_event_loop_t *eventLoop, long long id, void *clientData);
+typedef void ae_event_finalizer_proc_func(struct ae_event_loop_t *eventLoop, void *clientData);
+typedef void ae_before_sleep_proc_func(struct ae_event_loop_t *eventLoop);
 
 /* File event structure */
-typedef struct aeFileEvent {
+typedef struct ae_file_event_t {
     int mask; /* one of AE_(READABLE|WRITABLE|BARRIER) */
-    aeFileProc *rfileProc;
-    aeFileProc *wfileProc;
+    ae_file_proc_func *rfileProc;
+    ae_file_proc_func *wfileProc;
     void *clientData;
-} aeFileEvent;
+} ae_file_event_t;
 
 /* Time event structure */
-typedef struct aeTimeEvent {
+typedef struct ae_time_event_t {
     long long id; /* time event identifier. */
     monotime when;
-    aeTimeProc *timeProc;
-    aeEventFinalizerProc *finalizerProc;
+    ae_time_proc_func *timeProc;
+    ae_event_finalizer_proc_func *finalizerProc;
     void *clientData;
-    struct aeTimeEvent *prev;
-    struct aeTimeEvent *next;
+    struct ae_time_event_t *prev;
+    struct ae_time_event_t *next;
     int refcount; /* refcount to prevent timer events from being
   		   * freed in recursive time event calls. */
-} aeTimeEvent;
+} ae_time_event_t;
 
 /* A fired event */
-typedef struct aeFiredEvent {
+typedef struct ae_fired_event_t {
     int fd;
     int mask;
-} aeFiredEvent;
+} ae_fired_event_t;
 
 /* State of an event based program */
-typedef struct aeEventLoop {
+typedef struct ae_event_loop_t {
     int maxfd;   /* highest file descriptor currently registered */
     int setsize; /* max number of file descriptors tracked */
     long long timeEventNextId;
-    aeFileEvent *events; /* Registered events */
-    aeFiredEvent *fired; /* Fired events */
-    aeTimeEvent *timeEventHead;
+    ae_file_event_t *events; /* Registered events */
+    ae_fired_event_t *fired; /* Fired events */
+    ae_time_event_t *timeEventHead;
     int stop;
     void *apidata; /* This is used for polling API specific data */
-    aeBeforeSleepProc *beforesleep;
+    ae_before_sleep_proc_func *beforesleep;
     list_t* beforesleeps;
-    aeBeforeSleepProc *aftersleep;
+    ae_before_sleep_proc_func *aftersleep;
     list_t* aftersleeps;
     int flags;
-} aeEventLoop;
+    void *privdata[2];
+} ae_event_loop_t;
+
+
+
+/* file event */
+int ae_file_event_new(ae_event_loop_t *eventLoop, int fd, int mask,
+        ae_file_proc_func *proc, void *clientData);
+void ae_file_event_delete(ae_event_loop_t *eventLoop, int fd, int mask);
+int ae_file_event_get_mask(ae_event_loop_t *eventLoop, int fd);
+/* time event */
+long long ae_time_event_new(ae_event_loop_t *eventLoop, long long milliseconds,
+        ae_time_proc_func *proc, void *clientData,
+        ae_event_finalizer_proc_func *finalizerProc);
+int ae_time_event_delete(ae_event_loop_t *eventLoop, long long id);
+
+
+int ae_process_events(ae_event_loop_t *eventLoop, int flags);
 
 /* Prototypes */
-aeEventLoop *aeCreateEventLoop(int setsize);
-void aeDeleteEventLoop(aeEventLoop *eventLoop);
-void aeStop(aeEventLoop *eventLoop);
-int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask,
-        aeFileProc *proc, void *clientData);
-void aeDeleteFileEvent(aeEventLoop *eventLoop, int fd, int mask);
-int aeGetFileEvents(aeEventLoop *eventLoop, int fd);
-long long aeCreateTimeEvent(aeEventLoop *eventLoop, long long milliseconds,
-        aeTimeProc *proc, void *clientData,
-        aeEventFinalizerProc *finalizerProc);
-int aeDeleteTimeEvent(aeEventLoop *eventLoop, long long id);
-int aeProcessEvents(aeEventLoop *eventLoop, int flags);
-int aeWait(int fd, int mask, long long milliseconds);
-void aeMain(aeEventLoop *eventLoop);
-char *aeGetApiName(void);
-void aeSetBeforeSleepProc(aeEventLoop *eventLoop, aeBeforeSleepProc *beforesleep);
-void aeAddBeforeSleepTask(aeEventLoop* eventLoop, latte_func_task_t* task);
-void aeSetAfterSleepProc(aeEventLoop *eventLoop, aeBeforeSleepProc *aftersleep);
-int aeGetSetSize(aeEventLoop *eventLoop);
-int aeResizeSetSize(aeEventLoop *eventLoop, int setsize);
-void aeSetDontWait(aeEventLoop *eventLoop, int noWait);
+ae_event_loop_t *ae_event_loop_new(int setsize);
+void ae_event_loop_delete(ae_event_loop_t *eventLoop);
+
+int ae_wait(int fd, int mask, long long milliseconds);
+void ae_main(ae_event_loop_t *eventLoop);
+void ae_stop(ae_event_loop_t *eventLoop);
+char *ae_get_api_name(void);
+void ae_set_before_sleep_proc(ae_event_loop_t *eventLoop, ae_before_sleep_proc_func *beforesleep);
+void ae_add_before_sleep_task(ae_event_loop_t* eventLoop, latte_func_task_t* task);
+void ae_set_after_sleep_proc(ae_event_loop_t *eventLoop, ae_before_sleep_proc_func *aftersleep);
+int ae_get_set_size(ae_event_loop_t *eventLoop);
+int ae_resize_set_size(ae_event_loop_t *eventLoop, int setsize);
+void ae_set_dont_wait(ae_event_loop_t *eventLoop, int noWait);
 
 
-void call_before_sleep(aeEventLoop *eventLoop);
+void ae_do_before_sleep(ae_event_loop_t *eventLoop);
+
+
+/* api */
+// int ae_api_create(ae_event_loop_t *eventLoop);
+// int ae_api_resize(ae_event_loop_t *eventLoop, int setsize);
+// void ae_api_free(ae_event_loop_t *eventLoop);
+// int ae_api_add_event(ae_event_loop_t *eventLoop, int fd, int mask);
+// void ae_api_del_event(ae_event_loop_t *eventLoop, int fd, int delmask);
+// int ae_api_poll(ae_event_loop_t *eventLoop, struct timeval *tvp);
+// char *ae_api_name(void);
 #endif
