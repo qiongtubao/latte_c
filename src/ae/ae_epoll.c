@@ -1,5 +1,5 @@
 #include <sys/epoll.h>
-#include "ae/ae.h"
+#include "ae.h"
 typedef struct ae_api_state_t {
     int epfd;
     struct epoll_event *events;
@@ -33,7 +33,7 @@ static int ae_api_resize(ae_event_loop_t *eventLoop, int setsize) {
     return 0;
 }
 
-static void ae_api_free(ae_event_loop_t *eventLoop) {
+static void ae_api_delete(ae_event_loop_t *eventLoop) {
     ae_api_state_t *state = eventLoop->apidata;
 
     close(state->epfd);
@@ -103,4 +103,20 @@ static int ae_api_poll(ae_event_loop_t *eventLoop, struct timeval *tvp) {
 
 static char *ae_api_name(void) {
     return "epoll";
+}
+
+static int ae_api_read(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {
+    return read(fd, buf, buf_len);
+}
+
+static int ae_api_write(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {
+    return write(fd, buf, buf_len);
+}
+
+static void ae_api_before_sleep(ae_event_loop_t *eventLoop) {
+
+}
+
+static void ae_api_after_sleep(ae_event_loop_t *eventLoop) {
+
 }

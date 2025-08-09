@@ -42,15 +42,15 @@ void _latte_func_task_delete(void* task) {
 }
 
 /* create a new event loop */
-ae_event_loop_t *ae_event_loop_new(int setsize) {
+ae_event_loop_t *ae_event_loop_new(int setsize) { //创建一个事件循环
     ae_event_loop_t *eventLoop;
     int i;
 
     monotonicInit();  //提高时间精度  /* just in case the calling app didn't initialize */
 
     if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
-    eventLoop->events = zmalloc(sizeof(ae_file_event_t)*setsize);
-    eventLoop->fired = zmalloc(sizeof(ae_fired_event_t)*setsize);
+    eventLoop->events = zmalloc(sizeof(ae_file_event_t)*setsize);   //创建一个事件数组
+    eventLoop->fired = zmalloc(sizeof(ae_fired_event_t)*setsize);   //创建一个触发事件的数组
     if (eventLoop->events == NULL || eventLoop->fired == NULL) goto err;
     eventLoop->setsize = setsize;
     eventLoop->timeEventHead = NULL;
@@ -63,11 +63,11 @@ ae_event_loop_t *ae_event_loop_new(int setsize) {
     eventLoop->aftersleep = NULL;
     eventLoop->aftersleeps = list_new();
     eventLoop->flags = 0;
-    if (ae_api_create(eventLoop) == -1) goto err;
+    if (ae_api_create(eventLoop) == -1) goto err;   //创建一个事件循环
     /* Events with mask == AE_NONE are not set. So let's initialize the
      * vector with it. */
     for (i = 0; i < setsize; i++)
-        eventLoop->events[i].mask = AE_NONE;
+        eventLoop->events[i].mask = AE_NONE;   //初始化事件数组
     return eventLoop;
 
 err:
@@ -80,12 +80,12 @@ err:
 }
 
 /* Return the current set size. */
-int ae_get_set_size(ae_event_loop_t *eventLoop) {
+int ae_get_set_size(ae_event_loop_t *eventLoop) { //返回当前事件循环的设置大小
     return eventLoop->setsize;
 }
 
 /* Tells the next iteration/s of the event processing to set timeout of 0. */
-void ae_set_dont_wait(ae_event_loop_t *eventLoop, int noWait) {
+void ae_set_dont_wait(ae_event_loop_t *eventLoop, int noWait) { //告诉下一个事件循环设置是否等待
     if (noWait)
         eventLoop->flags |= AE_DONT_WAIT;
     else
@@ -99,7 +99,7 @@ void ae_set_dont_wait(ae_event_loop_t *eventLoop, int noWait) {
  * performed at all.
  *
  * Otherwise AE_OK is returned and the operation is successful. */
-int ae_resize_set_size(ae_event_loop_t *eventLoop, int setsize) {
+int ae_resize_set_size(ae_event_loop_t *eventLoop, int setsize) { //重新fd数组大小
     int i;
 
     if (setsize == eventLoop->setsize) return AE_OK;
@@ -117,8 +117,8 @@ int ae_resize_set_size(ae_event_loop_t *eventLoop, int setsize) {
     return AE_OK;
 }
 
-void ae_event_loop_delete(ae_event_loop_t *eventLoop) {
-    ae_api_free(eventLoop);
+void ae_event_loop_delete(ae_event_loop_t *eventLoop) {//删除事件循环
+    ae_api_delete(eventLoop);
     zfree(eventLoop->events);
     zfree(eventLoop->fired);
 
@@ -140,21 +140,28 @@ void ae_event_loop_delete(ae_event_loop_t *eventLoop) {
     zfree(eventLoop);
 }
 
-void ae_stop(ae_event_loop_t *eventLoop) {
+void ae_stop(ae_event_loop_t *eventLoop) { //停止事件循环，配合ae_main使用
     eventLoop->stop = 1;
 }
 
-int ae_file_event_new(ae_event_loop_t *eventLoop, int fd, int mask,
-        ae_file_proc_func *proc, void *clientData)
+/**
+ *  回调函数记录在外面的event数组里，标记着mask 读写事件
+ *  添加event事件给对应的模型
+ *  
+ */
+int ae_file_event_new(ae_event_loop_t *eventLoop, int fd, int mask, //创建一个文件事件
+        ae_file_proc_func *proc, void *clientData)  //创建一个文件事件的回调函数
 {
+    //如果fd大于事件循环的设置大小，则返回错误
     if (fd >= eventLoop->setsize) {
         errno = ERANGE;
         return AE_ERR;
     }
     ae_file_event_t *fe = &eventLoop->events[fd];
 
-    if (ae_api_add_event(eventLoop, fd, mask) == -1)
+    if (ae_api_add_event(eventLoop, fd, mask) == -1) //添加一个文件事件 
         return AE_ERR;
+    
     fe->mask |= mask;
     if (mask & AE_READABLE) fe->rfileProc = proc;
     if (mask & AE_WRITABLE) fe->wfileProc = proc;
@@ -164,11 +171,12 @@ int ae_file_event_new(ae_event_loop_t *eventLoop, int fd, int mask,
     return AE_OK;
 }
 
-void ae_file_event_delete(ae_event_loop_t *eventLoop, int fd, int mask)
+
+void ae_file_event_delete(ae_event_loop_t *eventLoop, int fd, int mask) //删除事件
 {
     if (fd >= eventLoop->setsize) return;
     ae_file_event_t *fe = &eventLoop->events[fd];
-    if (fe->mask == AE_NONE) return;
+    if (fe->mask == AE_NONE) return; //不会删除对象  如果mask 为NONE就算是空事件了
 
     /* We want to always remove AE_BARRIER if set when AE_WRITABLE
      * is removed. */
@@ -176,7 +184,7 @@ void ae_file_event_delete(ae_event_loop_t *eventLoop, int fd, int mask)
 
     ae_api_del_event(eventLoop, fd, mask);
     fe->mask = fe->mask & (~mask);
-    if (fd == eventLoop->maxfd && fe->mask == AE_NONE) {
+    if (fd == eventLoop->maxfd && fe->mask == AE_NONE) { //更新最大fd
         /* Update the max fd */
         int j;
 
@@ -186,7 +194,7 @@ void ae_file_event_delete(ae_event_loop_t *eventLoop, int fd, int mask)
     }
 }
 
-int ae_file_event_get_mask(ae_event_loop_t *eventLoop, int fd) {
+int ae_file_event_get_mask(ae_event_loop_t *eventLoop, int fd) { //获得事件mask
     if (fd >= eventLoop->setsize) return 0;
     ae_file_event_t *fe = &eventLoop->events[fd];
 
@@ -195,7 +203,7 @@ int ae_file_event_get_mask(ae_event_loop_t *eventLoop, int fd) {
 
 long long ae_time_event_new(ae_event_loop_t *eventLoop, long long milliseconds,
         ae_time_proc_func *proc, void *clientData,
-        ae_event_finalizer_proc_func *finalizerProc)
+        ae_event_finalizer_proc_func *finalizerProc) //创建一个时间事件
 {
     long long id = eventLoop->timeEventNextId++;
     ae_time_event_t *te;
@@ -331,6 +339,21 @@ void ae_do_before_sleep(ae_event_loop_t *eventLoop) {
             exec_task(t);
         }
     }
+
+}
+
+void ae_do_after_sleep(ae_event_loop_t *eventLoop) {
+    if ( eventLoop->beforesleep != NULL ) eventLoop->beforesleep(eventLoop);
+    if ( list_length(eventLoop->beforesleeps) > 0) {
+        list_node_t* ln;
+        list_iterator_t li;
+        list_rewind(eventLoop->beforesleeps, &li);
+        while((ln = list_next(&li))) {
+            latte_func_task_t *t = list_node_value(ln);
+            exec_task(t);
+        }
+    }
+    
 }
 
 /* Process every pending time event, then every pending file event
@@ -389,19 +412,22 @@ int ae_process_events(ae_event_loop_t *eventLoop, int flags)
             tv.tv_sec = tv.tv_usec = 0;
             tvp = &tv;
         }
+        ae_api_before_sleep(eventLoop);  
 
         if ( flags & AE_CALL_BEFORE_SLEEP) {
             ae_do_before_sleep(eventLoop);
         }
-            
+         
 
         /* Call the multiplexing API, will return only on timeout or when
          * some event fires. */
         numevents = ae_api_poll(eventLoop, tvp);
-
+        
+        
         /* After sleep callback. */
         if (eventLoop->aftersleep != NULL && flags & AE_CALL_AFTER_SLEEP)
-            eventLoop->aftersleep(eventLoop);
+           ae_do_after_sleep(eventLoop);
+        
 
         for (j = 0; j < numevents; j++) {
             ae_file_event_t *fe = &eventLoop->events[eventLoop->fired[j].fd];
@@ -456,11 +482,12 @@ int ae_process_events(ae_event_loop_t *eventLoop, int flags)
 
             processed++;
         }
+        ae_api_after_sleep(eventLoop); // 在处理完事件后，提交io_uring 非常重要！！！
     }
     /* Check time events */
     if (flags & AE_TIME_EVENTS)
         processed += process_time_events(eventLoop);
-
+    
     return processed; /* return the number of processed file/time events */
 }
 
@@ -514,4 +541,13 @@ void ae_add_before_sleep_task(ae_event_loop_t* eventLoop, latte_func_task_t* tas
 
 void ae_add_after_sleep_task(ae_event_loop_t* eventLoop, latte_func_task_t* task) {
     eventLoop->aftersleeps =  list_add_node_tail(eventLoop->aftersleeps, task);
+}
+
+
+int ae_read(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {
+    return ae_api_read(eventLoop, fd, buf, buf_len);
+}
+
+int ae_write(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {
+    return ae_api_write(eventLoop, fd, buf, buf_len);
 }

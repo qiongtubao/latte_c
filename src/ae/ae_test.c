@@ -52,8 +52,9 @@ void client_read(ae_event_loop_t* el, int fd, void* privdata, int mask) {
         //TODO
     } else {
        
-        len = read(ci->fd, ci->buffer, BUFFER_SIZE);
+        len = ae_read(el, ci->fd, ci->buffer, BUFFER_SIZE);
         if (len <= 0) {
+            LATTE_LIB_LOG(LOG_DEBUG,"client read error %d", ci->fd);
             ae_file_event_delete(el, ci->fd, AE_READABLE);
             close(ci->fd);
             zfree(ci);
@@ -61,21 +62,9 @@ void client_read(ae_event_loop_t* el, int fd, void* privdata, int mask) {
         }
     }
     if (info->write_async_io) {
-        // 提交异步写请求
-        // struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
-        // if (!sqe) {
-        //     fprintf(stderr, "No free SQEs\n");
-        //     close(ci->fd);
-        //     free(ci);
-        //     continue;
-        // }
-        
-        // io_uring_prep_send(sqe, ci->fd, ci->buffer, len, 0);
-        // io_uring_sqe_set_data(sqe, ci);
-        // io_uring_submit(&ring);
-        
+        assert(0);
     } else {
-        if (write(ci->fd, ci->buffer, len) < 0) {
+        if (ae_write(el, ci->fd, ci->buffer, len) < 0) {
             printf("client write error\n");
             perror("client write");
             return;
@@ -86,7 +75,7 @@ void client_read(ae_event_loop_t* el, int fd, void* privdata, int mask) {
 
 }
 void server_accept(ae_event_loop_t* el, int fd, void* privdata, int mask) {
-    printf("server_accept\n");
+    LATTE_LIB_LOG(LOG_DEBUG,"server_accept");
     struct sockaddr_in client_addr;
     socklen_t addr_len = sizeof(client_addr);
     int client_fd = accept(fd, (struct sockaddr *)&client_addr, &addr_len);
@@ -99,14 +88,8 @@ void server_accept(ae_event_loop_t* el, int fd, void* privdata, int mask) {
 }
 
 int server_timer(ae_event_loop_t* el, long long id, void* privdata) {
-    // printf("server_timer\n");
-    // uint64_t expirations;
-    // read(fd, &expirations, sizeof(expirations));
-    
-    // pthread_mutex_lock(&counter_mutex);
     printf("QPS: %d\n", qps_counter);
     qps_counter = 0;
-    // pthread_mutex_unlock(&counter_mutex);
     return 1000;
 }
 // 服务端线程函数
@@ -142,45 +125,15 @@ void *server_thread(void *arg) {
         exit(EXIT_FAILURE);
     }
     
-    // 初始化epoll
-    // if ((epoll_fd = epoll_create1(0)) == -1) {
-    //     perror("epoll_create");
-    //     exit(EXIT_FAILURE);
-    // }
     
-    // ev.events = EPOLLIN;
-    // ev.data.fd = server_fd;
-    // if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) == -1) {
-    //     perror("epoll_ctl");
-    //     exit(EXIT_FAILURE);
-    // }
     LATTE_LIB_LOG(LOG_DEBUG, "add server_fd %d server_accept event", server_fd);
     ae_file_event_new(el, server_fd, AE_READABLE, server_accept, info);
     
-    // 创建定时器
-    // if ((timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK)) == -1) {
-    //     perror("timerfd_create");
-    //     exit(EXIT_FAILURE);
-    // }
-    
     long long timer_id = ae_time_event_new(el, 1000, server_timer, el, NULL);
     LATTE_LIB_LOG(LOG_DEBUG, "add timeevent %d server_timer event", timer_id);
-    // struct itimerspec its = {
-    //     .it_interval = {.tv_sec = 1, .tv_nsec = 0},
-    //     .it_value = {.tv_sec = 1, .tv_nsec = 0}
-    // };
-    //timerfd_settime(timer_fd, 0, &its, NULL);
-    
-    // ev.events = EPOLLIN;
-    // ev.data.fd = timer_fd;
-    // if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, timer_fd, &ev) == -1) {
-    //     perror("epoll_ctl timer");
-    //     exit(EXIT_FAILURE);
-    // }
     
 
-    // printf("Server started on port %d\n", PORT);
-    
+
     while (!info->is_stop) {
         ae_process_events(el, AE_ALL_EVENTS|
             AE_CALL_BEFORE_SLEEP|
@@ -218,8 +171,7 @@ void *client_thread(void *arg) {
     while (!info->is_stop) {
         // 发送数据
         if (info->write_async_io) {
-            //TODO
-            // async_io_net_write(async_io, buffer, BUFFER_SIZE);
+            assert(0);
         } else {
             if (write(sock, buffer, BUFFER_SIZE) < 0) {
                 printf("client write error\n");
@@ -228,8 +180,7 @@ void *client_thread(void *arg) {
             }
         }
         if (info->read_async_io) {
-            //TODO
-            // async_io_net_read(async_io, buffer, BUFFER_SIZE);
+            assert(0);
         } else {
             // 接收响应
             if (read(sock, buffer, BUFFER_SIZE) < 0) {
@@ -238,8 +189,6 @@ void *client_thread(void *arg) {
                 break;
             }
         }
-        // 添加延迟避免过度消耗CPU
-        // usleep(10);
     }
     
     close(sock);
@@ -291,9 +240,7 @@ int test_api(void) {
     assert(log_add_stdout(LATTE_LIB, LOG_DEBUG) == 1);
     {
         
-        // test_cond("io net write", 
-        //     test_server(false, false, false, false) == 1);
-        test_cond("async io net write", 
+        test_cond("io net write", 
             test_server(false, false, false, false) == 1);
         
     } test_report()
