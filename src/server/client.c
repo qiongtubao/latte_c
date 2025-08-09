@@ -42,7 +42,7 @@ void clientAcceptHandler(connection *conn) {
     }
 }
 
-void init_latte_client(struct aeEventLoop* el, latte_client_t* c, struct connection* conn, int flags) {
+void init_latte_client(struct ae_event_loop_t* el, latte_client_t* c, struct connection* conn, int flags) {
     /* Last chance to keep flags */
     c->flags |= flags;
     /* Initiate accept.
@@ -122,7 +122,7 @@ void free_latte_client_async(latte_client_t *c) {
     free_latte_client(c);
 }
 
-void readQueryFromClient(connection *conn) { 
+void read_query_from_client(connection *conn) { 
     latte_client_t *c = connGetPrivateData(conn);
     int nread, readlen;
     size_t qblen;
@@ -167,7 +167,7 @@ void readQueryFromClient(connection *conn) {
         return;
     } 
     sds_incr_len(c->querybuf,nread);
-    LATTE_LIB_LOG(LOG_DEBUG, "readQueryFromClient exec %s %d", c->querybuf, nread);
+    LATTE_LIB_LOG(LOG_DEBUG, "read_query_from_client exec %s %d", c->querybuf, nread);
     if (c->exec(c, nread)) {
         //清理掉c->querybuf
         sds_range(c->querybuf,c->qb_pos,-1);

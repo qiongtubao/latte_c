@@ -29,13 +29,13 @@
     03 Aug 2025 12:11:32.693 958790 DEBUG server_test.c:createLatteClient:44: createLatteClient
     03 Aug 2025 12:11:32.693 958790 DEBUG server.c:acceptCommonHandler:302: create client fd:7
     03 Aug 2025 12:11:32.693 958790 DEBUG client.c:link_latte_client:78: link_latte_client 7
-    03 Aug 2025 12:11:32.693 958790 DEBUG client.c:readQueryFromClient:169: readQueryFromClient exec Hello from client 17
+    03 Aug 2025 12:11:32.693 958790 DEBUG client.c:read_query_from_client:169: read_query_from_client exec Hello from client 17
     03 Aug 2025 12:11:32.693 958790 DEBUG server_test.c:echoHandler:23: echoHandler Hello from client 17
     03 Aug 2025 12:11:32.693 958790 DEBUG client.c:add_reply_proto:235: add_reply_proto use buffer 17
     03 Aug 2025 12:11:32.693 958790 DEBUG server_test.c:echoHandler:37: echoHandler
     03 Aug 2025 12:11:32.693 958790 DEBUG server.c:handleClientsWithPendingWrites:143: handleClientsWithPendingWrites processed 1
     03 Aug 2025 12:11:32.693 958790 DEBUG client.c:writeToClient:254: writeToClient 7
-    03 Aug 2025 12:11:32.693 958790 DEBUG client.c:readQueryFromClient:169: readQueryFromClient exec quit 4
+    03 Aug 2025 12:11:32.693 958790 DEBUG client.c:read_query_from_client:169: read_query_from_client exec quit 4
     03 Aug 2025 12:11:32.693 958790 DEBUG server_test.c:echoHandler:23: echoHandler quit 4
     03 Aug 2025 12:11:32.693 958790 DEBUG server_test.c:echoHandler:28: quit
 
@@ -113,7 +113,7 @@ void *server_thread(void *arg) {
     server->bind = test_bind_vector_new();
     
     server->maxclients = 100;
-    server->el = aeCreateEventLoop(1024);
+    server->el = ae_event_loop_new(1024);
     init_latte_server(server);
     server->createClient = createLatteClient;
     server->freeClient = freeLatteClient;

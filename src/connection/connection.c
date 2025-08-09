@@ -58,7 +58,7 @@ int connGetSocketError(connection *conn) {
     return sockerr;
 }
 
-static void connSocketEventHandler(struct aeEventLoop *el, int fd, void *clientData, int mask)
+static void connSocketEventHandler(struct ae_event_loop_t *el, int fd, void *clientData, int mask)
 {
     UNUSED(el);
     UNUSED(fd);
@@ -75,7 +75,7 @@ static void connSocketEventHandler(struct aeEventLoop *el, int fd, void *clientD
             conn->state = CONN_STATE_CONNECTED;
         }
 
-        if (!conn->write_handler) aeDeleteFileEvent(el,conn->fd,AE_WRITABLE);
+        if (!conn->write_handler) ae_file_event_delete(el,conn->fd,AE_WRITABLE);
 
         if (!callHandler(el, conn, conn->conn_handler)) return;
         conn->conn_handler = NULL;
@@ -119,9 +119,9 @@ static void connSocketEventHandler(struct aeEventLoop *el, int fd, void *clientD
  */
 
 /* Close the connection and free resources. */
-static void connSocketClose(struct aeEventLoop *el, connection *conn) {
+static void connSocketClose(struct ae_event_loop_t *el, connection *conn) {
     if (conn->fd != -1) {
-        aeDeleteFileEvent(el,conn->fd, AE_READABLE | AE_WRITABLE);
+        ae_file_event_delete(el,conn->fd, AE_READABLE | AE_WRITABLE);
         close(conn->fd);
         conn->fd = -1;
     }
@@ -169,7 +169,7 @@ static int connSocketRead(connection *conn, void *buf, size_t buf_len) {
     return ret;
 }
 
-static int connSocketAccept(struct aeEventLoop *el,connection *conn, ConnectionCallbackFunc accept_handler) {
+static int connSocketAccept(struct ae_event_loop_t *el,connection *conn, ConnectionCallbackFunc accept_handler) {
     int ret = CONNECTION_OK;
 
     if (conn->state != CONN_STATE_ACCEPTING) return CONNECTION_ERR;
@@ -182,7 +182,7 @@ static int connSocketAccept(struct aeEventLoop *el,connection *conn, ConnectionC
     return ret;
 }
 
-static int connSocketConnect(struct aeEventLoop *el, connection *conn, const char *addr, int port, const char *src_addr,
+static int connSocketConnect(struct ae_event_loop_t *el, connection *conn, const char *addr, int port, const char *src_addr,
         ConnectionCallbackFunc connect_handler) {
     int fd = anetTcpNonBlockBestEffortBindConnect(NULL,addr,port,src_addr);
     if (fd == -1) {
@@ -195,7 +195,7 @@ static int connSocketConnect(struct aeEventLoop *el, connection *conn, const cha
     conn->state = CONN_STATE_CONNECTING;
 
     conn->conn_handler = connect_handler;
-    aeCreateFileEvent(el, conn->fd, AE_WRITABLE,
+    ae_file_event_new(el, conn->fd, AE_WRITABLE,
             conn->type->ae_handler, conn);
 
     return CONNECTION_OK;
@@ -209,7 +209,7 @@ static int connSocketConnect(struct aeEventLoop *el, connection *conn, const cha
  * always called before and not after the read handler in a single event
  * loop.
  */
-static int connSocketSetWriteHandler(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc func, int barrier) {
+static int connSocketSetWriteHandler(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func, int barrier) {
     if (func == conn->write_handler) return CONNECTION_OK;
 
     conn->write_handler = func;
@@ -218,9 +218,9 @@ static int connSocketSetWriteHandler(struct aeEventLoop *el, connection *conn, C
     else
         conn->flags &= ~CONN_FLAG_WRITE_BARRIER;
     if (!conn->write_handler)
-        aeDeleteFileEvent(el,conn->fd,AE_WRITABLE);
+        ae_file_event_delete(el,conn->fd,AE_WRITABLE);
     else
-        if (aeCreateFileEvent(el,conn->fd,AE_WRITABLE,
+        if (ae_file_event_new(el,conn->fd,AE_WRITABLE,
                     conn->type->ae_handler,conn) == AE_ERR) return CONNECTION_ERR;
     return CONNECTION_OK;
 }
@@ -228,14 +228,14 @@ static int connSocketSetWriteHandler(struct aeEventLoop *el, connection *conn, C
 /* Register a read handler, to be called when the connection is readable.
  * If NULL, the existing handler is removed.
  */
-static int connSocketSetReadHandler(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc func) {
+static int connSocketSetReadHandler(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func) {
     if (func == conn->read_handler) return CONNECTION_OK;
 
     conn->read_handler = func;
     if (!conn->read_handler)
-        aeDeleteFileEvent(el,conn->fd,AE_READABLE);
+        ae_file_event_delete(el,conn->fd,AE_READABLE);
     else
-        if (aeCreateFileEvent(el,conn->fd,
+        if (ae_file_event_new(el,conn->fd,
                     AE_READABLE,conn->type->ae_handler,conn) == AE_ERR) return CONNECTION_ERR;
     return CONNECTION_OK;
 }
@@ -252,7 +252,7 @@ static int connSocketBlockingConnect(connection *conn, const char *addr, int por
         return CONNECTION_ERR;
     }
 
-    if ((aeWait(fd, AE_WRITABLE, timeout) & AE_WRITABLE) == 0) {
+    if ((ae_wait(fd, AE_WRITABLE, timeout) & AE_WRITABLE) == 0) {
         conn->state = CONN_STATE_ERROR;
         conn->last_errno = ETIMEDOUT;
     }
@@ -293,7 +293,7 @@ ssize_t syncWrite(int fd, char *ptr, ssize_t size, long long timeout) {
         if (size == 0) return ret;
 
         /* Wait */
-        aeWait(fd,AE_WRITABLE,wait);
+        ae_wait(fd,AE_WRITABLE,wait);
         elapsed = mstime() - start;
         if (elapsed >= timeout) {
             errno = ETIMEDOUT;
@@ -343,7 +343,7 @@ ssize_t syncRead(int fd, char *ptr, ssize_t size, long long timeout) {
         if (size == 0) return totread;
 
         /* Wait */
-        aeWait(fd,AE_READABLE,wait);
+        ae_wait(fd,AE_READABLE,wait);
         elapsed = mstime() - start;
         if (elapsed >= timeout) {
             errno = ETIMEDOUT;

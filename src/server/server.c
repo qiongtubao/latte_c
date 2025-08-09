@@ -16,7 +16,7 @@ void closeSocketListeners(struct latte_server_t* server, socket_fds_t *sfd) {
     for (j = 0; j < sfd->count; j++) {
         if (sfd->fd[j] == -1) continue;
 
-        aeDeleteFileEvent(server->el, sfd->fd[j], AE_READABLE);
+        ae_file_event_delete(server->el, sfd->fd[j], AE_READABLE);
         close(sfd->fd[j]);
     }
 
@@ -105,12 +105,12 @@ int listenToPort(struct latte_server_t* server,char* neterr, vector_t* bind, int
 
 /* 创建事件处理程序，用于接受 TCP 或 TLS 域套接字中的新连接。
  * 这原子地适用于所有插槽 fds */
-int createSocketAcceptHandler(struct latte_server_t* server, socket_fds_t *sfd, aeFileProc *accept_handler, void* privdata) {
+int createSocketAcceptHandler(struct latte_server_t* server, socket_fds_t *sfd, ae_file_proc_func *accept_handler, void* privdata) {
     int j;
     for (j = 0; j < sfd->count; j++) {
-        if (aeCreateFileEvent(server->el, sfd->fd[j], AE_READABLE, accept_handler, privdata) == AE_ERR) {
+        if (ae_file_event_new(server->el, sfd->fd[j], AE_READABLE, accept_handler, privdata) == AE_ERR) {
             /* Rollback */
-            for (j = j-1; j >= 0; j--) aeDeleteFileEvent(server->el, sfd->fd[j], AE_READABLE);
+            for (j = j-1; j >= 0; j--) ae_file_event_delete(server->el, sfd->fd[j], AE_READABLE);
             return SERVER_ERR;
         }
     }
@@ -192,7 +192,7 @@ int send_clients(latte_func_task_t* task) {
     return 1;
 }
 
-int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
+int serverCron(struct ae_event_loop_t *eventLoop, long long id, void *clientData) {
     // LATTE_LIB_LOG(LOG_INFO, "serverCron");
     latte_server_t* server = (latte_server_t*)clientData;
     cron_manager_run(server->cron_manager, server);
@@ -231,23 +231,23 @@ int start_latte_server(latte_server_t* server) {
         LATTE_LIB_LOG(LOG_ERROR, "Unrecoverable error creating TCP socket accept handler.");
         exit(1);
     }
-    aeAddBeforeSleepTask(server->el, latte_func_task_new(send_clients, NULL, 1, server));
+    ae_add_before_sleep_task(server->el, latte_func_task_new(send_clients, NULL, 1, server));
     LATTE_LIB_LOG(LOG_INFO, "start latte server success PID: %lld" , getpid());
 
     /* Create the timer callback, this is our way to process many background
      * operations incrementally, like clients timeout, eviction of unaccessed
      * expired keys and so forth. */
-    if (aeCreateTimeEvent(server->el, 1, serverCron, server, NULL) == AE_ERR) {
+    if (ae_time_event_new(server->el, 1, serverCron, server, NULL) == AE_ERR) {
         // serverPanic("Can't create event loop timers.");
         exit(1);
     }
-    aeMain(server->el);
-    aeDeleteEventLoop(server->el);
+    ae_main(server->el);
+    ae_event_loop_delete(server->el);
     return 1;
 }
 int stop_latte_server(struct latte_server_t* server) {
-    call_before_sleep(server->el);
-    aeStop(server->el);
+    ae_do_before_sleep(server->el);
+    ae_stop(server->el);
     return 1;
 }
 
@@ -308,7 +308,7 @@ static void acceptCommonHandler(latte_server_t* server,connection *conn, int fla
         connEnableTcpNoDelay(conn); // 设置TCP_NODELAY
         // if (server.tcpkeepalive)
         //     connKeepAlive(conn,server.tcpkeepalive);
-        connSetReadHandler(server->el, conn, readQueryFromClient);
+        connSetReadHandler(server->el, conn, read_query_from_client);
         connSetPrivateData(conn, c);
     }
     init_latte_client(server->el, c, conn, flags);
@@ -317,7 +317,7 @@ static void acceptCommonHandler(latte_server_t* server,connection *conn, int fla
 
 #define MAX_ACCEPTS_PER_CALL 1000
 #define NET_IP_STR_LEN 46 /* INET6_ADDRSTRLEN is 46, but we need to be sure */
-void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
+void acceptTcpHandler(ae_event_loop_t *el, int fd, void *privdata, int mask) {
     int cport, cfd, max = MAX_ACCEPTS_PER_CALL;
     char cip[NET_IP_STR_LEN];
     latte_server_t* server = (latte_server_t*)(privdata);
