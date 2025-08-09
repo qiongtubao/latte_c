@@ -43,6 +43,7 @@ void io_uring_req_delete(io_uring_req* req) {
     zfree(req);
 }
 static int ae_api_create(ae_event_loop_t *eventLoop) {
+    LATTE_LIB_LOG(LOG_DEBUG, "[ae_api_create] ae use iouring");
     ae_api_state_t *state = zmalloc(sizeof(ae_api_state_t));
     if (!state) {
         return -1;
@@ -223,15 +224,17 @@ static int ae_api_poll(ae_event_loop_t *eventLoop, struct timeval *tvp) {
 static char *ae_api_name(void) {
     return "iouring";
 }
-static int ae_api_read(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {    
+static int ae_api_read(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {  
+    AE_NOTUSED(eventLoop);  
     return read(fd, buf, buf_len);
 }
 static int ae_api_write(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {
+    AE_NOTUSED(eventLoop);
     return write(fd, buf, buf_len);
 }
 
 static void ae_api_before_sleep(ae_event_loop_t *eventLoop) {
-
+    AE_NOTUSED(eventLoop);
 }
 
 static void ae_api_after_sleep(ae_event_loop_t *eventLoop) {

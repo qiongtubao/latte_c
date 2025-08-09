@@ -86,3 +86,12 @@ jobs:
           sudo apt-get install -y lcov liburing-dev
           echo run ae_epoll_asan_test
           cd src/ae && make asan_test 
+  ae_select_asan_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: ae_epoll_asan_test
+        run: |
+          sudo apt-get install -y lcov liburing-dev
+          echo run ae_epoll_asan_test
+          cd src/ae && make SELECT=1 asan_test 

@@ -21,3 +21,8 @@ include $(LATTE_LIB_WORKSPACE)/src/func_task/lib.mk
 ifdef IOURING
     include $(LATTE_LIB_WORKSPACE)/mks/sys_config.mk
 endif
+
+ifdef SELECT
+    FINAL_CC_CFLAGS+=-DHAVE_SELECT 
+	FINAL_CC_LDFLAGS+=-DHAVE_SELECT
+endif

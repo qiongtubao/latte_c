@@ -106,17 +106,19 @@ static char *ae_api_name(void) {
 }
 
 static int ae_api_read(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {
+    AE_NOTUSED(eventLoop);
     return read(fd, buf, buf_len);
 }
 
 static int ae_api_write(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {
+    AE_NOTUSED(eventLoop);
     return write(fd, buf, buf_len);
 }
 
 static void ae_api_before_sleep(ae_event_loop_t *eventLoop) {
-
+    AE_NOTUSED(eventLoop);;
 }
 
 static void ae_api_after_sleep(ae_event_loop_t *eventLoop) {
-
+    AE_NOTUSED(eventLoop);
 }
