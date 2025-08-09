@@ -60,7 +60,7 @@ int async_io_net_write(async_io_request_t* request) {
     latte_assert_with_info(request->is_canceled == false, "request is canceled\n");
     latte_assert_with_info(request->error == NULL, "error is not valid\n");
     latte_assert_with_info(request->type == ASYNC_IO_NET_WRITE, "type is not valid\n");
-    LATTE_LIB_LOG(LOG_DEBUG, "async_io_net_write %d %d", request->fd, request->len);
+    //TEST LATTE_LIB_LOG(LOG_DEBUG, "async_io_net_write %d %d", request->fd, request->len);
     struct io_uring_thread_info_t* thread_info = get_or_new_thread_info();
     struct io_uring* io_uring_instance = &thread_info->io_uring_instance;
     struct io_uring_sqe* sqe = io_uring_get_sqe(io_uring_instance);
@@ -74,7 +74,7 @@ int async_io_net_write(async_io_request_t* request) {
 void handle_cqe( struct io_uring_cqe* cqe) {
     async_io_request_t *req = (async_io_request_t *)io_uring_cqe_get_data(cqe);
     latte_assert_with_info(req->is_finished == false, "request is finished");
-    LATTE_LIB_LOG(LOG_DEBUG, "handle_cqe %d %d", req->type, cqe->res);
+    //TEST LATTE_LIB_LOG(LOG_DEBUG, "handle_cqe %d %d", req->type, cqe->res);
     switch (req->type)
         {
         case ASYNC_IO_NET_WRITE:
