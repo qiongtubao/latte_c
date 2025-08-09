@@ -81,10 +81,10 @@
 
 /* Test for polling API */
 #ifdef __linux__
+#ifndef HAVE_SELECT 
 #define HAVE_EPOLL 1
-//默认linux > 5.x 支持iouring  后期如果有需求的话在makefile里加判断  然后终止编译
+#endif
 #define HAVE_LIBURING 1
-
 #endif
 
 /* Test for accept4() */

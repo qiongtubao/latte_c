@@ -58,7 +58,7 @@ void link_latte_client(latte_server_t* server, latte_client_t* c);
 void unlink_latte_client(latte_client_t* c);
 
 
-void init_latte_client(struct aeEventLoop* el, latte_client_t* c, struct connection* conn, int flags);
+void init_latte_client(struct ae_event_loop_t* el, latte_client_t* c, struct connection* conn, int flags);
 void free_latte_client_async(latte_client_t *c);
 void free_latte_client(latte_client_t *c);
 

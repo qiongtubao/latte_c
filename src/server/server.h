@@ -35,7 +35,7 @@ typedef struct socket_fds_t {
     int count;
 } socket_fds_t;
 
-typedef void (*tcp_handler_func)(aeEventLoop *el, int fd, void *privdata, int mask);
+typedef void (*tcp_handler_func)(ae_event_loop_t *el, int fd, void *privdata, int mask);
 // typedef int (*exec_func)(struct latte_client_t* client);
 typedef struct latte_client_t *(*create_client_func)();
 typedef void (*free_client_func)(struct latte_client_t* client);
@@ -43,7 +43,7 @@ typedef struct latte_server_t {
     /* General */
     pid_t pid;  
     pthread_t main_thread_id;
-    aeEventLoop *el;
+    ae_event_loop_t *el;
     long long port;
     socket_fds_t ipfd;
     vector_t* bind;
@@ -89,5 +89,5 @@ void destory_latte_server(struct latte_server_t* server);
 // void initInnerLatteClient(struct latteClient* client);
 // void freeInnerLatteClient(struct latteClient* client);
 
-void readQueryFromClient(connection *conn);
+void read_query_from_client(connection *conn);
 #endif

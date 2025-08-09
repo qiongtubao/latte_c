@@ -32,14 +32,14 @@ typedef void (*ConnectionCallbackFunc)(struct connection *conn);
 
 
 typedef struct ConnectionType {
-    void (*ae_handler)(struct aeEventLoop *el, int fd, void *clientData, int mask);
-    int (*connect)(struct aeEventLoop *el, struct connection *conn, const char *addr, int port, const char *source_addr, ConnectionCallbackFunc connect_handler);
+    void (*ae_handler)(struct ae_event_loop_t *el, int fd, void *clientData, int mask);
+    int (*connect)(struct ae_event_loop_t *el, struct connection *conn, const char *addr, int port, const char *source_addr, ConnectionCallbackFunc connect_handler);
     int (*write)(struct connection *conn, const void *data, size_t data_len);
     int (*read)(struct connection *conn, void *buf, size_t buf_len);
-    void (*close)(struct aeEventLoop *el, struct connection *conn);
-    int (*accept)(struct aeEventLoop *el, struct connection *conn, ConnectionCallbackFunc accept_handler);
-    int (*set_write_handler)(struct aeEventLoop *el, struct connection *conn, ConnectionCallbackFunc handler, int barrier);
-    int (*set_read_handler)(struct aeEventLoop *el, struct connection *conn, ConnectionCallbackFunc handler);
+    void (*close)(struct ae_event_loop_t *el, struct connection *conn);
+    int (*accept)(struct ae_event_loop_t *el, struct connection *conn, ConnectionCallbackFunc accept_handler);
+    int (*set_write_handler)(struct ae_event_loop_t *el, struct connection *conn, ConnectionCallbackFunc handler, int barrier);
+    int (*set_read_handler)(struct ae_event_loop_t *el, struct connection *conn, ConnectionCallbackFunc handler);
     const char *(*get_last_error)(struct connection *conn);
     int (*blocking_connect)(struct connection *conn, const char *addr, int port, long long timeout);
     ssize_t (*sync_write)(struct connection *conn, char *ptr, ssize_t size, long long timeout);
@@ -78,11 +78,11 @@ int connKeepAlive(connection *conn, int interval);
  * With barrier enabled, we never fire the event if the read handler already
  * fired in the same event loop iteration. Useful when you want to persist
  * things to disk before sending replies, and want to do that in a group fashion. */
-static inline int connSetWriteHandlerWithBarrier(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc func, int barrier) {
+static inline int connSetWriteHandlerWithBarrier(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func, int barrier) {
     return conn->type->set_write_handler(el, conn, func, barrier);
 }
 
-static inline void connClose(struct aeEventLoop *el, connection *conn) {
+static inline void connClose(struct ae_event_loop_t *el, connection *conn) {
     conn->type->close(el, conn);
 }
 
@@ -123,21 +123,21 @@ static inline const char *connGetLastError(connection *conn) {
  * a connClose() must be called.
  */
 
-static inline int connAccept(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc accept_handler) {
+static inline int connAccept(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc accept_handler) {
     return conn->type->accept(el, conn, accept_handler);
 }
 
 /* Register a read handler, to be called when the connection is readable.
  * If NULL, the existing handler is removed.
  */
-static inline int connSetReadHandler(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc func) {
+static inline int connSetReadHandler(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func) {
     return conn->type->set_read_handler(el, conn, func);
 }
 
 /* Register a write handler, to be called when the connection is writable.
  * If NULL, the existing handler is removed.
  */
-static inline int connSetWriteHandler(struct aeEventLoop *el, connection *conn, ConnectionCallbackFunc func) {
+static inline int connSetWriteHandler(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func) {
     return conn->type->set_write_handler(el, conn, func, 0);
 }
 

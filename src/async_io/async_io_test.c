@@ -41,12 +41,12 @@ void server_send_ok( async_io_request_t* request) {
 }
 
 
-void client_read(aeEventLoop* el, int fd, void* privdata, int mask) {
+void client_read(ae_event_loop_t* el, int fd, void* privdata, int mask) {
     thread_info* info = (thread_info*)privdata;
     struct conn_info *ci = zmalloc(sizeof(struct conn_info));
     if (!ci) {
         perror("malloc");
-        aeDeleteFileEvent(el, ci->fd, AE_READABLE);
+        ae_file_event_delete(el, ci->fd, AE_READABLE);
         close(fd);
         return;
     }
@@ -59,7 +59,7 @@ void client_read(aeEventLoop* el, int fd, void* privdata, int mask) {
        
         len = read(ci->fd, ci->buffer, BUFFER_SIZE);
         if (len <= 0) {
-            aeDeleteFileEvent(el, ci->fd, AE_READABLE);
+            ae_file_event_delete(el, ci->fd, AE_READABLE);
             close(ci->fd);
             free(ci);
             return;
@@ -90,7 +90,7 @@ void client_read(aeEventLoop* el, int fd, void* privdata, int mask) {
     zfree(ci);
 
 }
-void server_accept(aeEventLoop* el, int fd, void* privdata, int mask) {
+void server_accept(ae_event_loop_t* el, int fd, void* privdata, int mask) {
     printf("server_accept\n");
     struct sockaddr_in client_addr;
     socklen_t addr_len = sizeof(client_addr);
@@ -100,10 +100,10 @@ void server_accept(aeEventLoop* el, int fd, void* privdata, int mask) {
         return;
     }
     fcntl(client_fd, F_SETFL, O_NONBLOCK);
-    aeCreateFileEvent(el, client_fd, AE_READABLE, client_read, privdata);            
+    ae_file_event_new(el, client_fd, AE_READABLE, client_read, privdata);            
 }
 
-int server_timer(aeEventLoop* el, long long id, void* privdata) {
+int server_timer(ae_event_loop_t* el, long long id, void* privdata) {
     // printf("server_timer\n");
     // uint64_t expirations;
     // read(fd, &expirations, sizeof(expirations));
@@ -119,7 +119,7 @@ void *server_thread(void *arg) {
     thread_info* info = (thread_info*)arg;
     int server_fd, epoll_fd, timer_fd;
     // struct epoll_event ev, events[MAX_EVENTS];
-    aeEventLoop* el = aeCreateEventLoop(1024);
+    ae_event_loop_t* el = ae_event_loop_new(1024);
     struct sockaddr_in addr;
 
     async_io_module_thread_init();
@@ -161,7 +161,7 @@ void *server_thread(void *arg) {
     //     exit(EXIT_FAILURE);
     // }
     LATTE_LIB_LOG(LOG_DEBUG, "add server_fd %d server_accept event", server_fd);
-    aeCreateFileEvent(el, server_fd, AE_READABLE, server_accept, info);
+    ae_file_event_new(el, server_fd, AE_READABLE, server_accept, info);
     
     // 创建定时器
     // if ((timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK)) == -1) {
@@ -169,7 +169,7 @@ void *server_thread(void *arg) {
     //     exit(EXIT_FAILURE);
     // }
     
-    long long timer_id = aeCreateTimeEvent(el, 1000, server_timer, el, NULL);
+    long long timer_id = ae_time_event_new(el, 1000, server_timer, el, NULL);
     LATTE_LIB_LOG(LOG_DEBUG, "add timeevent %d server_timer event", timer_id);
     // struct itimerspec its = {
     //     .it_interval = {.tv_sec = 1, .tv_nsec = 0},
@@ -188,7 +188,7 @@ void *server_thread(void *arg) {
     // printf("Server started on port %d\n", PORT);
     
     while (!info->is_stop) {
-        aeProcessEvents(el, AE_ALL_EVENTS|
+        ae_process_events(el, AE_ALL_EVENTS|
             AE_CALL_BEFORE_SLEEP|
             AE_CALL_AFTER_SLEEP);
         // 处理io_uring完成事件
@@ -298,8 +298,8 @@ void *server_thread(void *arg) {
     // close(server_fd);
     // close(epoll_fd);
     // close(timer_fd);
-    aeStop(el);
-    aeDeleteEventLoop(el);
+    ae_stop(el);
+    ae_event_loop_delete(el);
     async_io_module_thread_destroy();
     return NULL;
 }

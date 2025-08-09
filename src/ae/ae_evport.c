@@ -1,31 +1,4 @@
-/* ae.c module for illumos event ports.
- *
- * Copyright (c) 2012, Joyent, Inc. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *   * Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *   * Neither the name of Redis nor the names of its contributors may be used
- *     to endorse or promote products derived from this software without
- *     specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
+#include "ae.h"
 
 
 #include <assert.h>
@@ -37,45 +10,22 @@
 #include <sys/time.h>
 
 #include <stdio.h>
-
 static int evport_debug = 0;
 
-/*
- * This file implements the ae API using event ports, present on Solaris-based
- * systems since Solaris 10.  Using the event port interface, we associate file
- * descriptors with the port.  Each association also includes the set of poll(2)
- * events that the consumer is interested in (e.g., POLLIN and POLLOUT).
- *
- * There's one tricky piece to this implementation: when we return events via
- * aeApiPoll, the corresponding file descriptors become dissociated from the
- * port.  This is necessary because poll events are level-triggered, so if the
- * fd didn't become dissociated, it would immediately fire another event since
- * the underlying state hasn't changed yet.  We must re-associate the file
- * descriptor, but only after we know that our caller has actually read from it.
- * The ae API does not tell us exactly when that happens, but we do know that
- * it must happen by the time aeApiPoll is called again.  Our solution is to
- * keep track of the last fds returned by aeApiPoll and re-associate them next
- * time aeApiPoll is invoked.
- *
- * To summarize, in this module, each fd association is EITHER (a) represented
- * only via the in-kernel association OR (b) represented by pending_fds and
- * pending_masks.  (b) is only true for the last fds we returned from aeApiPoll,
- * and only until we enter aeApiPoll again (at which point we restore the
- * in-kernel association).
- */
 #define MAX_EVENT_BATCHSZ 512
 
-typedef struct aeApiState {
+typedef struct ae_api_state_t {
     int     portfd;                             /* event port */
     uint_t  npending;                           /* # of pending fds */
     int     pending_fds[MAX_EVENT_BATCHSZ];     /* pending fds */
     int     pending_masks[MAX_EVENT_BATCHSZ];   /* pending fds' masks */
-} aeApiState;
+} ae_api_state_t;
 
-static int aeApiCreate(aeEventLoop *eventLoop) {
+// return -1 失败 0 成功
+static int ae_api_create(ae_event_loop_t *eventLoop) {
     LATTE_LIB_LOG(LOG_DEBUG, "[aeApiCreate] ae use evport");
     int i;
-    aeApiState *state = zmalloc(sizeof(aeApiState));
+    ae_api_state_t *state = zmalloc(sizeof(ae_api_state_t));
     if (!state) return -1;
 
     state->portfd = port_create();
@@ -95,22 +45,22 @@ static int aeApiCreate(aeEventLoop *eventLoop) {
     eventLoop->apidata = state;
     return 0;
 }
-
-static int aeApiResize(aeEventLoop *eventLoop, int setsize) {
+// return -1 失败 0 成功
+static int ae_api_resize(ae_event_loop_t *eventLoop, int setsize) {
     (void) eventLoop;
     (void) setsize;
     /* Nothing to resize here. */
     return 0;
 }
 
-static void aeApiFree(aeEventLoop *eventLoop) {
-    aeApiState *state = eventLoop->apidata;
+static void ae_api_delete(ae_event_loop_t *eventLoop) {
+    ae_api_state_t *state = eventLoop->apidata;
 
     close(state->portfd);
     zfree(state);
 }
 
-static int aeApiLookupPending(aeApiState *state, int fd) {
+static int ae_api_lookup_pending(ae_api_state_t *state, int fd) {
     uint_t i;
 
     for (i = 0; i < state->npending; i++) {
@@ -124,7 +74,7 @@ static int aeApiLookupPending(aeApiState *state, int fd) {
 /*
  * Helper function to invoke port_associate for the given fd and mask.
  */
-static int aeApiAssociate(const char *where, int portfd, int fd, int mask) {
+static int ae_api_associate(const char *where, int portfd, int fd, int mask) {
     int events = 0;
     int rv, err;
 
@@ -153,8 +103,8 @@ static int aeApiAssociate(const char *where, int portfd, int fd, int mask) {
     return rv;
 }
 
-static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
-    aeApiState *state = eventLoop->apidata;
+static int ae_api_add_event(ae_event_loop_t *eventLoop, int fd, int mask) {
+    ae_api_state_t *state = eventLoop->apidata;
     int fullmask, pfd;
 
     if (evport_debug)
@@ -166,7 +116,7 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
      * we call port_associate() again.
      */
     fullmask = mask | eventLoop->events[fd].mask;
-    pfd = aeApiLookupPending(state, fd);
+    pfd = ae_api_lookup_pending(state, fd);
 
     if (pfd != -1) {
         /*
@@ -181,17 +131,17 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
         return 0;
     }
 
-    return (aeApiAssociate("aeApiAddEvent", state->portfd, fd, fullmask));
+    return (ae_api_associate("aeApiAddEvent", state->portfd, fd, fullmask));
 }
 
-static void aeApiDelEvent(aeEventLoop *eventLoop, int fd, int mask) {
+static void ae_api_del_event(ae_event_loop_t *eventLoop, int fd, int mask) {
     aeApiState *state = eventLoop->apidata;
     int fullmask, pfd;
 
     if (evport_debug)
         fprintf(stderr, "del fd %d mask 0x%x\n", fd, mask);
 
-    pfd = aeApiLookupPending(state, fd);
+    pfd = ae_api_lookup_pending(state, fd);
 
     if (pfd != -1) {
         if (evport_debug)
@@ -231,7 +181,7 @@ static void aeApiDelEvent(aeEventLoop *eventLoop, int fd, int mask) {
             perror("aeApiDelEvent: port_dissociate");
             abort(); /* will not return */
         }
-    } else if (aeApiAssociate("aeApiDelEvent", state->portfd, fd,
+    } else if (ae_api_associate("aeApiDelEvent", state->portfd, fd,
         fullmask) != 0) {
         /*
          * ENOMEM is a potentially transient condition, but the kernel won't
@@ -244,8 +194,8 @@ static void aeApiDelEvent(aeEventLoop *eventLoop, int fd, int mask) {
     }
 }
 
-static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
-    aeApiState *state = eventLoop->apidata;
+static int ae_api_poll(ae_event_loop_t *eventLoop, struct timeval *tvp) {
+    ae_api_state_t *state = eventLoop->apidata;
     struct timespec timeout, *tsp;
     uint_t mask, i;
     uint_t nevents;
@@ -261,7 +211,7 @@ static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
             /* This fd has since been deleted. */
             continue;
 
-        if (aeApiAssociate("aeApiPoll", state->portfd,
+        if (ae_api_associate("aeApiPoll", state->portfd,
             state->pending_fds[i], state->pending_masks[i]) != 0) {
             /* See aeApiDelEvent for why this case is fatal. */
             abort();
@@ -319,6 +269,30 @@ static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
     return nevents;
 }
 
-static char *aeApiName(void) {
+static char *ae_api_name(void) {
     return "evport";
 }
+
+static int ae_api_read(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {
+    AE_NOTUSED(eventLoop);
+    return read(fd, buf, buf_len);
+}
+
+static int ae_api_write(ae_event_loop_t *eventLoop, int fd, void *buf, size_t buf_len) {
+    AE_NOTUSED(eventLoop);
+    return write(fd, buf, buf_len);
+}
+
+static void ae_api_before_sleep(ae_event_loop_t *eventLoop) {
+    AE_NOTUSED(eventLoop);
+}
+
+static void ae_api_after_sleep(ae_event_loop_t *eventLoop) {
+    AE_NOTUSED(eventLoop);
+}
+
+
+
+
+
+
