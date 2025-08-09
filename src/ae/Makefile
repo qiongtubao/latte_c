@@ -17,6 +17,7 @@ include $(LATTE_LIB_WORKSPACE)/src/anet/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/list/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/func_task/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/debug/lib.mk
 
 ifdef IOURING
     include $(LATTE_LIB_WORKSPACE)/mks/sys_config.mk

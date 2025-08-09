@@ -11,6 +11,7 @@
     2. 多加一层 read方法  需要使用我们自己的event_fd来处理
 */
 typedef enum req_type {
+    NONE,
     ADD_EPOLLIN,
     ADD_EPOLLOUT,
     REMOVE_EPOLLIN,
@@ -36,6 +37,18 @@ typedef struct ae_api_state_t {
     ae_iouring_info* info;
 } ae_api_state_t;
 
+io_uring_req* io_uring_req_new(req_type type, int fd) {
+    io_uring_req* req = zmalloc(sizeof(io_uring_req));
+    if (req == NULL) {
+        return NULL;
+    }
+    req->type = type;
+    req->fd = fd;
+    req->buffer = NULL;
+    req->buffer_size = 0;
+    req->offset = 0;
+    return req;
+}
 void io_uring_req_delete(io_uring_req* req) {
     if (req->buffer != NULL) {
         sds_delete(req->buffer);
@@ -102,36 +115,45 @@ static int ae_api_add_event(ae_event_loop_t *eventLoop, int fd, int mask) {
         return -1;
     }
     int need_submit = 0;
-    if (mask & AE_READABLE && state->info[fd].read_req == NULL) {
-        state->info[fd].read_req = zmalloc(sizeof(io_uring_req));
+    if (mask & AE_READABLE) {
         if (state->info[fd].read_req == NULL) {
-            return -1;
+            state->info[fd].read_req = io_uring_req_new(ADD_EPOLLIN, fd);
+            if (state->info[fd].read_req == NULL) {
+                return -1;
+            }
+        } else {
+            if (state->info[fd].status & (1<<0)) {
+                return -1;
+            }
+            latte_assert(state->info[fd].read_req->type == NONE);
+            state->info[fd].read_req->type = ADD_EPOLLIN;
         }
-        state->info[fd].read_req->fd = fd; 
-        state->info[fd].read_req->buffer = sds_new_len(NULL, 16*1024);
-        state->info[fd].read_req->buffer_size = 16*1024;
-        state->info[fd].read_req->offset = 0;
+        
+        
         struct io_uring_sqe *sqe = io_uring_get_sqe(&state->ring);
         io_uring_prep_poll_add(sqe, fd, EPOLLIN);
         io_uring_sqe_set_data(sqe, (void*)(uintptr_t)state->info[fd].read_req);
-        state->info[fd].read_req->type = ADD_EPOLLIN;
         state->info[fd].status |= 1<<0;  
         LATTE_LIB_LOG(LOG_DEBUG,"add read event %d", fd);
         need_submit = 1;
     }
-    if (mask & AE_WRITABLE && state->info[fd].write_req == NULL) {
-        state->info[fd].write_req = zmalloc(sizeof(io_uring_req));
+    if (mask & AE_WRITABLE) {
         if (state->info[fd].write_req == NULL) {
-            return -1;
+            state->info[fd].write_req = io_uring_req_new(ADD_EPOLLOUT, fd);
+            if (state->info[fd].write_req == NULL) {
+                return -1;
+            }
+        } else {
+            if (state->info[fd].status & (1<<1)) {
+                return -1;
+            }
+            latte_assert(state->info[fd].read_req->type == NONE);
+            state->info[fd].write_req->type = ADD_EPOLLOUT;
         }
-        state->info[fd].write_req->fd = fd;
-        state->info[fd].write_req->buffer = sds_new_len(NULL, 16*1024);
-        state->info[fd].write_req->buffer_size = 16*1024;
-        state->info[fd].write_req->offset = 0;
+        
         struct io_uring_sqe *sqe = io_uring_get_sqe(&state->ring);
         io_uring_prep_poll_add(sqe, fd, EPOLLOUT);
         io_uring_sqe_set_data(sqe, (void*)(uintptr_t)state->info[fd].write_req);
-        state->info[fd].write_req->type = ADD_EPOLLOUT;
         state->info[fd].status |= 1<<1;
         //TEST LATTE_LIB_LOG(LOG_DEBUG,"add write event %d", fd);
         need_submit = 1;
@@ -150,17 +172,16 @@ static void ae_api_del_event(ae_event_loop_t *eventLoop, int fd, int delmask) {
     if (delmask & AE_READABLE) {
         struct io_uring_sqe *sqe = io_uring_get_sqe(&state->ring);
         io_uring_prep_poll_remove(sqe, (void*)(uintptr_t)state->info[fd].read_req);  
-        state->info[fd].read_req->type = REMOVE_EPOLLIN;
+        io_uring_sqe_set_data(sqe, io_uring_req_new(REMOVE_EPOLLIN, fd));
         state->info[fd].status &= ~(1<<0);
         need_submit = 1;
-        LATTE_LIB_LOG(LOG_DEBUG,"remove read event %d", fd);
+        //TEST LATTE_LIB_LOG(LOG_DEBUG,"remove read event %d", fd);
     }
 
     if (delmask & AE_WRITABLE) {
-        
         struct io_uring_sqe *sqe = io_uring_get_sqe(&state->ring);
         io_uring_prep_poll_remove(sqe, (void*)(uintptr_t)state->info[fd].write_req);
-        state->info[fd].write_req->type = REMOVE_EPOLLOUT;
+        io_uring_sqe_set_data(sqe, io_uring_req_new(REMOVE_EPOLLOUT, fd));
         state->info[fd].status &= ~(1<<1);
         need_submit = 1;
         //TEST LATTE_LIB_LOG(LOG_DEBUG,"remove write event %d", fd);
@@ -168,7 +189,11 @@ static void ae_api_del_event(ae_event_loop_t *eventLoop, int fd, int delmask) {
     if (need_submit) {
         io_uring_submit(&state->ring);
     }
-    //是否需要等待完成？  暂定不需要吧
+    //是否需要等待完成？  暂定不需要吧 状态是否需要注意一下
+    // 取消有好几种情况
+    // 1.已经触发了，  此时收到2个回复
+    // 2.没有触发，  此时收到1个回复 
+
 }
 
 static int ae_api_poll(ae_event_loop_t *eventLoop, struct timeval *tvp) {
@@ -180,41 +205,69 @@ static int ae_api_poll(ae_event_loop_t *eventLoop, struct timeval *tvp) {
     io_uring_for_each_cqe(&state->ring, head, cqe) {
         io_uring_req *req = (io_uring_req *)io_uring_cqe_get_data(cqe);
         
-        int mask = 0;
+        int mask = AE_NONE;
         if (cqe->res >= 0) { // 成功完成
             
-            if (req != NULL) {
-                //TEST LATTE_LIB_LOG(LOG_DEBUG,"fd = %d,cqe->res = %d, req->type = %d",req->fd, cqe->res, req->type);    
-                uint32_t revents = cqe->res; // 获取事件掩码
-        
-                if (revents & EPOLLIN) {
+            //TEST LATTE_LIB_LOG(LOG_DEBUG,"fd = %d,cqe->res = %d, req->type = %d",req->fd, cqe->res, req->type);    
+            uint32_t revents = cqe->res; // 获取事件掩码
+            // 可能在删除可读可写事件之前已经有事件触发了  （这里按照当前状态来处理事件是否应该触发）  如果有问题的话以后在修正
+            // 可能存在问题就是删除事件后重新添加状态是否正确
+            if (revents & EPOLLIN) {
+                if (eventLoop->events[req->fd].mask & AE_READABLE) {
                     mask |= AE_READABLE;
-                    // 处理可读事件
                 }
+                state->info[req->fd].status &= ~(1<<0);
+                // 处理可读事件
+            }
 
-                if (revents & EPOLLOUT) {
+            if (revents & EPOLLOUT) {
+                if (eventLoop->events[req->fd].mask & AE_WRITABLE) {
                     mask |= AE_WRITABLE;
-                    // 处理可写事件
                 }
-                // 可以检查其他感兴趣的事件标志...
-                if (revents & EPOLLERR) mask |= AE_WRITABLE|AE_READABLE;
-                if (revents & EPOLLHUP) mask |= AE_WRITABLE|AE_READABLE;
+                state->info[req->fd].status &= ~(1<<1);
+                // 处理可写事件
+            }
+            // 可以检查其他感兴趣的事件标志...
+            if (revents & EPOLLERR || revents & EPOLLHUP) {
+                if (eventLoop->events[req->fd].mask & AE_READABLE) {
+                    mask |= AE_READABLE;
+                }
+                if (eventLoop->events[req->fd].mask & AE_WRITABLE) {
+                    mask |= AE_WRITABLE;
+                }
+                state->info[req->fd].status &= ~(1<<0);
+                state->info[req->fd].status &= ~(1<<1);
+            }
+
+            if (req->type == REMOVE_EPOLLIN) { //监听可读事件取消成功
+                state->info[req->fd].status &= ~(1<<0);
+                state->info[req->fd].read_req->type = NONE;
+                io_uring_req_delete(req);
+            } else if (req->type == REMOVE_EPOLLOUT) { //监听可写事件取消成功
+                state->info[req->fd].status &= ~(1<<1);
+                state->info[req->fd].write_req->type = NONE;
+                io_uring_req_delete(req);
+            }
+
+            if (mask  != AE_NONE) {
                 eventLoop->fired[count].fd = req->fd;
                 eventLoop->fired[count].mask = mask;
-                if (mask & AE_READABLE) {
-                    state->info[req->fd].status &= ~(1<<0);
-                }
-                if (mask & AE_WRITABLE) {
-                    state->info[req->fd].status &= ~(1<<1);
-                }
                 count++;
-            } else {
-                LATTE_LIB_LOG(LOG_DEBUG,"req is NULL %d", cqe->res);
             }
             
             
         } else { // 错误发生
-            LATTE_LIB_LOG(LOG_DEBUG,"Poll error: %s\n", strerror(-cqe->res));
+            
+            if (req->type == REMOVE_EPOLLIN) { //监听可读事件取消失败
+                state->info[req->fd].read_req->type = NONE;
+                io_uring_req_delete(req);
+            } else if (req->type == REMOVE_EPOLLOUT) {//监听可写事件取消失败
+                state->info[req->fd].write_req->type = NONE;
+                io_uring_req_delete(req);
+            } else {
+                LATTE_LIB_LOG(LOG_DEBUG,"fd(%d) type(%d) Poll error: %s\n", req->fd, req->type,strerror(-cqe->res));
+            }
+            //可能删除可读可写事件失败
         }
         all++;
     }

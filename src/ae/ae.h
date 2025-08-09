@@ -4,6 +4,7 @@
 #include "log/log.h"
 #include "list/list.h"
 #include "func_task/func_task.h"
+#include "debug/latte_debug.h"
 
 #define AE_OK 0
 #define AE_ERR -1
