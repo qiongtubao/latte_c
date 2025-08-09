@@ -8,8 +8,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-// #include <sys/epoll.h>
-// #include <sys/timerfd.h>
 #include "ae.h"
 #include <fcntl.h>
 #include <errno.h>
@@ -48,29 +46,25 @@ void client_read(ae_event_loop_t* el, int fd, void* privdata, int mask) {
     
     ci->fd = fd;
     ssize_t len = 0;
-    if (info->read_async_io) {
-        //TODO
-    } else {
+    
        
-        len = ae_read(el, ci->fd, ci->buffer, BUFFER_SIZE);
-        if (len <= 0) {
-            LATTE_LIB_LOG(LOG_DEBUG,"client read error %d", ci->fd);
-            ae_file_event_delete(el, ci->fd, AE_READABLE);
-            close(ci->fd);
-            zfree(ci);
-            return;
-        }
+    len = ae_read(el, ci->fd, ci->buffer, BUFFER_SIZE);
+    if (len <= 0) {
+        LATTE_LIB_LOG(LOG_DEBUG,"client read error %d", ci->fd);
+        ae_file_event_delete(el, ci->fd, AE_READABLE);
+        close(ci->fd);
+        zfree(ci);
+        return;
     }
-    if (info->write_async_io) {
-        assert(0);
-    } else {
-        if (ae_write(el, ci->fd, ci->buffer, len) < 0) {
-            printf("client write error\n");
-            perror("client write");
-            return;
-        }
-        qps_counter++;
+    
+    
+    if (ae_write(el, ci->fd, ci->buffer, len) < 0) {
+        printf("client write error\n");
+        perror("client write");
+        return;
     }
+    qps_counter++;
+    
     zfree(ci);
 
 }
@@ -170,25 +164,21 @@ void *client_thread(void *arg) {
     memset(buffer, 'A', BUFFER_SIZE);
     while (!info->is_stop) {
         // 发送数据
-        if (info->write_async_io) {
-            assert(0);
-        } else {
-            if (write(sock, buffer, BUFFER_SIZE) < 0) {
-                printf("client write error\n");
-                perror("client write");
-                break;
-            }
+        
+        if (write(sock, buffer, BUFFER_SIZE) < 0) {
+            printf("client write error\n");
+            perror("client write");
+            break;
         }
-        if (info->read_async_io) {
-            assert(0);
-        } else {
-            // 接收响应
-            if (read(sock, buffer, BUFFER_SIZE) < 0) {
-                perror("client read");
-                printf("client read error\n");
-                break;
-            }
+        
+        
+        // 接收响应
+        if (read(sock, buffer, BUFFER_SIZE) < 0) {
+            perror("client read");
+            printf("client read error\n");
+            break;
         }
+        
     }
     
     close(sock);
