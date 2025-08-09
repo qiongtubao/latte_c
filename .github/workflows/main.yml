@@ -68,3 +68,21 @@ jobs:
           sudo apt-get install -y lcov liburing-dev
           echo run server_asan_test
           make server_asan_test
+  ae_iouring_asan_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: ae_iouring_asan_test
+        run: |
+          sudo apt-get install -y lcov liburing-dev
+          echo run ae_iouring_asan_test
+          cd src/ae && make IOURING=1 asan_test 
+  ae_epoll_asan_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: ae_epoll_asan_test
+        run: |
+          sudo apt-get install -y lcov liburing-dev
+          echo run ae_epoll_asan_test
+          cd src/ae && make asan_test 

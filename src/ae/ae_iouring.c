@@ -36,6 +36,12 @@ typedef struct ae_api_state_t {
     ae_iouring_info* info;
 } ae_api_state_t;
 
+void io_uring_req_delete(io_uring_req* req) {
+    if (req->buffer != NULL) {
+        sds_delete(req->buffer);
+    }
+    zfree(req);
+}
 static int ae_api_create(ae_event_loop_t *eventLoop) {
     ae_api_state_t *state = zmalloc(sizeof(ae_api_state_t));
     if (!state) {
@@ -52,6 +58,8 @@ static int ae_api_create(ae_event_loop_t *eventLoop) {
     }
     for (int i = 0; i < eventLoop->setsize; i++) {
         state->info[i].status = 0;
+        state->info[i].read_req = NULL;
+        state->info[i].write_req = NULL;
     }
     eventLoop->apidata = state;
     return 0;
@@ -59,6 +67,18 @@ static int ae_api_create(ae_event_loop_t *eventLoop) {
 static void ae_api_delete(ae_event_loop_t *eventLoop) {
     ae_api_state_t *state = eventLoop->apidata;
     io_uring_queue_exit(&state->ring);
+    for (size_t i = 0; i < eventLoop->setsize; i++)
+    {
+        if (state->info[i].read_req != NULL) {
+            io_uring_req_delete(state->info[i].read_req);
+            state->info[i].read_req = NULL;
+        }
+        if (state->info[i].write_req != NULL) {
+            io_uring_req_delete(state->info[i].write_req);
+            state->info[i].write_req = NULL;
+        }
+    }
+    
     zfree(state->info);
     zfree(state);
 }
@@ -227,8 +247,10 @@ static void ae_api_after_sleep(ae_event_loop_t *eventLoop) {
             struct io_uring_sqe *sqe = io_uring_get_sqe(&state->ring);
             io_uring_prep_poll_add(sqe, i, EPOLLIN);
             io_uring_sqe_set_data(sqe, (void*)(uintptr_t)state->info[i].read_req);
+            
             state->info[i].read_req->type = ADD_EPOLLIN;
             state->info[i].status |= 1<<0;
+            
             need_submit = 1;
         }
         if ((eventLoop->events[i].mask & AE_WRITABLE) 
