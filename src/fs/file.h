@@ -1,7 +1,7 @@
 #ifndef __LATTE_FILE_H
 #define __LATTE_FILE_H
 
-#include <utils/error.h>
+#include "error/error.h"
 #include <stdbool.h>
 #include "sds/sds_plugins.h"
 
