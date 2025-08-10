@@ -3,7 +3,6 @@
 #include "async_io.h"
 #include "thread_single_object/thread_single_object.h"
 #include "log/log.h"
-#include "utils/error.h"
 #include <errno.h>
 #include "debug/latte_debug.h"
 #include "utils/utils.h"

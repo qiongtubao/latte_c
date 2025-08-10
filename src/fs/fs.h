@@ -1,6 +1,6 @@
 #ifndef __LATTE_FS_H
 #define __LATTE_FS_H
-#include "utils/error.h"
+#include "error/error.h"
 #include <stdbool.h>
 
 bool file_exists(char* path);

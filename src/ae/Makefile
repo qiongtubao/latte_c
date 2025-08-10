@@ -4,7 +4,7 @@ LIB_OBJ?=
 TEST_MAIN?=ae_test
 MODULE?=ae
 BUILD_INCLUDE?=ae.h 
-LIB_MODULES?=anet zmalloc dict log func_task utils
+LIB_MODULES?=anet zmalloc dict log func_task utils error
 
 include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
 include $(LATTE_LIB_WORKSPACE)/mks/final.mk

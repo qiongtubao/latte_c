@@ -1,7 +1,7 @@
 LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=utils.o error.o monotonic.o
+BUILD_OBJ?=utils.o monotonic.o
 TEST_MAIN?=utils_test
-BUILD_INCLUDE?=utils.h atomic.h sys_config.h fmacros.h error.h monotonic.h
+BUILD_INCLUDE?=utils.h atomic.h sys_config.h fmacros.h monotonic.h
 MODULE?=utils 
 
 include $(LATTE_LIB_WORKSPACE)/mks/sys.mk

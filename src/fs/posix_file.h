@@ -4,7 +4,7 @@
 #include "sds/sds.h"
 #include <stdbool.h>
 #include <stdlib.h>
-#include "utils/error.h"
+#include "error/error.h"
 #include "sds/sds_plugins.h"
 #define kWritableFileBufferSize  65536
 
