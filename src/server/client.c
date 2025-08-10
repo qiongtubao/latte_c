@@ -254,7 +254,7 @@ int clientHasPendingReplies(latte_client_t *c) {
  * set to 0. So when handler_installed is set to 0 the function must be
  * thread safe. */
 int writeToClient(latte_client_t *c, int handler_installed) {
-    LATTE_LIB_LOG(LOG_DEBUG, "writeToClient %d", c->conn->fd);
+    // LATTE_LIB_LOG(LOG_DEBUG, "writeToClient %d", c->conn->fd);
     /* Update total number of writes on server */
     // atomicIncr(c->server.stat_total_writes_processed, 1);
     
