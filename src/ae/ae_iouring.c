@@ -252,7 +252,7 @@ static int ae_api_poll(ae_event_loop_t *eventLoop, struct timeval *tvp) {
             if (req->type == REMOVE_EPOLLIN) { //监听可读事件取消成功
                 state->info[req->fd].status &= ~(1<<0);
                 state->info[req->fd].read_req->type = NONE;
-                LATTE_LIB_LOG(LOG_INFO,"remove read event %d ok2", req->fd);
+                //服务端主动关闭socket会触发这个事件
                 io_uring_req_delete(req);
             } else if (req->type == REMOVE_EPOLLOUT) { //监听可写事件取消成功
                 state->info[req->fd].status &= ~(1<<1);
@@ -272,7 +272,6 @@ static int ae_api_poll(ae_event_loop_t *eventLoop, struct timeval *tvp) {
             if (req->type == REMOVE_EPOLLIN) { //监听可读事件取消失败
                 state->info[req->fd].read_req->type = NONE;
                 io_uring_req_delete(req);
-                LATTE_LIB_LOG(LOG_INFO,"remove read event %d ok3", req->fd);
             } else if (req->type == REMOVE_EPOLLOUT) {//监听可写事件取消失败
                 state->info[req->fd].write_req->type = NONE;
                 io_uring_req_delete(req);
