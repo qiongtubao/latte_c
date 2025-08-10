@@ -15,6 +15,7 @@ include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/debug/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/thread_single_object/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/error/lib.mk
 include $(LATTE_LIB_WORKSPACE)/mks/sys_config.mk
 #test include
 include $(LATTE_LIB_WORKSPACE)/src/ae/lib.mk
