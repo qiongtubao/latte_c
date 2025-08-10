@@ -331,7 +331,7 @@ void acceptTcpHandler(ae_event_loop_t *el, int fd, void *privdata, int mask) {
         }
         anetCloexec(cfd);
         connection * c = connCreateAcceptedSocket(cfd);
-        LATTE_LIB_LOG(LOG_INFO ,"Accepted %s:%d %d", cip, cport, cfd);
+        LATTE_LIB_LOG(LOG_DEBUG ,"Accepted %s:%d %d", cip, cport, cfd);
         acceptCommonHandler(server, c, 0, cip);
     }
 }
