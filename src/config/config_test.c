@@ -36,6 +36,8 @@ int test_config_numeric_rule(void) {
     char* configstr = "age 10";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(age == 10);
+    configstr = "age error";
+    assert(config_load_string(manager, configstr, strlen(configstr)) == 0);
     config_manager_delete(manager);
     return 1;
 }
@@ -60,6 +62,8 @@ int test_config_enum_rule(void) {
     char* configstr = "gender woman";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(gender == WOMAN);
+    configstr = "gender error";
+    assert(config_load_string(manager, configstr, strlen(configstr)) == 0);
     config_manager_delete(manager);
     return 1;
 }
@@ -80,6 +84,26 @@ int test_config_bool_rule(void) {
 }
 
 /* 数组规则测试 */
+int test_config_array_rule(void) {
+    config_manager_t* manager = config_manager_new();
+    vector_t* likes = NULL;
+    config_rule_t* rule = config_rule_new_sds_array_rule(0, &likes, NULL, -1, sds_new(""));
+    config_add_rule(manager, "likes", rule);
+    char* configstr = "likes a b c";
+    assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
+    assert(vector_size(likes) == 3);
+    assert(strcmp(vector_get(likes, 0), "a") == 0);
+    assert(strcmp(vector_get(likes, 1), "b") == 0);
+    assert(strcmp(vector_get(likes, 2), "c") == 0);
+    sds value = NULL;
+    while (vector_size(likes) > 0) {
+        value = vector_pop(likes);
+        sds_delete(value);
+    }
+    vector_delete(likes);
+    config_manager_delete(manager);
+    return 1;
+}
 
 int test_api(void) {
     log_module_init();
@@ -96,6 +120,8 @@ int test_api(void) {
             test_config_enum_rule() == 1);
         test_cond("config_rule test bool_rule function",
             test_config_bool_rule() == 1);
+        test_cond("config_rule test array_rule function",
+            test_config_array_rule() == 1);
     } test_report()
     return 1;
 }

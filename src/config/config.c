@@ -649,6 +649,9 @@ void* get_sds_array_value(void* data_ctx) {
 }
 
 void* load_sds_array_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {
+    if (argc == 1) {
+        return NULL;
+    }
     
     vector_t* array = vector_new();
     for (int i = 0; i < argc; i++) {
