@@ -105,6 +105,22 @@ int test_config_array_rule(void) {
     return 1;
 }
 
+/* map_sds_sds规则测试 */
+int test_config_map_sds_sds_rule(void) {
+    config_manager_t* manager = config_manager_new();
+    dict_t* map = NULL;
+    config_rule_t* rule = config_rule_new_map_sds_sds_rule(0, &map, NULL, NULL, sds_new(""));
+    config_add_rule(manager, "map", rule);
+    char* configstr = "map k1 v1 k2 v2";
+    assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
+    assert(dict_size(map) == 2);
+    assert(strcmp(dict_fetch_value(map, "k1"), "v1") == 0);
+    assert(strcmp(dict_fetch_value(map, "k2"), "v2") == 0);
+    dict_delete(map);
+    config_manager_delete(manager);
+    return 1;
+}
+
 int test_api(void) {
     log_module_init();
     assert(log_add_stdout(LATTE_LIB, LOG_DEBUG) == 1);
@@ -122,6 +138,8 @@ int test_api(void) {
             test_config_bool_rule() == 1);
         test_cond("config_rule test array_rule function",
             test_config_array_rule() == 1);
+        test_cond("config_rule test map_sds_sds_rule function",
+            test_config_map_sds_sds_rule() == 1);
     } test_report()
     return 1;
 }
