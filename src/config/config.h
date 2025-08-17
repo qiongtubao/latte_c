@@ -1,84 +1,148 @@
-
 #ifndef __LATTE_CONFIG_H
 #define __LATTE_CONFIG_H
+
 
 #include "sds/sds.h"
 #include "dict/dict.h"
 #include "value/value.h"
+
+
+typedef struct config_rule_t config_rule_t;
+
+typedef int (*set_value_func)(void* data_ctx, void* new_value);
+typedef void* (*get_value_func)(void* data_ctx);
+typedef int (*check_value_func)(config_rule_t* rule, void* value, void* new_value);
+typedef sds (*to_sds_func)(config_rule_t* rule);
+typedef void* (*load_value_func)(config_rule_t* rule, char** argv, int argc);
+typedef int (*cmp_value_func)(config_rule_t* rule, void* value, void* new_value);
+typedef int (*is_valid_func)(void* limit_arg, void* value);
+typedef void (*delete_limit_func)(void* limit_arg);
 typedef struct config_rule_t {
-    value_t value;
-    /** 前期判断范围是否可更新 */
-    int (*check_update)(struct config_rule_t* rule, void* old_value, void *new_value);
+    /* 是否可更新 */
+    int flags; 
+    /* 数据上下文 */
+    void* data_ctx;
+    /* 限制参数 */
+    void* limit_arg;
+    /* 设置数据 */
+    set_value_func set_value;
+    /* 获取数据 */
+    get_value_func get_value;
+    /* 比较值 */
+    cmp_value_func cmp_value;
+    /* 限制参数 */
+    is_valid_func is_valid;
+    /* 前期判断范围是否可更新 */
+    check_value_func check_value;
     /** 配合写入文件 */
-    sds_t (*to_sds)(sds_t config, char* key,struct config_rule_t* rule);
+    to_sds_func to_sds;
     /** 加载数据时，类型转换 */
-    int (*load)(struct config_rule_t* rule, char** argv, int argc);
+    load_value_func load_value;
+    /* 默认值 */
+    sds default_value;
+
+    delete_limit_func delete_limit;
 } config_rule_t;
 
 typedef struct config_manager_t {
-    dict_t* rules;
+    /* dict<sds, config_rule_t> */
+    dict_t* rules;                  
 } config_manager_t;
-struct config_manager_t* config_manager_new();
-void config_manager_delete(config_manager_t* c);
-config_rule_t* config_get_rule(config_manager_t* c, char* key);
-int config_register_rule(config_manager_t* c, sds_t key, config_rule_t* rule);
+
+/* 管理器相关函数 */
+/* 创建管理器 */
+config_manager_t* config_manager_new(void);
+void config_manager_delete(config_manager_t* manager);
+/* 添加规则 */
+int config_add_rule(config_manager_t* manager, char* key,config_rule_t* rule);
+/* 获取规则 */
+config_rule_t* config_get_rule(config_manager_t* manager, char* key); 
+/* 删除规则 */
+int config_remove_rule(config_manager_t* manager, char* key); 
+/* 加载文件 */
+int config_load_file(config_manager_t* manager, char* file);
+int config_load_string(config_manager_t* manager, char* str, size_t len);
+int config_load_argv(config_manager_t* manager,  char** argv, int argc);
+int config_save_file(config_manager_t* manager, char* file);
 
 
-int config_set_argv(config_rule_t* c, char** argv, int argc);
-sds_t write_config_to_sds(config_manager_t* c);
+/* 规则相关函数 */
+/* 创建规则 */
+config_rule_t* config_rule_new(int flags, 
+    void* data_ctx, 
+    set_value_func* set_value, 
+    get_value_func* get_value, 
+    check_value_func* check_value, 
+    load_value_func* load_value,
+    cmp_value_func* cmp_value,
+    is_valid_func* is_valid,
+    to_sds_func* to_sds, 
+    void* limit_arg,
+    delete_limit_func* delete_limit,
+    sds default_value  
+);
+/* 删除规则 */
+void config_rule_delete(config_rule_t* rule);
+
+/* 数值类型规则 */
+typedef struct numeric_data_limit_t {
+    long long lower_bound; /* The lower bound of this numeric value */
+    long long upper_bound; /* The upper bound of this numeric value */
+} numeric_data_limit_t;
+config_rule_t* config_rule_new_numeric_rule(int flags, long long* data_ctx, 
+    long long lower_bound, long long upper_bound, check_value_func* check_value,  long long default_value);
+
+/* 字符串类型规则 */
+typedef struct sds_data_limit_t {
+    
+} sds_data_limit_t;
+
+config_rule_t* config_rule_new_sds_rule(int flags, sds* data_ctx, 
+    check_value_func* check_value, sds default_value);
 
 
-/** load config **/
-int load_config_from_string(config_manager_t* config, char* configstr, size_t configstrlen);
-int load_config_from_argv(config_manager_t* config, char** argv, int argc);
-int load_config_from_file(config_manager_t* c, char *filename);
+/* 枚举类型规则 */
+/* Enum Configs contain an array of configEnum objects that match a string with an integer. */
+typedef struct config_enum_t {
+    char *name;
+    int val;
+} config_enum_t;
+typedef struct enum_data_limit_t {
+    config_enum_t *enum_value;
+} enum_data_limit_t;
+config_rule_t* config_rule_new_enum_rule(int flags, void* data_ctx, 
+    config_enum_t* limit, check_value_func* check_value, sds default_value);
 
-/* num attribute */
-sds_t write_config_int64(sds_t config, char* key, config_rule_t* rule);
-void value_delete_int64(void* value);
-int load_config_int64(config_rule_t* rule, char** argv, int argc);
-int64_t config_get_int64(config_manager_t* c, char* key);
-int config_set_int64(config_manager_t* c, char* key, int64_t value);
-
-/* sds_t attribute */
-sds_t write_config_sds(sds_t config, char* key, config_rule_t* rule);
-void value_delete_sds(void* value);
-int load_config_sds(config_rule_t* rule, char** argv, int argc);
-sds_t config_get_sds(config_manager_t* c, char* key);
-int config_set_sds(config_manager_t* c, char* key, sds_t value);
-
-// /* array attribute */
-// int config_update_array(config_rule_t* rule, void* old_value, void* new_value);
-sds_t write_config_sds_array(sds_t config, char* key, config_rule_t* rule);
-int load_config_sds_array(config_rule_t* rule, char** argv, int argc);
-vector_t* config_get_array(config_manager_t* c, char* key);
-int config_set_array(config_manager_t* c, char* key, vector_t* value);
-// void value_delete_array(void* value);
-// struct arraySds* config_get_array(config_rule_t* c, char* key);
-
-// /* object attribute */
-// int config_update_object(config_rule_t* rule, void* old_value, void* new_value);
+/* 布尔类型规则 */
+config_rule_t* config_rule_new_bool_rule(int flags, int* data_ctx, 
+    check_value_func* check_value, int default_value);
 
 
-#define LL_CONFIG_INIT(v) \
-    { .check_update = NULL, \
-      .to_sds = write_config_int64,\
-      .load = load_config_int64,\
-      .value.type = VALUE_INT,\
-      .value.value.i64_value = v }
+/* 数组类型规则 */
+typedef struct array_data_limit_t {
+    int size;
+} array_data_limit_t;
+config_rule_t* config_rule_new_sds_array_rule(int flags, void* data_ctx, 
+    check_value_func* check_value, int size, sds default_value);
 
-#define SDS_CONFIG_INIT(v) \
-    { .check_update = NULL, \
-    .to_sds = write_config_sds, \
-    .load = load_config_sds, \
-    .value.type=VALUE_CONSTANT_CHAR,\
-    .value.value.sds_value = v }
+/* int64数组*/
+/* enum数组 */
+/* bool数组 */
+/* 自定义数组 */
 
-#define SDS_ARRAY_CONFIG_INIT(v) \
-{ .check_update = NULL,\
-  .to_sds = write_config_sds_array,\
-  .load = load_config_sds_array,\
-  .value.type=VALUE_CONSTANT_CHAR,\
-  .value.value.sds_value = v}
+
+
+/* 多段数组追加规则 */
+// config_rule_t* config_rule_new_append_array_rule(int flags, void* data_ctx, 
+//     check_value_func* check_value, sds default_value);
+
+/* map<sds, sds>类型规则 */   
+config_rule_t* config_rule_new_map_sds_sds_rule(int flags, void* data_ctx, 
+    check_value_func* check_value, char** keys, sds default_value);
+
+/* 多段map<sds,sds>属性插入规则 */   
+config_rule_t* config_rule_new_append_map_sds_sds_rule(int flags, void* data_ctx, 
+    check_value_func* check_value, char** keys, sds default_value);
+
+  
 #endif
-
