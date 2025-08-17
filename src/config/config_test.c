@@ -8,6 +8,7 @@
 #include "zmalloc/zmalloc.h"
 #include <sys/time.h>
 #include "log/log.h"
+#include <stdbool.h>
 
 
 /* sds_rule test*/
@@ -63,7 +64,18 @@ int test_config_enum_rule(void) {
     return 1;
 }
 
-
+/* 布尔规则测试*/
+int test_config_bool_rule(void) {
+    config_manager_t* manager = config_manager_new();
+    bool is_man = false;
+    config_rule_t* rule = config_rule_new_bool_rule(0, &is_man, NULL, true);
+    config_add_rule(manager, "is_man", rule);
+    char* configstr = "is_man no";
+    assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
+    assert(is_man == false);
+    config_manager_delete(manager);
+    return 1;
+}
 
 int test_api(void) {
     log_module_init();
@@ -78,6 +90,8 @@ int test_api(void) {
             test_config_numeric_rule() == 1);
         test_cond("config_rule test enum_rule function",
             test_config_enum_rule() == 1);
+        test_cond("config_rule test bool_rule function",
+            test_config_bool_rule() == 1);
     } test_report()
     return 1;
 }

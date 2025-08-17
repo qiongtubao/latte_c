@@ -115,12 +115,13 @@ int config_load_string(config_manager_t* manager, char* str, size_t len) {
     sds_t* lines;
     lines = sds_split_len(str, len, "\n", 1, &totlines);
     size_t i;
+    sds_t* argv = NULL;
+    int argc = 0;
     for (i = 0; i < totlines; i++) {
         lines[i] = sds_trim(lines[i]," \t\r\n");
         sds_t line = lines[i];
         if (line[0] == '#' || line[0] == '\0') continue;
-        sds_t* argv;
-        int argc;
+        
         argv = sds_split_args(line, &argc);
         if (argv == NULL) {
             err = "Unbalanced quotes in configuration line";
@@ -151,21 +152,21 @@ int config_load_string(config_manager_t* manager, char* str, size_t len) {
         latte_assert_with_info(rule_obj->load_value, "rule->load_value is NULL");
         void* value = rule_obj->load_value(rule_obj, argv + 1, argc - 1);
 
-        if (value == NULL) {
-            err = "Error loading configuration option";
-            goto error;
-        }
-
         if (!rule_obj->set_value(rule_obj->data_ctx, value)) {
             err = "Error set value for configuration option";
             goto error;
         }
 
         sds_free_splitres(argv, argc);
+        argv = NULL;
+        argc = 0;
     }
     sds_free_splitres(lines, totlines);
+    
     return 1;
 error:
+    if (argv != NULL) sds_free_splitres(argv, argc);
+    if (lines != NULL) sds_free_splitres(lines, totlines);
     fprintf(stderr, "\n*** FATAL CONFIG  ERROR ***\n");
     fprintf(stderr, "Reading the configuration, at line %d\n", i + 1);
     fprintf(stderr, ">>> '%s'\n", lines[i]);
@@ -571,8 +572,8 @@ config_rule_t* config_rule_new_enum_rule(int flags, void* data_ctx,
 
 /* 布尔类型规则 */
 int set_bool_value(void* data_ctx, void* value) {
-    int* data = (int*)data_ctx;
-    *data = (int)(void*)value;
+    bool* data = (bool*)data_ctx;
+    *data = (bool)value;
     return 1;
 }
 
@@ -587,9 +588,9 @@ void* load_bool_value(config_rule_t* rule, char** argv, int argc) {
     }
     sds value = (sds)argv[0];
     if (str_cmp(value, "yes") == 0) {
-        return (void*)1;
+        return (void*)true;
     } else if (str_cmp(value, "no") == 0) {
-        return (void*)0;
+        return (void*)false;
     }
     return NULL;
 }
