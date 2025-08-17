@@ -39,6 +39,32 @@ int test_config_numeric_rule(void) {
     return 1;
 }
 
+/* enum_rule test*/
+typedef enum gender_enum{
+    MAN,
+    WOMAN,
+} gender_enum;
+
+config_enum_t gender_enum_list[] = {
+    { "man", MAN},
+    { "woman", WOMAN},
+    { NULL,  0},
+};
+
+int test_config_enum_rule(void) {
+    config_manager_t* manager = config_manager_new();
+    gender_enum gender = MAN;
+    config_rule_t* rule = config_rule_new_enum_rule(0, &gender, gender_enum_list,NULL, sds_new("man"));
+    config_add_rule(manager, "gender", rule);
+    char* configstr = "gender woman";
+    assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
+    assert(gender == WOMAN);
+    config_manager_delete(manager);
+    return 1;
+}
+
+
+
 int test_api(void) {
     log_module_init();
     assert(log_add_stdout(LATTE_LIB, LOG_DEBUG) == 1);
@@ -50,6 +76,8 @@ int test_api(void) {
             test_config_sds_rule() == 1);
         test_cond("config_rule test numeric_rule function",
             test_config_numeric_rule() == 1);
+        test_cond("config_rule test enum_rule function",
+            test_config_enum_rule() == 1);
     } test_report()
     return 1;
 }
