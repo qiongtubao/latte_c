@@ -26,6 +26,18 @@ int test_config_sds_rule(void) {
     return 1;
 }
 
+/* numeric_rule test*/
+int test_config_numeric_rule(void) {
+    config_manager_t* manager = config_manager_new();
+    int64_t age = 0;
+    config_rule_t* rule = config_rule_new_numeric_rule(0, &age, 0, 100, NULL, 0);
+    config_add_rule(manager, "age", rule);
+    char* configstr = "age 10";
+    assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
+    assert(age == 10);
+    config_manager_delete(manager);
+    return 1;
+}
 
 int test_api(void) {
     log_module_init();
@@ -36,7 +48,8 @@ int test_api(void) {
         #endif
         test_cond("config_rule test sds_rule function",
             test_config_sds_rule() == 1);
-        
+        test_cond("config_rule test numeric_rule function",
+            test_config_numeric_rule() == 1);
     } test_report()
     return 1;
 }

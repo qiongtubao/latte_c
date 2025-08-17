@@ -155,7 +155,7 @@ int config_load_string(config_manager_t* manager, char* str, size_t len) {
             err = "Error loading configuration option";
             goto error;
         }
-        LATTE_LIB_LOG(LOG_DEBUG, "argv[0] = %s, value = %s", argv[0], value);
+
         if (!rule_obj->set_value(rule_obj->data_ctx, value)) {
             err = "Error set value for configuration option";
             goto error;
@@ -415,6 +415,7 @@ config_rule_t* config_rule_new_numeric_rule(int flags, long long* data_ctx,
     numeric_data_limit_t* limit = zmalloc(sizeof(numeric_data_limit_t));
     limit->lower_bound = lower_bound;
     limit->upper_bound = upper_bound;
+    sds default_value_sds = ll2sds(default_value);
     config_rule_t* rule = config_rule_new(flags, 
         data_ctx, 
         &set_int64_value, 
@@ -426,7 +427,7 @@ config_rule_t* config_rule_new_numeric_rule(int flags, long long* data_ctx,
         &to_sds_int64_value,
         limit,
         &numeric_limit_delete,
-        ll2sds(default_value)
+        default_value_sds
     );
     return rule;
 }

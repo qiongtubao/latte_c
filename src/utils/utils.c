@@ -188,7 +188,7 @@ int ll2string(char *dst, size_t dstlen, long long svalue) {
 }
 
 sds_t ll2sds(long long ll) {
-    sds_t buffer = sds_new_len("", MAX_ULL_CHARS);
+    sds_t buffer = sds_new_len(NULL, MAX_ULL_CHARS);
     int len = ll2string(buffer, MAX_ULL_CHARS, ll);
     sds_set_len(buffer, len);
     return buffer;
