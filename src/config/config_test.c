@@ -18,10 +18,31 @@ int test_config_sds_rule(void) {
     /*name */
     config_rule_t* rule = config_rule_new_sds_rule(0, &name, NULL, sds_new("test"));
     config_add_rule(manager, "name", rule);
+    // assert(config_init_all_data(manager) == 1);
+    // assert(sds_len(name) == 6);
+    // assert(strcmp(name, "test") == 0);
+
     char* configstr = "name latte1";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(sds_len(name) == 6);
     assert(strcmp(name, "latte1") == 0);
+    config_rule_t* rule2 = config_get_rule(manager, "name");
+    assert(rule2 == rule);
+    char* err = NULL;
+    char* argv[] = {sds_new("name"), sds_new("latte2")};
+    assert(config_set_value(manager, argv, 2, &err) == 1);
+    assert(err == NULL);
+    assert(sds_len(name) == 6);
+    assert(strcmp(name, "latte2") == 0);
+
+
+    void* value = config_get_value(manager, "name");
+    assert(value == name);
+
+
+    sds_delete(argv[0]);
+    sds_delete(argv[1]);
+
     sds_delete(name);
     config_manager_delete(manager);
     return 1;
@@ -38,6 +59,21 @@ int test_config_numeric_rule(void) {
     assert(age == 10);
     configstr = "age error";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 0);
+
+
+    char* err = NULL;
+    char* argv[] = {sds_new("age"), sds_new("11")};
+    assert(config_set_value(manager, argv, 2, &err) == 1);
+    assert(err == NULL);
+    assert(age == 11);
+
+    void* value = config_get_value(manager, "age");
+    assert(value == age);
+    assert(value == 11);
+
+    sds_delete(argv[0]);
+    sds_delete(argv[1]);
+    
     config_manager_delete(manager);
     return 1;
 }
@@ -64,6 +100,19 @@ int test_config_enum_rule(void) {
     assert(gender == WOMAN);
     configstr = "gender error";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 0);
+
+    char* err = NULL;
+    char* argv[] = {sds_new("gender"), sds_new("man")};
+    assert(config_set_value(manager, argv, 2, &err) == 1);
+    assert(err == NULL);
+    assert(gender == MAN);
+
+    void* value = config_get_value(manager, "gender");
+    assert(value == gender);
+    assert(value == MAN);
+
+    sds_delete(argv[0]);
+    sds_delete(argv[1]);
     config_manager_delete(manager);
     return 1;
 }
@@ -79,6 +128,20 @@ int test_config_bool_rule(void) {
     assert(is_man == false);
     configstr = "is_man error";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 0);
+
+    char* err = NULL;
+    char* argv[] = {sds_new("is_man"), sds_new("yes")};
+    assert(config_set_value(manager, argv, 2, &err) == 1);
+    assert(err == NULL);
+    assert(is_man == true);
+
+    void* value = config_get_value(manager, "is_man");
+    assert(value == is_man);
+    assert(value == true);
+
+    sds_delete(argv[0]);
+    sds_delete(argv[1]);
+
     config_manager_delete(manager);
     return 1;
 }
@@ -95,10 +158,24 @@ int test_config_array_rule(void) {
     assert(strcmp(vector_get(likes, 0), "a") == 0);
     assert(strcmp(vector_get(likes, 1), "b") == 0);
     assert(strcmp(vector_get(likes, 2), "c") == 0);
-    sds value = NULL;
+
+    char* err = NULL;
+    char* argv[] = {sds_new("likes"), sds_new("d")};
+    assert(config_set_value(manager, argv, 2, &err) == 1);
+    assert(err == NULL);
+    assert(vector_size(likes) == 1);
+    assert(strcmp(vector_get(likes, 0), "d") == 0);
+
+    void* value = config_get_value(manager, "likes");
+    assert(value == likes);
+
+
+    sds_delete(argv[0]);
+    sds_delete(argv[1]);
+
+
     while (vector_size(likes) > 0) {
-        value = vector_pop(likes);
-        sds_delete(value);
+        sds_delete( vector_pop(likes));
     }
     vector_delete(likes);
     config_manager_delete(manager);
@@ -116,6 +193,20 @@ int test_config_map_sds_sds_rule(void) {
     assert(dict_size(map) == 2);
     assert(strcmp(dict_fetch_value(map, "k1"), "v1") == 0);
     assert(strcmp(dict_fetch_value(map, "k2"), "v2") == 0);
+
+    char* err = NULL;
+    char* argv[] = {sds_new("map"), sds_new("k3"), sds_new("v3")};
+    assert(config_set_value(manager, argv, 3, &err) == 1);
+    assert(err == NULL);
+    assert(dict_size(map) == 1);
+    assert(strcmp(dict_fetch_value(map, "k3"), "v3") == 0);
+
+    void* value = config_get_value(manager, "map");
+    assert(value == map);
+
+    sds_delete(argv[0]);
+    sds_delete(argv[1]);
+    sds_delete(argv[2]);
     dict_delete(map);
     config_manager_delete(manager);
     return 1;
@@ -135,6 +226,28 @@ int test_config_map_append_sds_sds_rule(void) {
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(dict_size(map) == 2);
     assert(strcmp(dict_fetch_value(map, "k2"), "v2") == 0);
+
+    /* add k3 v3 */
+    char* err = NULL;
+    char* argv[] = {sds_new("map"), sds_new("k3"), sds_new("v3")};
+    assert(config_set_value(manager, argv, 3, &err) == 1);
+    assert(err == NULL);
+    assert(dict_size(map) == 3);
+    assert(strcmp(dict_fetch_value(map, "k3"), "v3") == 0);
+
+    /* set k1 v1 */
+    sds_delete(argv[1]);
+    sds_delete(argv[2]);
+    argv[1] = sds_new("k1");
+    argv[2] = sds_new("v2");
+    assert(config_set_value(manager, argv, 3, &err) == 1);
+    assert(err == NULL);
+    assert(dict_size(map) == 3);
+    assert(strcmp(dict_fetch_value(map, "k1"), "v2") == 0);
+
+    sds_delete(argv[0]);
+    sds_delete(argv[1]);
+    sds_delete(argv[2]);
     dict_delete(map);
     config_manager_delete(manager);
     return 1;

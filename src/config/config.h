@@ -13,10 +13,10 @@ typedef int (*set_value_func)(void* data_ctx, void* new_value);
 typedef void* (*get_value_func)(void* data_ctx);
 typedef int (*check_value_func)(config_rule_t* rule, void* value, void* new_value);
 typedef sds (*to_sds_func)(config_rule_t* rule);
-typedef void* (*load_value_func)(config_rule_t* rule, char** argv, int argc, int* is_valid);
+typedef void* (*load_value_func)(config_rule_t* rule, char** argv, int argc, char** error);
 typedef int (*cmp_value_func)(config_rule_t* rule, void* value, void* new_value);
 typedef int (*is_valid_func)(void* limit_arg, void* value);
-typedef void (*delete_limit_func)(void* limit_arg);
+typedef void (*delete_func)(void* data);
 typedef struct config_rule_t {
     /* 是否可更新 */
     int flags; 
@@ -40,8 +40,10 @@ typedef struct config_rule_t {
     load_value_func load_value;
     /* 默认值 */
     sds default_value;
-
-    delete_limit_func delete_limit;
+    /* 删除数据 */
+    delete_func delete_value;
+    /* 删除限制参数 */
+    delete_func delete_limit;
 } config_rule_t;
 
 typedef struct config_manager_t {
@@ -53,6 +55,9 @@ typedef struct config_manager_t {
 /* 创建管理器 */
 config_manager_t* config_manager_new(void);
 void config_manager_delete(config_manager_t* manager);
+
+int config_init_all_data(config_manager_t* manager);
+
 /* 添加规则 */
 int config_add_rule(config_manager_t* manager, char* key,config_rule_t* rule);
 /* 获取规则 */
@@ -64,6 +69,10 @@ int config_load_file(config_manager_t* manager, char* file);
 int config_load_string(config_manager_t* manager, char* str, size_t len);
 int config_load_argv(config_manager_t* manager,  char** argv, int argc);
 int config_save_file(config_manager_t* manager, char* file);
+/* 设置值 */
+int config_set_value(config_manager_t* manager, char** argv, int argc, char** err);
+/* 获取值 */
+void* config_get_value(config_manager_t* manager, char* key);
 
 
 /* 规则相关函数 */
@@ -78,7 +87,8 @@ config_rule_t* config_rule_new(int flags,
     is_valid_func* is_valid,
     to_sds_func* to_sds, 
     void* limit_arg,
-    delete_limit_func* delete_limit,
+    delete_func* delete_limit,
+    delete_func* delete_value,
     sds default_value  
 );
 /* 删除规则 */

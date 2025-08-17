@@ -31,6 +31,47 @@ void config_manager_delete(config_manager_t* manager) {
     zfree(manager);
 }
 
+int config_init_all_data(config_manager_t* manager) {
+    latte_iterator_t* iter = dict_get_latte_iterator(manager->rules);
+    int result = 1;
+    sds_t* argv = NULL;
+    int argc = 0;
+    LATTE_LIB_LOG(LOG_DEBUG, "init all data, rules size: %d", dict_size(manager->rules));
+
+    while (latte_iterator_has_next(iter)) {
+        latte_pair_t* pair = latte_iterator_next(iter);
+        sds key = iterator_pair_key(pair);
+        latte_assert_with_info(key != NULL, "key is NULL");
+        config_rule_t* rule = iterator_pair_value(pair);
+        latte_assert_with_info(rule != NULL, "%s rule is NULL", key);
+        latte_assert_with_info(rule->default_value != NULL, "%s default value is NULL", key);
+        argc = 0;
+        argv = sds_split_args(rule->default_value, &argc);
+        if (argv == NULL) {
+            goto error;
+        }
+        char* err = NULL;
+        void* value = rule->load_value(rule, argv, argc, &err);
+        if (err != NULL) {
+            LATTE_LIB_LOG(LOG_ERROR, "error: load value failed, %s", err);
+            goto error;
+        }
+        if (!rule->set_value(rule->data_ctx, value)) {
+            LATTE_LIB_LOG(LOG_ERROR, "error: set value failed");
+            goto error;
+        }
+    }
+    goto end;
+error:
+    result = 0;
+end:    
+    latte_iterator_delete(iter);
+    if (argv != NULL) {
+        sds_free_splitres(argv, argc);
+    }
+    return result;
+}
+
 int config_add_rule(config_manager_t* manager, char* key, config_rule_t* rule) {
     return dict_add(manager->rules, sds_new(key), rule);
 }
@@ -150,10 +191,8 @@ int config_load_string(config_manager_t* manager, char* str, size_t len) {
             goto error;
         }
         latte_assert_with_info(rule_obj->load_value, "rule->load_value is NULL");
-        int is_valid = 0;
-        void* value = rule_obj->load_value(rule_obj, argv + 1, argc - 1, &is_valid);
-        if (is_valid == 0) {
-            err = "Error loading configuration option";
+        void* value = rule_obj->load_value(rule_obj, argv + 1, argc - 1, &err);
+        if (err != NULL) {
             goto error;
         }
 
@@ -346,7 +385,8 @@ config_rule_t* config_rule_new(int flags,
     is_valid_func* is_valid,
     to_sds_func* to_sds, 
     void* limit_arg,
-    delete_limit_func* delete_limit,
+    delete_func* delete_limit,
+    delete_func* delete_value,
     sds default_value
     
 ) {
@@ -363,6 +403,7 @@ config_rule_t* config_rule_new(int flags,
     rule->default_value = default_value;
     rule->limit_arg = limit_arg;
     rule->delete_limit = delete_limit;
+    rule->delete_value = delete_value;
     return rule;
 }
 
@@ -379,21 +420,22 @@ long long get_int64_value(void* data_ctx) {
     return *data;
 }
 
-void* load_int64_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {    
+void* load_int64_value(config_rule_t* rule, char** argv, int argc, char** error) {    
     if (argc != 1) {
+        *error = "error: argc != 1";
         return NULL;
     }
     sds value = (sds)argv[0];
     long long ll_value;
     int result = sds2ll(value, &ll_value);
     if (result == 0) {
+        *error = "error: sds2ll failed";
         return NULL;
     }
-    *is_valid = 1;
     return (void*)ll_value;
 }
 
-int cmp_int64_value(void* a, void* b) {
+int cmp_int64_value(config_rule_t* rule, void* a, void* b) {
     return (long long)a - (long long)b;
 }
 
@@ -433,6 +475,7 @@ config_rule_t* config_rule_new_numeric_rule(int flags, long long* data_ctx,
         &to_sds_int64_value,
         limit,
         &numeric_limit_delete,
+        NULL,
         default_value_sds
     );
     return rule;
@@ -442,6 +485,9 @@ config_rule_t* config_rule_new_numeric_rule(int flags, long long* data_ctx,
 
 int set_sds_value(void* data_ctx, void* value) {
     sds* data = (sds*)data_ctx;
+    if (*data != NULL) {
+        sds_delete(*data);
+    }
     *data = (sds)value;
     return 1;
 }
@@ -450,16 +496,16 @@ void* get_sds_value(void* data_ctx) {
     return (void*)*data;
 }
 
-void* load_sds_value(config_rule_t* rule,  char** argv, int argc, int* is_valid) {
+void* load_sds_value(config_rule_t* rule,  char** argv, int argc, char** error) {  
     if (argc != 1) {
+        *error = "error: argc != 1";
         return NULL;
     }
     sds value = sds_dup((sds)argv[0]);
-    *is_valid = 1;
     return (void*)value;
 }
 
-int cmp_sds_value(void* a, void* b) {
+int cmp_sds_value(config_rule_t* rule, void* a, void* b) {
     return sds_cmp((sds)a, (sds)b);
 }
 
@@ -486,6 +532,7 @@ config_rule_t* config_rule_new_sds_rule(int flags, sds* data_ctx,
         &to_sds_sds_value, 
         NULL, 
         NULL,
+        &sds_delete,
         default_value
     );
     return rule;
@@ -504,8 +551,9 @@ void* get_enum_value(void* data_ctx) {
     return (void*)*data;
 }
 
-void* load_enum_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {
+void* load_enum_value(config_rule_t* rule, char** argv, int argc, char** error) {    
     if (argc != 1) {
+        *error = "error: argc != 1";
         return NULL;
     }
     sds value = (sds)argv[0];
@@ -513,15 +561,15 @@ void* load_enum_value(config_rule_t* rule, char** argv, int argc, int* is_valid)
     int i = 0;
     while (limit->enum_value[i].name != NULL) {
         if (str_cmp(value, limit->enum_value[i].name) == 0) {
-            *is_valid = 1;
             return (void*)limit->enum_value[i].val;
         }
         i++;
     }
+    *error = "error: enum value not found";
     return NULL;
 }
 
-int cmp_enum_value(void* a, void* b) {
+int cmp_enum_value(config_rule_t* rule, void* a, void* b) {
     return (int)a - (int)b;
 }
 
@@ -572,6 +620,7 @@ config_rule_t* config_rule_new_enum_rule(int flags, void* data_ctx,
         &to_sds_enum_value, 
         limit, 
         &enum_limit_delete,
+        NULL,
         default_value
     );
     return rule;
@@ -585,22 +634,22 @@ int set_bool_value(void* data_ctx, void* value) {
 }
 
 void* get_bool_value(void* data_ctx) {
-    int* data = (int*)data_ctx;
-    return (void*)*data;
+    bool* data = (bool*)data_ctx;
+    return (void*)*data;   
 }
 
-void* load_bool_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {
+void* load_bool_value(config_rule_t* rule, char** argv, int argc, char** error) {
     if (argc != 1) {
+        *error = "error: argc != 1";
         return NULL;
     }
     sds value = (sds)argv[0];
     if (str_cmp(value, "yes") == 0) {
-        *is_valid = 1;
         return (void*)true;
     } else if (str_cmp(value, "no") == 0) {
-        *is_valid = 1;
         return (void*)false;
     }
+    *error = "error: bool value not found";
     return NULL;
 }
 
@@ -614,7 +663,7 @@ int is_valid_bool_value(void* limit_arg, void* value) {
 sds to_sds_bool_value(config_rule_t* rule) {
     return rule->get_value(rule->data_ctx) ? sds_new("yes") : sds_new("no");
 }
-int cmp_bool_value(void* a, void* b) {
+int cmp_bool_value(config_rule_t* rule, void* a, void* b) {
     return (int)a == (int)b ? 0 : 1;
 }
 
@@ -631,6 +680,7 @@ config_rule_t* config_rule_new_bool_rule(int flags, int* data_ctx,
         &to_sds_bool_value, 
         NULL, 
         NULL,
+        NULL,
         default_value ? sds_new("yes") : sds_new("no")
     );
     return rule;
@@ -640,16 +690,20 @@ config_rule_t* config_rule_new_bool_rule(int flags, int* data_ctx,
 int set_sds_array_value(void* data_ctx, void* value) {
     vector_t* array = (vector_t*)value;
     vector_t** old_array = (vector_t**)data_ctx;
+    if (*old_array != NULL) {
+        sds_array_delete(*old_array);
+    }
     *old_array = array;
     return 1;
 }
 
 void* get_sds_array_value(void* data_ctx) {
-    return (void*)data_ctx;
+    return (void*)*((vector_t**)data_ctx);
 }
 
-void* load_sds_array_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {
-    if (argc == 1) {
+void* load_sds_array_value(config_rule_t* rule, char** argv, int argc, char** error) {
+    if (argc == 0) {
+        *error = "error: argc == 0";
         return NULL;
     }
     
@@ -657,13 +711,10 @@ void* load_sds_array_value(config_rule_t* rule, char** argv, int argc, int* is_v
     for (int i = 0; i < argc; i++) {
         vector_push(array, sds_new(argv[i]));
     }
-    vector_t** old_array = (vector_t**)rule->data_ctx;
-    *old_array = array;
-    *is_valid = 1;
     return (void*)array;
 }
 
-int cmp_sds_array_value(void* a, void* b) {
+int cmp_sds_array_value(config_rule_t* rule, void* a, void* b) {
     vector_t* array_a = (vector_t*)a;
     vector_t* array_b = (vector_t*)b;
     if (vector_size(array_a) != vector_size(array_b)) {
@@ -704,6 +755,14 @@ void array_limit_delete(void* limit_arg) {
     return NULL;
 }
 
+void sds_array_delete(void* data) {
+    vector_t* array = (vector_t*)data;
+    while (vector_size(array) > 0) {
+        sds_delete(vector_pop(array));
+    }
+    vector_delete(array);
+}
+
 config_rule_t* config_rule_new_sds_array_rule(int flags, void* data_ctx, 
     check_value_func* check_value, int size, sds default_value) {
     array_data_limit_t* limit = zmalloc(sizeof(array_data_limit_t));
@@ -719,6 +778,7 @@ config_rule_t* config_rule_new_sds_array_rule(int flags, void* data_ctx,
         &to_sds_sds_array_value, 
         limit, 
         &array_limit_delete,
+        &sds_array_delete,
         default_value
     );
     return rule;
@@ -736,7 +796,7 @@ int set_map_sds_sds_value(void* data_ctx, void* value) {
     return 1;
 }
 void* get_map_sds_sds_value(void* data_ctx) {
-    return (void*)data_ctx;
+    return (void*)*((dict_t**)data_ctx);
 }
 dict_func_t map_sds_sds_dict_type_func = {
     .hashFunction = dict_char_hash,
@@ -745,18 +805,23 @@ dict_func_t map_sds_sds_dict_type_func = {
     .valDestructor = dict_sds_destructor,
 };
 
-void* load_map_sds_sds_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {  
+void* load_map_sds_sds_value(config_rule_t* rule, char** argv, int argc, char** error) {   
     if (argc % 2 != 0) {
+        *error = "error: argc % 2 != 0";
         return NULL;
     }
     dict_t* map = dict_new(&map_sds_sds_dict_type_func);
     for (int i = 0; i < argc; i+=2) {
-        if (dict_add(map, sds_new(argv[i]), sds_new(argv[i+1]))) {
+        sds key = sds_new(argv[i]);
+        sds value = sds_new(argv[i+1]);
+        if (dict_add(map, key, value)) {
+            *error = "error: dict_add failed";
             dict_delete(map);
+            sds_delete(key);
+            sds_delete(value);
             return NULL;
         }
     }
-    *is_valid = 1;
     return (void*)map;
 }
 
@@ -850,6 +915,7 @@ config_rule_t* config_rule_new_map_sds_sds_rule(int flags, void* data_ctx,
         &to_sds_map_sds_sds_value, 
         limit, 
         &map_sds_sds_limit_delete,
+        &dict_delete,
         default_value
     );
     return rule;
@@ -868,8 +934,14 @@ int append_map_sds_sds_value(void* data_ctx, void* value) {
             latte_pair_t* pair = latte_iterator_next(iter);
             sds key = pair->key;
             sds value = pair->value;
-            dict_entry_t* entry = dict_add_or_find(old_map, sds_dup(key));
-            dict_set_val(old_map,entry, sds_dup(value));
+            dict_entry_t* entry = dict_find(old_map, key);
+            if (entry == NULL) {
+                dict_add(old_map, sds_dup(key), sds_dup(value));
+            } else {
+                latte_assert_with_info(old_map->type->valDestructor != NULL, "valDestructor is NULL");
+                dict_free_val(old_map, entry);
+                dict_set_val(old_map,entry, sds_dup(value));
+            }
         }
         latte_iterator_delete(iter);
         dict_delete(map);
@@ -878,6 +950,24 @@ int append_map_sds_sds_value(void* data_ctx, void* value) {
     return 1;
 }
 
+int cmp_append_map_sds_sds_value(config_rule_t* rule, void* a, void* b) {
+    dict_t* map_a = (dict_t*)a;
+    dict_t* map_b = (dict_t*)b;
+    latte_iterator_t* iter = dict_get_latte_iterator(map_b);
+    int result = 0;
+    while (latte_iterator_has_next(iter)) {
+        latte_pair_t* pair = latte_iterator_next(iter);
+        sds key = pair->key;
+        sds value_b = pair->value;
+        sds value_a =  dict_fetch_value(map_a, key);
+        if (value_a == NULL || sds_cmp(value_b, value_a) != 0) {
+            result = 1;
+            break;  
+        }
+    }
+    latte_iterator_delete(iter);
+    return result;
+}
 
 config_rule_t* config_rule_new_append_map_sds_sds_rule(int flags, void* data_ctx, 
     check_value_func* check_value, char** keys, sds default_value) {
@@ -889,11 +979,12 @@ config_rule_t* config_rule_new_append_map_sds_sds_rule(int flags, void* data_ctx
         &get_map_sds_sds_value, 
         check_value, 
         &load_map_sds_sds_value, 
-        &cmp_map_sds_sds_value, 
+        &cmp_append_map_sds_sds_value, 
         &is_valid_map_sds_sds_value, 
         &to_sds_map_sds_sds_value, 
         limit, 
         &map_sds_sds_limit_delete,
+        &dict_delete,
         default_value
     );
     return rule;
@@ -904,4 +995,43 @@ void config_rule_delete(config_rule_t* rule) {
     if (rule->delete_limit != NULL) rule->delete_limit(rule->limit_arg);
     if (rule->default_value != NULL) sds_delete(rule->default_value);
     zfree(rule);
+}
+
+/* 设置值 */
+int config_set_value(config_manager_t* manager, char** argv, int argc, char** err) {
+    config_rule_t* rule = config_get_rule(manager, argv[0]);
+    if (rule == NULL) {
+        *err = "Error: rule not found";
+        return 0;
+    }
+    void * value = rule->load_value(rule, argv + 1, argc - 1, err);
+    if (*err != NULL) {
+        return 0;
+    }
+    if (rule->check_value != NULL) {
+        if (!rule->check_value(rule, rule->get_value(rule->data_ctx), value)) {
+            *err = "Error: check_value failed";
+            if (rule->delete_value != NULL) {
+                rule->delete_value(value);
+            }
+            return 0;
+        }
+    }
+
+    if (rule->cmp_value(rule, rule->get_value(rule->data_ctx), value) == 0) {
+        if (rule->delete_value != NULL) {
+            rule->delete_value(value);
+        }
+        return 0;
+    }
+    return rule->set_value(rule->data_ctx, value);
+}
+/* 获取值 */
+void* config_get_value(config_manager_t* manager, char* key) {
+    config_rule_t* rule = config_get_rule(manager, key);
+    if (rule == NULL) {
+        LATTE_LIB_LOG(LL_ERROR, "Error: %s rule not found", key);
+        return NULL;
+    }
+    return rule->get_value(rule->data_ctx);
 }
