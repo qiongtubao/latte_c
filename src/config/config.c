@@ -150,7 +150,12 @@ int config_load_string(config_manager_t* manager, char* str, size_t len) {
             goto error;
         }
         latte_assert_with_info(rule_obj->load_value, "rule->load_value is NULL");
-        void* value = rule_obj->load_value(rule_obj, argv + 1, argc - 1);
+        int is_valid = 0;
+        void* value = rule_obj->load_value(rule_obj, argv + 1, argc - 1, &is_valid);
+        if (is_valid == 0) {
+            err = "Error loading configuration option";
+            goto error;
+        }
 
         if (!rule_obj->set_value(rule_obj->data_ctx, value)) {
             err = "Error set value for configuration option";
@@ -166,7 +171,6 @@ int config_load_string(config_manager_t* manager, char* str, size_t len) {
     return 1;
 error:
     if (argv != NULL) sds_free_splitres(argv, argc);
-    if (lines != NULL) sds_free_splitres(lines, totlines);
     fprintf(stderr, "\n*** FATAL CONFIG  ERROR ***\n");
     fprintf(stderr, "Reading the configuration, at line %d\n", i + 1);
     fprintf(stderr, ">>> '%s'\n", lines[i]);
@@ -375,7 +379,7 @@ long long get_int64_value(void* data_ctx) {
     return *data;
 }
 
-void* load_int64_value(config_rule_t* rule, char** argv, int argc) {
+void* load_int64_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {    
     if (argc != 1) {
         return NULL;
     }
@@ -385,6 +389,7 @@ void* load_int64_value(config_rule_t* rule, char** argv, int argc) {
     if (result == 0) {
         return NULL;
     }
+    *is_valid = 1;
     return (void*)ll_value;
 }
 
@@ -445,11 +450,12 @@ void* get_sds_value(void* data_ctx) {
     return (void*)*data;
 }
 
-void* load_sds_value(config_rule_t* rule,  char** argv, int argc) {
+void* load_sds_value(config_rule_t* rule,  char** argv, int argc, int* is_valid) {
     if (argc != 1) {
         return NULL;
     }
     sds value = sds_dup((sds)argv[0]);
+    *is_valid = 1;
     return (void*)value;
 }
 
@@ -498,7 +504,7 @@ void* get_enum_value(void* data_ctx) {
     return (void*)*data;
 }
 
-void* load_enum_value(config_rule_t* rule, char** argv, int argc) {
+void* load_enum_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {
     if (argc != 1) {
         return NULL;
     }
@@ -507,6 +513,7 @@ void* load_enum_value(config_rule_t* rule, char** argv, int argc) {
     int i = 0;
     while (limit->enum_value[i].name != NULL) {
         if (str_cmp(value, limit->enum_value[i].name) == 0) {
+            *is_valid = 1;
             return (void*)limit->enum_value[i].val;
         }
         i++;
@@ -582,14 +589,16 @@ void* get_bool_value(void* data_ctx) {
     return (void*)*data;
 }
 
-void* load_bool_value(config_rule_t* rule, char** argv, int argc) {
+void* load_bool_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {
     if (argc != 1) {
         return NULL;
     }
     sds value = (sds)argv[0];
     if (str_cmp(value, "yes") == 0) {
+        *is_valid = 1;
         return (void*)true;
     } else if (str_cmp(value, "no") == 0) {
+        *is_valid = 1;
         return (void*)false;
     }
     return NULL;
@@ -639,7 +648,7 @@ void* get_sds_array_value(void* data_ctx) {
     return (void*)data_ctx;
 }
 
-void* load_sds_array_value(config_rule_t* rule, char** argv, int argc) {
+void* load_sds_array_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {
     
     vector_t* array = vector_new();
     for (int i = 0; i < argc; i++) {
@@ -647,6 +656,7 @@ void* load_sds_array_value(config_rule_t* rule, char** argv, int argc) {
     }
     vector_t** old_array = (vector_t**)rule->data_ctx;
     *old_array = array;
+    *is_valid = 1;
     return (void*)array;
 }
 
@@ -729,7 +739,7 @@ dict_func_t map_sds_sds_dict_type_func = {
     .valDestructor = dict_sds_destructor,
 };
 
-void* load_map_sds_sds_value(config_rule_t* rule, char** argv, int argc) {
+void* load_map_sds_sds_value(config_rule_t* rule, char** argv, int argc, int* is_valid) {  
     if (argc % 2 != 0) {
         return NULL;
     }
@@ -737,6 +747,7 @@ void* load_map_sds_sds_value(config_rule_t* rule, char** argv, int argc) {
     for (int i = 0; i < argc; i+=2) {
         dict_add(map, sds_new(argv[i]), sds_new(argv[i+1]));
     }
+    *is_valid = 1;
     return (void*)map;
 }
 

@@ -73,9 +73,13 @@ int test_config_bool_rule(void) {
     char* configstr = "is_man no";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(is_man == false);
+    configstr = "is_man error";
+    assert(config_load_string(manager, configstr, strlen(configstr)) == 0);
     config_manager_delete(manager);
     return 1;
 }
+
+/* 数组规则测试 */
 
 int test_api(void) {
     log_module_init();

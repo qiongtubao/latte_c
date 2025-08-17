@@ -13,7 +13,7 @@ typedef int (*set_value_func)(void* data_ctx, void* new_value);
 typedef void* (*get_value_func)(void* data_ctx);
 typedef int (*check_value_func)(config_rule_t* rule, void* value, void* new_value);
 typedef sds (*to_sds_func)(config_rule_t* rule);
-typedef void* (*load_value_func)(config_rule_t* rule, char** argv, int argc);
+typedef void* (*load_value_func)(config_rule_t* rule, char** argv, int argc, int* is_valid);
 typedef int (*cmp_value_func)(config_rule_t* rule, void* value, void* new_value);
 typedef int (*is_valid_func)(void* limit_arg, void* value);
 typedef void (*delete_limit_func)(void* limit_arg);
