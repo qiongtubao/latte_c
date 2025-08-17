@@ -729,6 +729,9 @@ config_rule_t* config_rule_new_sds_array_rule(int flags, void* data_ctx,
 int set_map_sds_sds_value(void* data_ctx, void* value) {
     dict_t* map = (dict_t*)value;
     dict_t** old_map = (dict_t**)data_ctx;
+    if (*old_map != NULL) {
+        dict_delete(*old_map);
+    }
     *old_map = map;
     return 1;
 }
@@ -748,7 +751,10 @@ void* load_map_sds_sds_value(config_rule_t* rule, char** argv, int argc, int* is
     }
     dict_t* map = dict_new(&map_sds_sds_dict_type_func);
     for (int i = 0; i < argc; i+=2) {
-        dict_add(map, sds_new(argv[i]), sds_new(argv[i+1]));
+        if (dict_add(map, sds_new(argv[i]), sds_new(argv[i+1]))) {
+            dict_delete(map);
+            return NULL;
+        }
     }
     *is_valid = 1;
     return (void*)map;
@@ -862,8 +868,8 @@ int append_map_sds_sds_value(void* data_ctx, void* value) {
             latte_pair_t* pair = latte_iterator_next(iter);
             sds key = pair->key;
             sds value = pair->value;
-            dict_entry_t* entry = dict_add_or_find(old_map, key);
-            dict_set_val(old_map,entry, value);
+            dict_entry_t* entry = dict_add_or_find(old_map, sds_dup(key));
+            dict_set_val(old_map,entry, sds_dup(value));
         }
         latte_iterator_delete(iter);
         dict_delete(map);
