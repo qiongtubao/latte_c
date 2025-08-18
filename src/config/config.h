@@ -73,6 +73,7 @@ int config_save_file(config_manager_t* manager, char* file);
 int config_set_value(config_manager_t* manager, char** argv, int argc, char** err);
 /* 获取值 */
 void* config_get_value(config_manager_t* manager, char* key);
+sds config_rule_to_sds(config_manager_t* manager, char* key);
 
 
 /* 规则相关函数 */
@@ -153,6 +154,7 @@ config_rule_t* config_rule_new_map_sds_sds_rule(int flags, void* data_ctx,
 /* 多段map<sds,sds>属性插入规则 */   
 config_rule_t* config_rule_new_append_map_sds_sds_rule(int flags, void* data_ctx, 
     check_value_func* check_value, char** keys, sds default_value);
+
 
   
 #endif

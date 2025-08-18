@@ -39,6 +39,11 @@ int test_config_sds_rule(void) {
     void* value = config_get_value(manager, "name");
     assert(value == name);
 
+    sds sds_str = config_rule_to_sds(manager, "name");
+    assert(sds_len(sds_str) == 11);
+    assert(strcmp(sds_str, "name latte2") == 0);
+    sds_delete(sds_str);
+
 
     sds_delete(argv[0]);
     sds_delete(argv[1]);
@@ -72,6 +77,11 @@ int test_config_numeric_rule(void) {
     void* value = config_get_value(manager, "age");
     assert(value == age);
     assert(value == 11);
+
+    sds sds_str = config_rule_to_sds(manager, "age");
+    assert(sds_len(sds_str) == 6);
+    assert(strcmp(sds_str, "age 11") == 0);
+    sds_delete(sds_str);
 
     sds_delete(argv[0]);
     sds_delete(argv[1]);
@@ -117,6 +127,11 @@ int test_config_enum_rule(void) {
     assert(value == gender);
     assert(value == MAN);
 
+    sds sds_str = config_rule_to_sds(manager, "gender");
+    assert(sds_len(sds_str) == 10);
+    assert(strcmp(sds_str, "gender man") == 0);
+    sds_delete(sds_str);
+
     sds_delete(argv[0]);
     sds_delete(argv[1]);
     config_manager_delete(manager);
@@ -147,6 +162,11 @@ int test_config_bool_rule(void) {
     void* value = config_get_value(manager, "is_man");
     assert(value == is_man);
     assert(value == true);
+
+    sds sds_str = config_rule_to_sds(manager, "is_man");
+    assert(sds_len(sds_str) == 10);
+    assert(strcmp(sds_str, "is_man yes") == 0);
+    sds_delete(sds_str);
 
     sds_delete(argv[0]);
     sds_delete(argv[1]);
@@ -180,6 +200,11 @@ int test_config_array_rule(void) {
 
     void* value = config_get_value(manager, "likes");
     assert(value == likes);
+
+    sds sds_str = config_rule_to_sds(manager, "likes");
+    assert(sds_len(sds_str) == 7);
+    assert(strcmp(sds_str, "likes d") == 0);
+    sds_delete(sds_str);
 
 
     sds_delete(argv[0]);
@@ -262,6 +287,12 @@ int test_config_map_append_sds_sds_rule(void) {
     assert(err == NULL);
     assert(dict_size(map) == 3);
     assert(strcmp(dict_fetch_value(map, "k1"), "v2") == 0);
+
+    sds sds_str = config_rule_to_sds(manager, "map");
+    LATTE_LIB_LOG(LL_INFO, "sds_str : %s", sds_str);
+    assert(sds_len(sds_str) == 21);
+    assert(strcmp(sds_str, "map k1 v2 k2 v2 k3 v3") == 0);
+    sds_delete(sds_str);
 
     sds_delete(argv[0]);
     sds_delete(argv[1]);

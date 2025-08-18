@@ -36,7 +36,6 @@ int config_init_all_data(config_manager_t* manager) {
     int result = 1;
     sds_t* argv = NULL;
     int argc = 0;
-    LATTE_LIB_LOG(LOG_DEBUG, "init all data, rules size: %d", dict_size(manager->rules));
 
     while (latte_iterator_has_next(iter)) {
         latte_pair_t* pair = latte_iterator_next(iter);
@@ -737,13 +736,12 @@ int is_valid_sds_array_value(void* limit_arg, void* value) {
 
 sds to_sds_sds_array_value(config_rule_t* rule) {
     vector_t* array = (vector_t*)rule->get_value(rule->data_ctx);
-    sds result = sds_new_len(NULL, 512);
+    sds result = sds_empty();
     for (int i = 0; i < vector_size(array); i++) {
-        if (i != 0) {
-            result = sds_cat_fmt(result, " ");
-        }
-        result = sds_cat_fmt(result, "%s", vector_get(array, i));
+        result = sds_cat_fmt(result, "%s ", (sds)vector_get(array, i));
     }
+    result[sds_len(result) - 1] = '\0';
+    sds_set_len(result, sds_len(result) - 1);
     return result;
 }
 
@@ -880,7 +878,7 @@ int is_valid_map_sds_sds_value(void* limit_arg, void* value) {
 
 sds to_sds_map_sds_sds_value(config_rule_t* rule) {
     latte_iterator_t* iter = dict_get_latte_iterator(rule->get_value(rule->data_ctx));
-    sds result = sds_new_len(NULL, 512);
+    sds result = sds_empty_len(512);
     while (latte_iterator_has_next(iter)) {
         latte_pair_t* pair = latte_iterator_next(iter);
         sds key = pair->key;
@@ -888,6 +886,7 @@ sds to_sds_map_sds_sds_value(config_rule_t* rule) {
         result = sds_cat_fmt(result, "%s %s ", key, value);
     }
     latte_iterator_delete(iter);
+    result[sds_len(result) - 1] = '\0';
     sds_set_len(result, sds_len(result) - 1);
     return result;
 }
@@ -1032,4 +1031,16 @@ void* config_get_value(config_manager_t* manager, char* key) {
         return NULL;
     }
     return rule->get_value(rule->data_ctx);
+}
+
+sds config_rule_to_sds(config_manager_t* manager, char* key) {
+    config_rule_t* rule = config_get_rule(manager, key);
+    if (rule == NULL) {
+        LATTE_LIB_LOG(LL_ERROR, "Error: %s rule not found", key);
+        return NULL;
+    }
+    sds value_str = rule->to_sds(rule);
+    sds result = sds_cat_fmt(sds_new(key), " %s", value_str);
+    sds_delete(value_str);
+    return result;
 }
