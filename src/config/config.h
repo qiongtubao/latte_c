@@ -12,7 +12,7 @@ typedef struct config_rule_t config_rule_t;
 typedef int (*set_value_func)(void* data_ctx, void* new_value);
 typedef void* (*get_value_func)(void* data_ctx);
 typedef int (*check_value_func)(config_rule_t* rule, void* value, void* new_value);
-typedef sds (*to_sds_func)(config_rule_t* rule);
+typedef sds (*to_sds_func)(config_rule_t* rule ,void* data);
 typedef void* (*load_value_func)(config_rule_t* rule, char** argv, int argc, char** error);
 typedef int (*cmp_value_func)(config_rule_t* rule, void* value, void* new_value);
 typedef int (*is_valid_func)(void* limit_arg, void* value);
@@ -156,5 +156,6 @@ config_rule_t* config_rule_new_append_map_sds_sds_rule(int flags, void* data_ctx
     check_value_func* check_value, char** keys, sds default_value);
 
 
-  
+sds config_diff_file(config_manager_t* manager, char* filename);
+
 #endif

@@ -33,7 +33,7 @@ void config_manager_delete(config_manager_t* manager) {
 
 int config_init_all_data(config_manager_t* manager) {
     latte_iterator_t* iter = dict_get_latte_iterator(manager->rules);
-    int result = 1;
+    int result = 0;
     sds_t* argv = NULL;
     int argc = 0;
 
@@ -60,6 +60,10 @@ int config_init_all_data(config_manager_t* manager) {
             LATTE_LIB_LOG(LOG_ERROR, "error: set value failed");
             goto error;
         }
+        sds_free_splitres(argv, argc);
+        argv = NULL;
+        argc = 0;
+        result += 1;
     }
     goto end;
 error:
@@ -99,30 +103,36 @@ sds read_file_to_sds(const char *filename) {
     // 1. 打开文件（二进制模式，避免换行符转换）
     fp = fopen(filename, "rb");  // 使用 "rb" 模式，可移植性更好
     if (!fp) {
+        LATTE_LIB_LOG(LL_ERROR, "error: can't open config file '%s': %s", filename, strerror(errno));
         goto cleanup;
     }
 
     // 2. 获取文件大小（可选，用于预分配内存，提升性能）
     if (fseek(fp, 0, SEEK_END) != 0) {
+        LATTE_LIB_LOG(LL_ERROR, "error: can't seek config file '%s': %s", filename, strerror(errno));
         goto cleanup;
     }
     file_size = ftell(fp);
     if (file_size < 0) {
+        LATTE_LIB_LOG(LL_ERROR, "error: can't get file size '%s': %s", filename, strerror(errno));
         goto cleanup;
     }
     if (fseek(fp, 0, SEEK_SET) != 0) {
+        LATTE_LIB_LOG(LL_ERROR, "error: can't seek config file '%s': %s", filename, strerror(errno));
         goto cleanup;
     }
 
     // 3. 预分配 SDS 内存（避免多次 realloc）
-    config = sds_new_len(NULL, file_size);  // 分配足够空间
+    config = sds_empty_len(file_size);  // 分配足够空间
     if (!config) {
+        LATTE_LIB_LOG(LL_ERROR, "error: can't allocate memory for config file '%s': %s", filename, strerror(errno));
         goto cleanup;
     }
 
     // 4. 一次性读取整个文件
     bytes_read = fread(config, 1, file_size, fp);
     if (ferror(fp)) {
+        LATTE_LIB_LOG(LL_ERROR, "error: can't read config file '%s': %s", filename, strerror(errno));
         sds_delete(config);
         config = NULL;
         goto cleanup;
@@ -137,7 +147,7 @@ cleanup:
     return config;
 }
 
-int config_load_file(config_manager_t* manager, char* filename) {
+int _config_load_file(config_manager_t* manager, dict_t* config_value, char* filename) {
     sds config = read_file_to_sds(filename);
     if (config == NULL) {
         printf(
@@ -145,12 +155,16 @@ int config_load_file(config_manager_t* manager, char* filename) {
             filename, strerror(errno));
         exit(1);
     }
-    int result = config_load_string(manager, config, sds_len(config));
+    int result = _config_load_string(manager, config_value, config, sds_len(config));
     sds_delete(config);
     return result;
 }
 
-int config_load_string(config_manager_t* manager, char* str, size_t len) {
+int config_load_file(config_manager_t* manager, char* filename) {
+    return _config_load_file(manager, NULL, filename);
+}
+
+int _config_load_string(config_manager_t* manager, dict_t* config_value, char* str, size_t len) {
     const char *err = NULL;
     int totlines = 0;
     sds_t* lines;
@@ -171,16 +185,18 @@ int config_load_string(config_manager_t* manager, char* str, size_t len) {
 
 
         /* include file */
-        LATTE_LIB_LOG(LOG_DEBUG, "argv[0] = %s", argv[0]);
         if (str_cmp(argv[0], "include") == 0) {
             if (argc < 2) {
                 err = "Include file name is missing";
                 goto error;
             }
-            if (config_load_file(manager, argv[1]) == 0) {
+            if (_config_load_file(manager, config_value, argv[1]) == 0) {
                 err = "Error loading include file";
                 goto error;
             }
+            sds_free_splitres(argv, argc);
+            argv = NULL;
+            argc = 0;
             continue;
         }
 
@@ -195,10 +211,23 @@ int config_load_string(config_manager_t* manager, char* str, size_t len) {
         if (err != NULL) {
             goto error;
         }
-
-        if (!rule_obj->set_value(rule_obj->data_ctx, value)) {
-            err = "Error set value for configuration option";
-            goto error;
+        if (config_value != NULL) {
+            dict_entry_t* entry = dict_find(config_value, argv[0]);
+            if (entry == NULL) {
+                dict_add(config_value, sds_dup(argv[0]), value);
+            } else {
+                if (!rule_obj->set_value(&dict_get_entry_val(entry), value)) {
+                    err = "Error set value for configuration option";
+                    goto error;
+                }
+            }
+            
+            
+        } else {
+            if (!rule_obj->set_value(rule_obj->data_ctx, value)) {
+                err = "Error set value for configuration option";
+                goto error;
+            }
         }
 
         sds_free_splitres(argv, argc);
@@ -217,6 +246,10 @@ error:
     sds_free_splitres(lines, totlines);
 
     return 0;
+}
+
+int config_load_string(config_manager_t* manager, char* str, size_t len) {
+    return _config_load_string(manager, NULL, str, len);
 }
 
 int config_load_argv(config_manager_t* manager,  char** argv, int argc) {
@@ -245,100 +278,69 @@ int config_load_argv(config_manager_t* manager,  char** argv, int argc) {
 dict_func_t config_dict_type_func = {
     .hashFunction = dict_char_hash,
     .keyCompare = dict_char_key_compare,
-    .keyDestructor = dict_sds_destructor,
-    .valDestructor = dict_sds_destructor,
+    .keyDestructor = dict_sds_destructor
 };
 
-sds config_save_string(config_manager_t* manager, dict_t* old_config_dict);
+sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict);
 
-int read_config_file_to_dict(dict_t* config_dict, char* filename) {
-    if (config_dict == NULL) {
-        config_dict = dict_new(&config_dict_type_func);
-    }
+int read_config_file_to_dict(config_manager_t* manager, dict_t* config_dict, char* filename) {
+    latte_assert_with_info(config_dict != NULL, "config_dict is NULL");
     sds config = read_file_to_sds(filename);
-    int ret = read_config_string_to_dict(config_dict, config, sds_len(config));
+    int ret = _config_load_string(manager, config_dict, config, sds_len(config));
     sds_delete(config);
     return ret;
 }
 
-int read_config_string_to_dict(dict_t* config_dict, char* str, size_t len) {
-  
-    const char *err = NULL;
-    size_t totlines;
-    sds_t* lines;
-    lines = sds_split_len(str, len, "\n", 1, &totlines);
-    size_t i;
-    for (i = 0; i < totlines; i++) {
-        sds_t* line = lines[i];
-        line = sds_trim(line, " \t\n");
-        if (line[0] == '#' || line[0] == '\0') continue;
-        sds_t* argv;
-        int argc;
-        argv = sds_split_args(line, &argc);
-        /* include file */
-        if (sds_cmp(argv[0], "include") == 0) {
-            if (argc < 2) {
-                err = "Include file name is missing";
-                goto error;
-            }
-            if (read_config_file_to_dict(config_dict, argv[1]) == 0) {
-                err = "Error loading include file";
-                goto error;
-            }
-            continue;
-        }
-        dict_entry_t* entry = dict_find(config_dict, argv[0]);
-        sds new_value = sds_trim(sds_new_len(line + strlen(argv[0]), strlen(line) - strlen(argv[0])), " \t\n");
-        if (entry == NULL) {
-            dict_add(config_dict, argv[0], new_value);
-        } else {
-            dict_set_val(config_dict, entry, new_value);
-        }
 
-        sds_free_splitres(argv, argc);
-    }
-    sds_free_splitres(lines, totlines);
-    return 1;
-error:
-    return 0;
-}
 
-sds config_save_string(config_manager_t* manager, dict_t* old_config_dict) {
+dict_func_t sds_dict_type_func = {
+    .hashFunction = dict_char_hash,
+    .keyCompare = dict_char_key_compare,
+    .keyDestructor = dict_sds_destructor,
+    .valDestructor = dict_sds_destructor
+};
+
+sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
     sds result = NULL;
-    dict_t* change_dict = dict_new(&config_dict_type_func);
+    dict_t* change_dict = dict_new(&sds_dict_type_func);
     latte_iterator_t* iter = dict_get_latte_iterator(manager->rules);
     while (latte_iterator_has_next(iter)) {
         latte_pair_t* pair = latte_iterator_next(iter);
-        sds_t* key = iterator_pair_key(pair);
-        config_rule_t* rule = iterator_pair_value(pair);
+        sds key = latte_pair_key(pair);
+        config_rule_t* rule = latte_pair_value(pair);
         
         dict_entry_t* entry = dict_find(old_config_dict, key);
-        sds value = rule->to_sds(rule);
+        sds now_str = rule->to_sds(rule, rule->get_value(rule->data_ctx));
         if (entry == NULL) {
-            if (sds_cmp(value, rule->default_value) == 0) {
-                sds_delete(value);
+            if (sds_cmp(now_str, rule->default_value) == 0) {
+                sds_delete(now_str);
                 continue;
             }   
         } else {
-            sds old_value = dict_get_entry_val(entry);
-            if (sds_cmp(old_value, value) == 0) {
-                sds_delete(value);
+            void* old_value = dict_get_entry_val(entry);
+            sds old_str= rule->to_sds(rule, old_value);  
+            if (rule->delete_value != NULL) rule->delete_value(old_value);
+            dict_set_val(old_config_dict, entry, NULL); 
+            if (sds_cmp(old_str, now_str) == 0) {
+                sds_delete(old_str);
+                sds_delete(now_str);
                 continue;
             }
+            sds_delete(old_str);
         }
-        dict_add(change_dict, key, value);  
+        dict_add(change_dict, sds_dup(key), now_str);  
         
     }
     latte_iterator_delete(iter);
     if (dict_size(change_dict) == 0) {
         goto end;
     }
-    result = sds_new("# change config\n");
+    result = sds_new("\n# change config\n");
     iter = dict_get_latte_iterator(change_dict);
     while (latte_iterator_has_next(iter)) {
         latte_pair_t* pair = latte_iterator_next(iter);
-        sds_t* key = iterator_pair_key(pair);
-        sds value = iterator_pair_value(pair);
+        sds key = latte_pair_key(pair);
+        sds value = latte_pair_value(pair);
         result = sds_cat(result, key);
         result = sds_cat(result, " ");
         result = sds_cat(result, value);
@@ -350,21 +352,21 @@ end:
     return result;
 }
 
-
+sds config_diff_file(config_manager_t* manager, char* filename) {
+    dict_t* old_config_dict = dict_new(&config_dict_type_func);
+    latte_assert_with_info(read_config_file_to_dict(manager, old_config_dict ,filename) == 1, "error: read config file to dict failed");
+    sds result = config_diff_string(manager, old_config_dict);
+    dict_delete(old_config_dict);
+    return result;
+}
 
 int config_save_file(config_manager_t* manager, char* filename) {
-    if (filename == NULL) {
-        return 0;
-    }
-    dict_t* old_config_dict = dict_new(&config_dict_type_func);
-    read_config_file_to_dict(old_config_dict ,filename);
-    sds_t config = config_save_string(manager, old_config_dict);
-    dict_delete(old_config_dict);
+    sds config = config_diff_file(manager, filename);
     if (config == NULL) {
         return 1;
     }
     FILE *fp;
-    if ((fp = fopen(filename, "w")) == NULL) {
+    if ((fp = fopen(filename, "a")) == NULL) {
         return 0;
     }
     fwrite(config, 1, sds_len(config), fp);
@@ -448,9 +450,8 @@ int is_valid_int64_value(void* limit_arg, void* value) {
     return 1;
 }
 
-sds to_sds_int64_value(config_rule_t* rule) {
-    long long ll_value = rule->get_value(rule->data_ctx);
-    return ll2sds(ll_value);
+sds to_sds_int64_value(config_rule_t* rule, void* data) {
+    return ll2sds(data);
 }
 void numeric_limit_delete(void* limit_arg) {
     numeric_data_limit_t* limit = (numeric_data_limit_t*)(limit_arg);
@@ -514,8 +515,8 @@ int is_valid_sds_value(void* limit_arg, void* value) {
     return 0;
 }
 
-sds to_sds_sds_value(config_rule_t* rule) {
-    return sds_dup(rule->get_value(rule->data_ctx));
+sds to_sds_sds_value(config_rule_t* rule, void* data) {
+    return sds_dup(data);
 }
 
 config_rule_t* config_rule_new_sds_rule(int flags, sds* data_ctx, 
@@ -585,8 +586,8 @@ int is_valid_enum_value(void* limit_arg, void* value) {
     return 0;
 }
 
-sds to_sds_enum_value(config_rule_t* rule) {
-    int data = rule->get_value(rule->data_ctx);
+sds to_sds_enum_value(config_rule_t* rule, void* value) {
+    int data = (int)value;
     enum_data_limit_t* limit = (enum_data_limit_t*)(rule->limit_arg);
     int i = 0;
     while (limit->enum_value[i].name != NULL) {
@@ -628,7 +629,7 @@ config_rule_t* config_rule_new_enum_rule(int flags, void* data_ctx,
 
 /* 布尔类型规则 */
 int set_bool_value(void* data_ctx, void* value) {
-    bool* data = (bool*)data_ctx;
+    bool* data = (bool*)data_ctx;    
     *data = (bool)value;
     return 1;
 }
@@ -660,8 +661,8 @@ int is_valid_bool_value(void* limit_arg, void* value) {
     return 0;
 }
 
-sds to_sds_bool_value(config_rule_t* rule) {
-    return rule->get_value(rule->data_ctx) ? sds_new("yes") : sds_new("no");
+sds to_sds_bool_value(config_rule_t* rule, void* value) {
+    return (bool)value ? sds_new("yes") : sds_new("no");
 }
 int cmp_bool_value(config_rule_t* rule, void* a, void* b) {
     return (int)a == (int)b ? 0 : 1;
@@ -734,8 +735,8 @@ int is_valid_sds_array_value(void* limit_arg, void* value) {
     return 1;
 }
 
-sds to_sds_sds_array_value(config_rule_t* rule) {
-    vector_t* array = (vector_t*)rule->get_value(rule->data_ctx);
+sds to_sds_sds_array_value(config_rule_t* rule, void* data) {
+    vector_t* array = (vector_t*)data;
     sds result = sds_empty();
     for (int i = 0; i < vector_size(array); i++) {
         result = sds_cat_fmt(result, "%s ", (sds)vector_get(array, i));
@@ -876,8 +877,8 @@ int is_valid_map_sds_sds_value(void* limit_arg, void* value) {
     return result;
 }
 
-sds to_sds_map_sds_sds_value(config_rule_t* rule) {
-    latte_iterator_t* iter = dict_get_latte_iterator(rule->get_value(rule->data_ctx));
+sds to_sds_map_sds_sds_value(config_rule_t* rule, void* data) {
+    latte_iterator_t* iter = dict_get_latte_iterator(data);
     sds result = sds_empty_len(512);
     while (latte_iterator_has_next(iter)) {
         latte_pair_t* pair = latte_iterator_next(iter);
@@ -1039,7 +1040,7 @@ sds config_rule_to_sds(config_manager_t* manager, char* key) {
         LATTE_LIB_LOG(LL_ERROR, "Error: %s rule not found", key);
         return NULL;
     }
-    sds value_str = rule->to_sds(rule);
+    sds value_str = rule->to_sds(rule, rule->get_value(rule->data_ctx));
     sds result = sds_cat_fmt(sds_new(key), " %s", value_str);
     sds_delete(value_str);
     return result;

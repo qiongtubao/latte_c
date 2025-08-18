@@ -302,6 +302,92 @@ int test_config_map_append_sds_sds_rule(void) {
     return 1;
 }
 
+
+typedef struct test_config_file_t {
+    sds name;
+    long long age;
+    bool is_admin;
+    gender_enum gender;
+    vector_t* likes;
+    dict_t* map;
+    dict_t* append_map;
+} test_config_file_t;
+
+int test_config_file(void) {
+    config_manager_t* manager = config_manager_new();
+    test_config_file_t* data = zmalloc(sizeof(test_config_file_t));
+    data->name = NULL;
+    data->age = 0;
+    data->gender = -1;
+    data->is_admin = false;
+    data->likes = NULL;
+    data->map = NULL;
+    data->append_map = NULL;
+    config_rule_t* rule = config_rule_new_sds_rule(0, &data->name, NULL, sds_new("test"));
+    config_add_rule(manager, "name", rule);
+    rule = config_rule_new_numeric_rule(0, &data->age, 0, 100, NULL, 1);
+    config_add_rule(manager, "age", rule);
+    rule = config_rule_new_enum_rule(0, &data->gender, gender_enum_list, NULL, sds_new("man"));
+    config_add_rule(manager, "gender", rule);
+    rule = config_rule_new_bool_rule(0, &data->is_admin, NULL, true);
+    config_add_rule(manager, "is_admin", rule);
+    rule = config_rule_new_sds_array_rule(0, &data->likes, NULL, -1, sds_new(""));
+    config_add_rule(manager, "likes", rule);
+    rule = config_rule_new_map_sds_sds_rule(0, &data->map, NULL, NULL, sds_new(""));
+    config_add_rule(manager, "map", rule);
+    rule = config_rule_new_append_map_sds_sds_rule(0, &data->append_map, NULL, NULL, sds_new(""));
+    config_add_rule(manager, "append_map", rule);
+    assert(config_init_all_data(manager) == 7);
+    assert(sds_len(data->name) == 4);
+    assert(strcmp(data->name, "test") == 0);
+    assert(data->age == 1);
+    assert(data->gender == MAN);
+    assert(data->is_admin == true);
+    assert(vector_size(data->likes) == 0);
+    assert(dict_size(data->map) == 0);
+    assert(dict_size(data->append_map) == 0);
+
+
+    assert(config_load_file(manager, "./test2.conf") == 1);
+    assert(sds_len(data->name) == 5);
+    assert(strcmp(data->name, "latte") == 0);
+    assert(data->age == 18);
+    assert(data->gender == WOMAN);
+    assert(data->is_admin == false);
+    assert(vector_size(data->likes) == 3);
+    assert(strcmp(vector_get(data->likes, 0), "latte") == 0);
+    assert(strcmp(vector_get(data->likes, 1), "coffee") == 0);
+    assert(strcmp(vector_get(data->likes, 2), "tea") == 0);
+    assert(dict_size(data->map) == 3);
+    assert(strcmp(dict_fetch_value(data->map, "k1"), "v1") == 0);
+    assert(strcmp(dict_fetch_value(data->map, "k2"), "v2") == 0);
+    assert(strcmp(dict_fetch_value(data->map, "k3"), "v3") == 0);
+    assert(dict_size(data->append_map) == 2);
+    assert(strcmp(dict_fetch_value(data->append_map, "k1"), "v1") == 0);
+    assert(strcmp(dict_fetch_value(data->append_map, "k2"), "v2") == 0);
+    LATTE_LIB_LOG(LL_INFO, "============name: %s", data->name);
+
+    /* 测试diff_str 和 diff_file */
+    sds diff_str = config_diff_file(manager, "./test2.conf");
+    assert(diff_str == NULL);
+    sds_delete(diff_str);
+
+
+
+    sds_delete(data->name);
+    while (vector_size(data->likes) > 0) {
+        sds_delete(vector_pop(data->likes));
+    }
+    vector_delete(data->likes);
+    dict_delete(data->map);
+    dict_delete(data->append_map);
+    zfree(data);
+
+
+    config_manager_delete(manager);
+    return 1;
+}
+
 int test_api(void) {
     log_module_init();
     assert(log_add_stdout(LATTE_LIB, LOG_DEBUG) == 1);
@@ -323,6 +409,8 @@ int test_api(void) {
             test_config_map_sds_sds_rule() == 1);
         test_cond("config_rule test map_append_sds_sds_rule function",
             test_config_map_append_sds_sds_rule() == 1);
+        test_cond("config_rule test load file + save file function",
+            test_config_file() == 1);
     } test_report()
     return 1;
 }
