@@ -40,9 +40,10 @@ int config_init_all_data(config_manager_t* manager) {
 
     while (latte_iterator_has_next(iter)) {
         latte_pair_t* pair = latte_iterator_next(iter);
-        sds key = iterator_pair_key(pair);
+        latte_assert_with_info(pair != NULL, "pair is NULL");
+        sds key = latte_pair_key(pair);
         latte_assert_with_info(key != NULL, "key is NULL");
-        config_rule_t* rule = iterator_pair_value(pair);
+        config_rule_t* rule = latte_pair_value(pair);
         latte_assert_with_info(rule != NULL, "%s rule is NULL", key);
         latte_assert_with_info(rule->default_value != NULL, "%s default value is NULL", key);
         argc = 0;
@@ -702,10 +703,7 @@ void* get_sds_array_value(void* data_ctx) {
 }
 
 void* load_sds_array_value(config_rule_t* rule, char** argv, int argc, char** error) {
-    if (argc == 0) {
-        *error = "error: argc == 0";
-        return NULL;
-    }
+
     
     vector_t* array = vector_new();
     for (int i = 0; i < argc; i++) {

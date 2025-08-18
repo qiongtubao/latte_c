@@ -17,10 +17,10 @@ int test_config_sds_rule(void) {
     sds name = NULL;
     /*name */
     config_rule_t* rule = config_rule_new_sds_rule(0, &name, NULL, sds_new("test"));
-    config_add_rule(manager, "name", rule);
-    // assert(config_init_all_data(manager) == 1);
-    // assert(sds_len(name) == 6);
-    // assert(strcmp(name, "test") == 0);
+    assert(config_add_rule(manager, "name", rule) == 0);
+    assert(config_init_all_data(manager) == 1);
+    assert(sds_len(name) == 4);
+    assert(strcmp(name, "test") == 0);
 
     char* configstr = "name latte1";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
@@ -52,8 +52,10 @@ int test_config_sds_rule(void) {
 int test_config_numeric_rule(void) {
     config_manager_t* manager = config_manager_new();
     int64_t age = 0;
-    config_rule_t* rule = config_rule_new_numeric_rule(0, &age, 0, 100, NULL, 0);
+    config_rule_t* rule = config_rule_new_numeric_rule(0, &age, 0, 100, NULL, 1);
     config_add_rule(manager, "age", rule);
+    assert(config_init_all_data(manager) == 1);
+    assert(age == 1);
     char* configstr = "age 10";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(age == 10);
@@ -95,6 +97,10 @@ int test_config_enum_rule(void) {
     gender_enum gender = MAN;
     config_rule_t* rule = config_rule_new_enum_rule(0, &gender, gender_enum_list,NULL, sds_new("man"));
     config_add_rule(manager, "gender", rule);
+
+    assert(config_init_all_data(manager) == 1);
+    assert(gender == MAN);
+
     char* configstr = "gender woman";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(gender == WOMAN);
@@ -123,6 +129,9 @@ int test_config_bool_rule(void) {
     bool is_man = false;
     config_rule_t* rule = config_rule_new_bool_rule(0, &is_man, NULL, true);
     config_add_rule(manager, "is_man", rule);
+
+    assert(config_init_all_data(manager) == 1);
+    assert(is_man == true);
     char* configstr = "is_man no";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(is_man == false);
@@ -152,6 +161,9 @@ int test_config_array_rule(void) {
     vector_t* likes = NULL;
     config_rule_t* rule = config_rule_new_sds_array_rule(0, &likes, NULL, -1, sds_new(""));
     config_add_rule(manager, "likes", rule);
+    assert(config_init_all_data(manager) == 1);
+    assert(likes != NULL);
+    assert(vector_size(likes) == 0);
     char* configstr = "likes a b c";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(vector_size(likes) == 3);
@@ -188,6 +200,9 @@ int test_config_map_sds_sds_rule(void) {
     dict_t* map = NULL;
     config_rule_t* rule = config_rule_new_map_sds_sds_rule(0, &map, NULL, NULL, sds_new(""));
     config_add_rule(manager, "map", rule);
+    assert(config_init_all_data(manager) == 1);
+    assert(map != NULL);
+    assert(dict_size(map) == 0);
     char* configstr = "map k1 v1 k2 v2";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(dict_size(map) == 2);
@@ -218,6 +233,9 @@ int test_config_map_append_sds_sds_rule(void) {
     dict_t* map = NULL;
     config_rule_t* rule = config_rule_new_append_map_sds_sds_rule(0, &map, NULL, NULL, sds_new(""));
     config_add_rule(manager, "map", rule);
+    assert(config_init_all_data(manager) == 1);
+    assert(map != NULL);
+    assert(dict_size(map) == 0);
     char* configstr = "map k1 v1";
     assert(config_load_string(manager, configstr, strlen(configstr)) == 1);
     assert(dict_size(map) == 1);
