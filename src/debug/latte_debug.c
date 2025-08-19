@@ -21,7 +21,7 @@ static pthread_mutex_t bug_report_start_mutex = PTHREAD_MUTEX_INITIALIZER;
 void bugReportStart(void) {
     pthread_mutex_lock(&bug_report_start_mutex);
     if (bug_report_start == 0) {
-        LATTE_LIB_LOG(LL_WARN|LL_RAW,
+        LATTE_LIB_LOG(LOG_WARN,
         "\n\n=== LATTE BUG REPORT START: Cut & paste starting from here ===\n");
         bug_report_start = 1;
     }
@@ -99,7 +99,7 @@ void removeSignalHandlers(void) {
 void bugReportEnd(int killViaSignal, int sig) {
     struct sigaction act;
 
-    LATTE_LIB_LOG(LL_WARN|LL_RAW,
+    LATTE_LIB_LOG(LOG_WARN,
 "\n=== LATTE BUG REPORT END. Make sure to include from START to END. ===\n\n"
 );
 
@@ -130,9 +130,9 @@ void _latte_panic(const char *file, int line, const char *msg, ...) {
     va_end(ap);
 
     bugReportStart();
-    LATTE_LIB_LOG(LL_WARN,"------------------------------------------------");
-    LATTE_LIB_LOG(LL_WARN,"!!! Software Failure. Press left mouse button to continue");
-    LATTE_LIB_LOG(LL_WARN,"Guru Meditation: %s #%s:%d",fmtmsg,file,line);
+    LATTE_LIB_LOG(LOG_WARN,"---------------------------------------------");
+    LATTE_LIB_LOG(LOG_WARN,"!!! Software Failure. Press left mouse button to continue");
+    LATTE_LIB_LOG(LOG_WARN,"Guru Meditation: %s #%s:%d",fmtmsg,file,line);
 
 //     if (server.crashlog_enabled) {
 // #ifdef HAVE_BACKTRACE
@@ -150,8 +150,8 @@ void _latte_panic(const char *file, int line, const char *msg, ...) {
 
 void _latte_assert(const char *estr, const char *file, int line) {
     bugReportStart();
-    LATTE_LIB_LOG(LL_WARN,"=== ASSERTION FAILED ===");
-    LATTE_LIB_LOG(LL_WARN,"==> %s:%d '%s' is not true",file,line,estr);
+    LATTE_LIB_LOG(LOG_WARN,"=== ASSERTION FAILED ===");
+    LATTE_LIB_LOG(LOG_WARN,"==> %s:%d '%s' is not true",file,line,estr);
 
 //     if (server.crashlog_enabled) {
 // #ifdef HAVE_BACKTRACE

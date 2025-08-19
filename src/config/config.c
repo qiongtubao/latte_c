@@ -104,36 +104,36 @@ sds read_file_to_sds(const char *filename) {
     // 1. 打开文件（二进制模式，避免换行符转换）
     fp = fopen(filename, "rb");  // 使用 "rb" 模式，可移植性更好
     if (!fp) {
-        LATTE_LIB_LOG(LL_ERROR, "error: can't open config file '%s': %s", filename, strerror(errno));
+        LATTE_LIB_LOG(LOG_ERROR, "error: can't open config file '%s': %s", filename, strerror(errno));
         goto cleanup;
     }
 
     // 2. 获取文件大小（可选，用于预分配内存，提升性能）
     if (fseek(fp, 0, SEEK_END) != 0) {
-        LATTE_LIB_LOG(LL_ERROR, "error: can't seek config file '%s': %s", filename, strerror(errno));
+        LATTE_LIB_LOG(LOG_ERROR, "error: can't seek config file '%s': %s", filename, strerror(errno));
         goto cleanup;
     }
     file_size = ftell(fp);
     if (file_size < 0) {
-        LATTE_LIB_LOG(LL_ERROR, "error: can't get file size '%s': %s", filename, strerror(errno));
+        LATTE_LIB_LOG(LOG_ERROR, "error: can't get file size '%s': %s", filename, strerror(errno));
         goto cleanup;
     }
     if (fseek(fp, 0, SEEK_SET) != 0) {
-        LATTE_LIB_LOG(LL_ERROR, "error: can't seek config file '%s': %s", filename, strerror(errno));
+        LATTE_LIB_LOG(LOG_ERROR, "error: can't seek config file '%s': %s", filename, strerror(errno));
         goto cleanup;
     }
 
     // 3. 预分配 SDS 内存（避免多次 realloc）
     config = sds_empty_len(file_size);  // 分配足够空间
     if (!config) {
-        LATTE_LIB_LOG(LL_ERROR, "error: can't allocate memory for config file '%s': %s", filename, strerror(errno));
+        LATTE_LIB_LOG(LOG_ERROR, "error: can't allocate memory for config file '%s': %s", filename, strerror(errno));
         goto cleanup;
     }
 
     // 4. 一次性读取整个文件
     bytes_read = fread(config, 1, file_size, fp);
     if (ferror(fp)) {
-        LATTE_LIB_LOG(LL_ERROR, "error: can't read config file '%s': %s", filename, strerror(errno));
+        LATTE_LIB_LOG(LOG_ERROR, "error: can't read config file '%s': %s", filename, strerror(errno));
         sds_delete(config);
         config = NULL;
         goto cleanup;
@@ -1054,7 +1054,7 @@ int config_set_value(config_manager_t* manager, char** argv, int argc, char** er
 void* config_get_value(config_manager_t* manager, char* key) {
     config_rule_t* rule = config_get_rule(manager, key);
     if (rule == NULL) {
-        LATTE_LIB_LOG(LL_ERROR, "Error: %s rule not found", key);
+        LATTE_LIB_LOG(LOG_ERROR, "Error: %s rule not found", key);
         return NULL;
     }
     return rule->get_value(rule->data_ctx);
@@ -1063,7 +1063,7 @@ void* config_get_value(config_manager_t* manager, char* key) {
 sds config_rule_to_sds(config_manager_t* manager, char* key) {
     config_rule_t* rule = config_get_rule(manager, key);
     if (rule == NULL) {
-        LATTE_LIB_LOG(LL_ERROR, "Error: %s rule not found", key);
+        LATTE_LIB_LOG(LOG_ERROR, "Error: %s rule not found", key);
         return NULL;
     }
     sds value_str = rule->to_sds(rule, rule->get_value(rule->data_ctx));

@@ -19,7 +19,7 @@ typedef struct io_uring_thread_info_t {
 bool init_io_uring(struct io_uring* io_uring_instance) {
     int ret = io_uring_queue_init(1024, io_uring_instance,  0);
     if (ret < 0) {
-        LATTE_LIB_LOG(LL_ERROR,"io_uring_queue_init failed: %s", strerror(-ret));
+        LATTE_LIB_LOG(LOG_ERROR,"io_uring_queue_init failed: %s", strerror(-ret));
         return false;
     }
     return true;

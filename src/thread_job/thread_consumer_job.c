@@ -115,7 +115,7 @@ void* thread_consumer_main(void* arg) {
             latte_job_run(&job);
             latte_job_consumer_queue_remove(queue);
             if (ustime() - start_time > 1000000) {
-                LATTE_LIB_LOG(LL_INFO, "qps: %lld", qps);
+                LATTE_LIB_LOG(LOG_INFO, "qps: %lld", qps);
                 qps = 0;
                 start_time = ustime();
             } else {
@@ -139,10 +139,10 @@ latte_thread_t* create_thread_consumer(int tid) {
     if (pthread_create(&thread->thread_id, NULL, thread_consumer_main, thread)) {
         latte_job_consumer_queue_delete(thread->ctx);
         zfree(thread);
-        LATTE_LIB_LOG(LL_ERROR, "create thread consumer failed");
+        LATTE_LIB_LOG(LOG_ERROR, "create thread consumer failed");
         return NULL;
     }
-    LATTE_LIB_LOG(LL_INFO, "create thread consumer success");
+    LATTE_LIB_LOG(LOG_INFO, "create thread consumer success");
     return thread;
 }
 
@@ -206,7 +206,7 @@ void latte_thread_consumer_job_manager_adjust(latte_thread_consumer_job_manager_
         for (int i = 0; i < threads_to_activate_num; i++) {
             int tid = manager->active_io_threads_num;
             latte_thread_t* thread = vector_get(manager->pool->threads, tid);
-            LATTE_LIB_LOG(LL_INFO, "%d unlock %d", thread->tid, tid);
+            LATTE_LIB_LOG(LOG_INFO, "%d unlock %d", thread->tid, tid);
             pthread_mutex_unlock(&thread->mutex);
             manager->active_io_threads_num++;
         }
