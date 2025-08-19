@@ -75,8 +75,8 @@ int test_config_numeric_rule(void) {
     assert(age == 11);
 
     void* value = config_get_value(manager, "age");
-    assert(value == age);
-    assert(value == 11);
+    assert((int)(long long)value == age);
+    assert((int)(long long)value == 11);
 
     sds sds_str = config_rule_to_sds(manager, "age");
     assert(sds_len(sds_str) == 6);
@@ -124,8 +124,8 @@ int test_config_enum_rule(void) {
     assert(gender == MAN);
 
     void* value = config_get_value(manager, "gender");
-    assert(value == gender);
-    assert(value == MAN);
+    assert((gender_enum)(long long)value == gender);
+    assert((gender_enum)(long long)value == MAN);
 
     sds sds_str = config_rule_to_sds(manager, "gender");
     assert(sds_len(sds_str) == 10);
@@ -160,8 +160,8 @@ int test_config_bool_rule(void) {
     assert(is_man == true);
 
     void* value = config_get_value(manager, "is_man");
-    assert(value == is_man);
-    assert(value == true);
+    assert((int)(long long)value == is_man);
+    assert((int)(long long)value == true);
 
     sds sds_str = config_rule_to_sds(manager, "is_man");
     assert(sds_len(sds_str) == 10);
