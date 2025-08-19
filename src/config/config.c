@@ -147,6 +147,7 @@ cleanup:
     return config;
 }
 
+int _config_load_string(config_manager_t* manager, dict_t* config_value, char* str, size_t len);
 int _config_load_file(config_manager_t* manager, dict_t* config_value, char* filename) {
     sds config = read_file_to_sds(filename);
     if (config == NULL) {
@@ -206,7 +207,6 @@ int _config_load_string(config_manager_t* manager, dict_t* config_value, char* s
             err = "Unknown configuration option";
             goto error;
         }
-        latte_assert_with_info(rule_obj->load_value, "rule->load_value is NULL");
         void* value = rule_obj->load_value(rule_obj, argv + 1, argc - 1, &err);
         if (err != NULL) {
             goto error;
@@ -451,12 +451,11 @@ int is_valid_int64_value(void* limit_arg, void* value) {
 }
 
 sds to_sds_int64_value(config_rule_t* rule, void* data) {
-    return ll2sds(data);
+    return ll2sds((long long)data);
 }
 void numeric_limit_delete(void* limit_arg) {
     numeric_data_limit_t* limit = (numeric_data_limit_t*)(limit_arg);
     zfree(limit);
-    return NULL;
 }
 
 config_rule_t* config_rule_new_numeric_rule(int flags, long long* data_ctx, 
@@ -602,7 +601,6 @@ sds to_sds_enum_value(config_rule_t* rule, void* value) {
 void enum_limit_delete(void* limit_arg) {
     enum_data_limit_t* limit = (enum_data_limit_t*)(limit_arg);
     zfree(limit);
-    return NULL;
 }
 
 
@@ -687,12 +685,19 @@ config_rule_t* config_rule_new_bool_rule(int flags, int* data_ctx,
     return rule;
 }
 
-/* 数组类型规则 */  
+/* 数组类型规则 */ 
+void sds_array_delete(void* data) {
+    vector_t* array = (vector_t*)data;
+    while (vector_size(array) > 0) {
+        sds_delete(vector_pop(array));
+    }
+    vector_delete(array);
+} 
 int set_sds_array_value(void* data_ctx, void* value) {
     vector_t* array = (vector_t*)value;
     vector_t** old_array = (vector_t**)data_ctx;
     if (*old_array != NULL) {
-        sds_array_delete(*old_array);
+        sds_array_delete((void*)(*old_array));
     }
     *old_array = array;
     return 1;
@@ -738,7 +743,7 @@ int is_valid_sds_array_value(void* limit_arg, void* value) {
 sds to_sds_sds_array_value(config_rule_t* rule, void* data) {
     vector_t* array = (vector_t*)data;
     sds result = sds_empty();
-    for (int i = 0; i < vector_size(array); i++) {
+    for (size_t i = 0; i < vector_size(array); i++) {
         result = sds_cat_fmt(result, "%s ", (sds)vector_get(array, i));
     }
     result[sds_len(result) - 1] = '\0';
@@ -749,16 +754,9 @@ sds to_sds_sds_array_value(config_rule_t* rule, void* data) {
 void array_limit_delete(void* limit_arg) {
     array_data_limit_t* limit = (array_data_limit_t*)(limit_arg);
     zfree(limit);
-    return NULL;
 }
 
-void sds_array_delete(void* data) {
-    vector_t* array = (vector_t*)data;
-    while (vector_size(array) > 0) {
-        sds_delete(vector_pop(array));
-    }
-    vector_delete(array);
-}
+
 
 config_rule_t* config_rule_new_sds_array_rule(int flags, void* data_ctx, 
     check_value_func* check_value, int size, sds default_value) {
@@ -895,7 +893,6 @@ sds to_sds_map_sds_sds_value(config_rule_t* rule, void* data) {
 void map_sds_sds_limit_delete(void* limit_arg) {
     map_sds_sds_data_limit_t* limit = (map_sds_sds_data_limit_t*)(limit_arg);
     zfree(limit);
-    return NULL;
 }
 
 config_rule_t* config_rule_new_map_sds_sds_rule(int flags, void* data_ctx, 
