@@ -80,16 +80,16 @@ sds config_rule_to_sds(config_manager_t* manager, char* key);
 /* 创建规则 */
 config_rule_t* config_rule_new(int flags, 
     void* data_ctx, 
-    set_value_func* set_value, 
-    get_value_func* get_value, 
-    check_value_func* check_value, 
-    load_value_func* load_value,
-    cmp_value_func* cmp_value,
-    is_valid_func* is_valid,
-    to_sds_func* to_sds, 
+    set_value_func set_value, 
+    get_value_func get_value, 
+    check_value_func check_value, 
+    load_value_func load_value,
+    cmp_value_func cmp_value,
+    is_valid_func is_valid,
+    to_sds_func to_sds, 
     void* limit_arg,
-    delete_func* delete_limit,
-    delete_func* delete_value,
+    delete_func delete_limit,
+    delete_func delete_value,
     sds default_value  
 );
 /* 删除规则 */
@@ -101,7 +101,7 @@ typedef struct numeric_data_limit_t {
     long long upper_bound; /* The upper bound of this numeric value */
 } numeric_data_limit_t;
 config_rule_t* config_rule_new_numeric_rule(int flags, long long* data_ctx, 
-    long long lower_bound, long long upper_bound, check_value_func* check_value,  long long default_value);
+    long long lower_bound, long long upper_bound, check_value_func check_value,  long long default_value);
 
 /* 字符串类型规则 */
 typedef struct sds_data_limit_t {
@@ -109,7 +109,7 @@ typedef struct sds_data_limit_t {
 } sds_data_limit_t;
 
 config_rule_t* config_rule_new_sds_rule(int flags, sds* data_ctx, 
-    check_value_func* check_value, sds default_value);
+    check_value_func check_value, sds default_value);
 
 
 /* 枚举类型规则 */
@@ -122,19 +122,19 @@ typedef struct enum_data_limit_t {
     config_enum_t *enum_value;
 } enum_data_limit_t;
 config_rule_t* config_rule_new_enum_rule(int flags, void* data_ctx, 
-    config_enum_t* limit, check_value_func* check_value, sds default_value);
+    config_enum_t* limit, check_value_func check_value, sds default_value);
 
 /* 布尔类型规则 */
-config_rule_t* config_rule_new_bool_rule(int flags, int* data_ctx, 
-    check_value_func* check_value, int default_value);
+config_rule_t* config_rule_new_bool_rule(int flags, bool* data_ctx, 
+    check_value_func check_value, int default_value);
 
 
 /* 数组类型规则 */
 typedef struct array_data_limit_t {
-    int size;
+    size_t size;
 } array_data_limit_t;
 config_rule_t* config_rule_new_sds_array_rule(int flags, void* data_ctx, 
-    check_value_func* check_value, int size, sds default_value);
+    check_value_func check_value, int size, sds default_value);
 
 /* int64数组*/
 /* enum数组 */
@@ -145,15 +145,15 @@ config_rule_t* config_rule_new_sds_array_rule(int flags, void* data_ctx,
 
 /* 多段数组追加规则 */
 // config_rule_t* config_rule_new_append_array_rule(int flags, void* data_ctx, 
-//     check_value_func* check_value, sds default_value);
+//     check_value_func check_value, sds default_value);
 
 /* map<sds, sds>类型规则 */   
 config_rule_t* config_rule_new_map_sds_sds_rule(int flags, void* data_ctx, 
-    check_value_func* check_value, char** keys, sds default_value);
+    check_value_func check_value, char** keys, sds default_value);
 
 /* 多段map<sds,sds>属性插入规则 */   
 config_rule_t* config_rule_new_append_map_sds_sds_rule(int flags, void* data_ctx, 
-    check_value_func* check_value, char** keys, sds default_value);
+    check_value_func check_value, char** keys, sds default_value);
 
 
 sds config_diff_file(config_manager_t* manager, char* filename);
