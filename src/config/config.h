@@ -157,5 +157,6 @@ config_rule_t* config_rule_new_append_map_sds_sds_rule(int flags, void* data_ctx
 
 
 sds config_diff_file(config_manager_t* manager, char* filename);
-
+//读取文件以后移走 
+sds read_file_to_sds(const char *filename);
 #endif

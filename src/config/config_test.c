@@ -313,6 +313,23 @@ typedef struct test_config_file_t {
     dict_t* append_map;
 } test_config_file_t;
 
+int cp_file(char* src, char* dst) {
+    FILE* src_file = fopen(src, "r");
+    FILE* dst_file = fopen(dst, "w");
+    char line[1024] = {};
+    memset(line, 0, sizeof(line));
+    while (fgets(line, 1024, src_file) != NULL) {
+        fputs(line, dst_file);
+    }
+    fclose(src_file);
+    fclose(dst_file);
+    return 1;
+}
+int delete_file(char* filename) {
+    remove(filename);
+    return 1;
+}
+
 int test_config_file(void) {
     config_manager_t* manager = config_manager_new();
     test_config_file_t* data = zmalloc(sizeof(test_config_file_t));
@@ -372,7 +389,35 @@ int test_config_file(void) {
     assert(diff_str == NULL);
     sds_delete(diff_str);
 
+    char* argv[] = {sds_new("name"), sds_new("test1")};
+    char* err = NULL;
+    assert(config_set_value(manager, argv, 2, &err) == 1);
+    assert(err == NULL);
+    assert(sds_len(data->name) == 5);
+    assert(strcmp(data->name, "test1") == 0);
+    diff_str = config_diff_file(manager, "./test2.conf");
+    assert(diff_str != NULL);
+    LATTE_LIB_LOG(LL_INFO, "diff_str: %s", diff_str);
+    assert(strcmp(diff_str, "\n# change config\nname test1\n") == 0);
+    sds_delete(diff_str);
+    sds_delete(argv[0]);
+    sds_delete(argv[1]);
 
+    argv[0] = sds_new("--name");
+    argv[1] = sds_new("test2");
+    assert(config_load_argv(manager, argv, 2) == 1);
+    sds_delete(argv[0]);
+    sds_delete(argv[1]);
+
+    cp_file("./test2.conf", "./test2.conf.bak");
+    assert(config_save_file(manager, "./test2.conf.bak") == 1);
+    sds sds_str = read_file_to_sds("./test2.conf.bak");
+    sds sds_str2 = read_file_to_sds("./test2.conf");
+
+    assert(strcmp(sds_str + sds_len(sds_str2), "\n# change config\nname test2\n") == 0);
+    sds_delete(sds_str);
+    sds_delete(sds_str2);
+    delete_file("./test2.conf.bak");
 
     sds_delete(data->name);
     while (vector_size(data->likes) > 0) {
