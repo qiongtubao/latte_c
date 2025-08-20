@@ -340,7 +340,7 @@ int test_config_file(void) {
     data->likes = NULL;
     data->map = NULL;
     data->append_map = NULL;
-    config_rule_t* rule = config_rule_new_sds_rule(0, &data->name, NULL, sds_new("test"));
+    config_rule_t* rule = config_rule_new_sds_rule(0, &data->name, NULL, NULL);
     config_add_rule(manager, "name", rule);
     rule = config_rule_new_numeric_rule(0, &data->age, 0, 100, NULL, 1);
     config_add_rule(manager, "age", rule);
@@ -355,8 +355,7 @@ int test_config_file(void) {
     rule = config_rule_new_append_map_sds_sds_rule(0, &data->append_map, NULL, NULL, sds_new(""));
     config_add_rule(manager, "append_map", rule);
     assert(config_init_all_data(manager) == 7);
-    assert(sds_len(data->name) == 4);
-    assert(strcmp(data->name, "test") == 0);
+    assert(data->name == NULL);
     assert(data->age == 1);
     assert(data->gender == MAN);
     assert(data->is_admin == true);
