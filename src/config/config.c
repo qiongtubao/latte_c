@@ -46,7 +46,10 @@ int config_init_all_data(config_manager_t* manager) {
         latte_assert_with_info(key != NULL, "key is NULL");
         config_rule_t* rule = latte_pair_value(pair);
         latte_assert_with_info(rule != NULL, "%s rule is NULL", key);
-        latte_assert_with_info(rule->default_value != NULL, "%s default value is NULL", key);
+        if (rule->default_value == NULL) {
+            result += 1;
+            continue;
+        }
         argc = 0;
         argv = sds_split_args(rule->default_value, &argc);
         if (argv == NULL) {
@@ -313,6 +316,9 @@ sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
         dict_entry_t* entry = dict_find(old_config_dict, key);
         sds now_str = rule->to_sds(rule, rule->get_value(rule->data_ctx));
         if (entry == NULL) {
+            if (rule->default_value == NULL && now_str == NULL) {
+                continue;
+            }
             if (sds_cmp(now_str, rule->default_value) == 0) {
                 sds_delete(now_str);
                 continue;
@@ -524,6 +530,9 @@ int is_valid_sds_value(void* limit_arg, void* value) {
 
 sds to_sds_sds_value(config_rule_t* rule, void* data) {
     UNUSED(rule);
+    if (data == NULL) {
+        return NULL;
+    }
     return sds_dup(data);
 }
 
@@ -761,6 +770,9 @@ int is_valid_sds_array_value(void* limit_arg, void* value) {
 }
 
 sds to_sds_sds_array_value(config_rule_t* rule, void* data) {
+    if (data == NULL) {
+        return sds_new("");
+    }
     UNUSED(rule);
     vector_t* array = (vector_t*)data;
     sds result = sds_empty();
@@ -898,6 +910,9 @@ int is_valid_map_sds_sds_value(void* limit_arg, void* value) {
 }
 
 sds to_sds_map_sds_sds_value(config_rule_t* rule, void* data) {
+    if (data == NULL) {
+        return sds_new("");
+    }
     UNUSED(rule);
     latte_iterator_t* iter = dict_get_latte_iterator(data);
     sds result = sds_empty_len(512);
