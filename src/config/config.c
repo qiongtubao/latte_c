@@ -58,7 +58,7 @@ int config_init_all_data(config_manager_t* manager) {
         char* err = NULL;
         void* value = rule->load_value(rule, argv, argc, &err);
         if (err != NULL) {
-            LATTE_LIB_LOG(LOG_ERROR, "error: load value failed, %s", err);
+            LATTE_LIB_LOG(LOG_ERROR, "error: load(%s) value(%s) failed, %s", key, rule->default_value, err);
             goto error;
         }
         if (!rule->set_value(rule->data_ctx, value)) {
