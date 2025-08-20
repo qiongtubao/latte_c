@@ -289,7 +289,7 @@ int test_config_map_append_sds_sds_rule(void) {
     assert(strcmp(dict_fetch_value(map, "k1"), "v2") == 0);
 
     sds sds_str = config_rule_to_sds(manager, "map");
-    LATTE_LIB_LOG(LL_INFO, "sds_str : %s", sds_str);
+    LATTE_LIB_LOG(LOG_INFO, "sds_str : %s", sds_str);
     assert(sds_len(sds_str) == 21);
     assert(strcmp(sds_str, "map k1 v2 k2 v2 k3 v3") == 0);
     sds_delete(sds_str);
@@ -382,7 +382,7 @@ int test_config_file(void) {
     assert(dict_size(data->append_map) == 2);
     assert(strcmp(dict_fetch_value(data->append_map, "k1"), "v1") == 0);
     assert(strcmp(dict_fetch_value(data->append_map, "k2"), "v2") == 0);
-    LATTE_LIB_LOG(LL_INFO, "============name: %s", data->name);
+    LATTE_LIB_LOG(LOG_INFO, "============name: %s", data->name);
 
     /* 测试diff_str 和 diff_file */
     sds diff_str = config_diff_file(manager, "./test2.conf");
@@ -397,7 +397,7 @@ int test_config_file(void) {
     assert(strcmp(data->name, "test1") == 0);
     diff_str = config_diff_file(manager, "./test2.conf");
     assert(diff_str != NULL);
-    LATTE_LIB_LOG(LL_INFO, "diff_str: %s", diff_str);
+    LATTE_LIB_LOG(LOG_INFO, "diff_str: %s", diff_str);
     assert(strcmp(diff_str, "\n# change config\nname test1\n") == 0);
     sds_delete(diff_str);
     sds_delete(argv[0]);
