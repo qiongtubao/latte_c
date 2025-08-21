@@ -314,7 +314,7 @@ sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
         config_rule_t* rule = latte_pair_value(pair);
         
         dict_entry_t* entry = dict_find(old_config_dict, key);
-        sds now_str = rule->to_sds(rule, rule->get_value(rule->data_ctx));
+        sds now_str = rule->to_sds(rule, key, rule->get_value(rule->data_ctx));
         if (entry == NULL) {
             if (rule->default_value == NULL && now_str == NULL) {
                 continue;
@@ -325,7 +325,7 @@ sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
             }   
         } else {
             void* old_value = dict_get_entry_val(entry);
-            sds old_str= rule->to_sds(rule, old_value);  
+            sds old_str= rule->to_sds(rule, key, old_value);  
             if (rule->delete_value != NULL) rule->delete_value(old_value);
             dict_set_val(old_config_dict, entry, NULL); 
             if (sds_cmp(old_str, now_str) == 0) {
@@ -346,10 +346,7 @@ sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
     iter = dict_get_latte_iterator(change_dict);
     while (latte_iterator_has_next(iter)) {
         latte_pair_t* pair = latte_iterator_next(iter);
-        sds key = latte_pair_key(pair);
         sds value = latte_pair_value(pair);
-        result = sds_cat(result, key);
-        result = sds_cat(result, " ");
         result = sds_cat(result, value);
         result = sds_cat(result, "\n");
     }
@@ -459,9 +456,12 @@ int is_valid_int64_value(void* limit_arg, void* value) {
     return 1;
 }
 
-sds to_sds_int64_value(config_rule_t* rule, void* data) {
+sds to_sds_int64_value(config_rule_t* rule, char* key, void* data) {
     UNUSED(rule);
-    return ll2sds((long long)data);
+    sds value_str = ll2sds((long long)data);
+    sds result = sds_cat_fmt(sds_new(key), " %s", value_str);
+    sds_delete(value_str);
+    return result;
 }
 void numeric_limit_delete(void* limit_arg) {
     numeric_data_limit_t* limit = (numeric_data_limit_t*)(limit_arg);
@@ -528,12 +528,12 @@ int is_valid_sds_value(void* limit_arg, void* value) {
     return 0;
 }
 
-sds to_sds_sds_value(config_rule_t* rule, void* data) {
+sds to_sds_sds_value(config_rule_t* rule, char* key, void* data) {
     UNUSED(rule);
     if (data == NULL) {
         return NULL;
     }
-    return sds_dup(data);
+    return sds_cat_fmt(sds_new(key), " %s", (sds)data);
 }
 
 void config_sds_delete(void* data) {
@@ -608,13 +608,13 @@ int is_valid_enum_value(void* limit_arg, void* value) {
     return 0;
 }
 
-sds to_sds_enum_value(config_rule_t* rule, void* value) {
+sds to_sds_enum_value(config_rule_t* rule, char* key, void* value) {
     int data = (int)(long long)value;
     enum_data_limit_t* limit = (enum_data_limit_t*)(rule->limit_arg);
     int i = 0;
     while (limit->enum_value[i].name != NULL) {
         if (limit->enum_value[i].val == data) {
-            return sds_new(limit->enum_value[i].name);
+            return sds_cat_fmt(sds_new(key), " %s", limit->enum_value[i].name);
         }
         i++;
     }
@@ -684,9 +684,9 @@ int is_valid_bool_value(void* limit_arg, void* value) {
     return 0;
 }
 
-sds to_sds_bool_value(config_rule_t* rule, void* value) {
+sds to_sds_bool_value(config_rule_t* rule, char* key, void* value) {
     UNUSED(rule);
-    return (bool)value ? sds_new("yes") : sds_new("no");
+    return sds_cat_fmt(sds_new(key), " %s", (bool)value ? "yes" : "no");
 }
 int cmp_bool_value(config_rule_t* rule, void* a, void* b) {
     UNUSED(rule);
@@ -769,18 +769,16 @@ int is_valid_sds_array_value(void* limit_arg, void* value) {
     return 1;
 }
 
-sds to_sds_sds_array_value(config_rule_t* rule, void* data) {
+sds to_sds_sds_array_value(config_rule_t* rule, char* key, void* data) {
     if (data == NULL) {
         return sds_new("");
     }
     UNUSED(rule);
     vector_t* array = (vector_t*)data;
-    sds result = sds_empty();
+    sds result = sds_new(key);
     for (size_t i = 0; i < vector_size(array); i++) {
-        result = sds_cat_fmt(result, "%s ", (sds)vector_get(array, i));
+        result = sds_cat_fmt(result, " %s", (sds)vector_get(array, i));
     }
-    result[sds_len(result) - 1] = '\0';
-    sds_set_len(result, sds_len(result) - 1);
     return result;
 }
 
@@ -909,22 +907,20 @@ int is_valid_map_sds_sds_value(void* limit_arg, void* value) {
     return result;
 }
 
-sds to_sds_map_sds_sds_value(config_rule_t* rule, void* data) {
+sds to_sds_map_sds_sds_value(config_rule_t* rule, char* key, void* data) {
     if (data == NULL) {
         return sds_new("");
     }
     UNUSED(rule);
     latte_iterator_t* iter = dict_get_latte_iterator(data);
-    sds result = sds_empty_len(512);
+    sds result = sds_new(key);
     while (latte_iterator_has_next(iter)) {
         latte_pair_t* pair = latte_iterator_next(iter);
         sds key = pair->key;
         sds value = pair->value;
-        result = sds_cat_fmt(result, "%s %s ", key, value);
+        result = sds_cat_fmt(result, " %s %s", key, value);
     }
     latte_iterator_delete(iter);
-    result[sds_len(result) - 1] = '\0';
-    sds_set_len(result, sds_len(result) - 1);
     return result;
 }
 
@@ -1081,8 +1077,6 @@ sds config_rule_to_sds(config_manager_t* manager, char* key) {
         LATTE_LIB_LOG(LOG_ERROR, "Error: %s rule not found", key);
         return NULL;
     }
-    sds value_str = rule->to_sds(rule, rule->get_value(rule->data_ctx));
-    sds result = sds_cat_fmt(sds_new(key), " %s", value_str);
-    sds_delete(value_str);
+    sds result = rule->to_sds(rule, key, rule->get_value(rule->data_ctx));
     return result;
 }

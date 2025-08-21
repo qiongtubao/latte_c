@@ -12,7 +12,7 @@ typedef struct config_rule_t config_rule_t;
 typedef int (*set_value_func)(void* data_ctx, void* new_value);
 typedef void* (*get_value_func)(void* data_ctx);
 typedef int (*check_value_func)(config_rule_t* rule, void* value, void* new_value);
-typedef sds (*to_sds_func)(config_rule_t* rule ,void* data);
+typedef sds (*to_sds_func)(config_rule_t* rule , char* key,void* data);
 typedef void* (*load_value_func)(config_rule_t* rule, char** argv, int argc, char** error);
 typedef int (*cmp_value_func)(config_rule_t* rule, void* value, void* new_value);
 typedef int (*is_valid_func)(void* limit_arg, void* value);
