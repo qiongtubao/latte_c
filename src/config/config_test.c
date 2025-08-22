@@ -311,6 +311,8 @@ typedef struct test_config_file_t {
     vector_t* likes;
     dict_t* map;
     dict_t* append_map;
+    sds disable_write_data;
+    sds disable_save_data;
 } test_config_file_t;
 
 int cp_file(char* src, char* dst) {
@@ -340,6 +342,8 @@ int test_config_file(void) {
     data->likes = NULL;
     data->map = NULL;
     data->append_map = NULL;
+    data->disable_write_data = NULL;
+    data->disable_save_data = NULL;
     config_rule_t* rule = config_rule_new_sds_rule(0, &data->name, NULL, NULL);
     config_add_rule(manager, "name", rule);
     rule = config_rule_new_numeric_rule(0, &data->age, 0, 100, NULL, 1);
@@ -354,7 +358,12 @@ int test_config_file(void) {
     config_add_rule(manager, "map", rule);
     rule = config_rule_new_append_map_sds_sds_rule(0, &data->append_map, NULL, NULL, sds_new(""));
     config_add_rule(manager, "append_map", rule);
-    assert(config_init_all_data(manager) == 7);
+    rule = config_rule_new_sds_rule(CONFIG_FLAG_DISABLE_WRITE, &data->disable_write_data, NULL, sds_new("yes"));
+    config_add_rule(manager, "disable_write", rule);
+    rule = config_rule_new_sds_rule(CONFIG_FLAG_DISABLE_SAVE, &data->disable_save_data, NULL, sds_new("yes"));
+    config_add_rule(manager, "disable_save", rule);
+
+    assert(config_init_all_data(manager) == 9);
     assert(data->name == NULL);
     assert(data->age == 1);
     assert(data->gender == MAN);
@@ -381,15 +390,34 @@ int test_config_file(void) {
     assert(dict_size(data->append_map) == 2);
     assert(strcmp(dict_fetch_value(data->append_map, "k1"), "v1") == 0);
     assert(strcmp(dict_fetch_value(data->append_map, "k2"), "v2") == 0);
-    LATTE_LIB_LOG(LOG_INFO, "============name: %s", data->name);
+    
+    /* 测试disable_write + disable_save */
+    
+    assert(strcmp(data->disable_write_data, "yes") == 0);
+    assert(strcmp(data->disable_save_data, "yes") == 0);
+    char* argv[] = {sds_new("disable_write"), sds_new("no")};
+    char* err = NULL;
+    assert(config_set_value(manager, argv, 2, &err) == 0);
+    assert(err != NULL);
+    assert(strcmp(data->disable_write_data, "yes") == 0);
+    sds_delete(argv[0]);
+
+    err = NULL;
+    argv[0] = sds_new("disable_save");
+    assert(config_set_value(manager, argv, 2, &err) == 1);
+    assert(err == NULL);
+    assert(strcmp(data->disable_save_data, "no") == 0);
+    sds_delete(argv[0]);
+    sds_delete(argv[1]);
+
 
     /* 测试diff_str 和 diff_file */
     sds diff_str = config_diff_file(manager, "./test2.conf");
     assert(diff_str == NULL);
     sds_delete(diff_str);
 
-    char* argv[] = {sds_new("name"), sds_new("test1")};
-    char* err = NULL;
+    argv[0] = sds_new("name");
+    argv[1] = sds_new("test1");
     assert(config_set_value(manager, argv, 2, &err) == 1);
     assert(err == NULL);
     assert(sds_len(data->name) == 5);
@@ -425,6 +453,8 @@ int test_config_file(void) {
     vector_delete(data->likes);
     dict_delete(data->map);
     dict_delete(data->append_map);
+    sds_delete(data->disable_write_data);
+    sds_delete(data->disable_save_data);
     zfree(data);
 
 
