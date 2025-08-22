@@ -58,7 +58,7 @@ int config_init_all_data(config_manager_t* manager) {
         char* err = NULL;
         void* value = rule->load_value(rule, argv, argc, &err);
         if (err != NULL) {
-            LATTE_LIB_LOG(LOG_ERROR, "error: load value failed, %s", err);
+            LATTE_LIB_LOG(LOG_ERROR, "error: load(%s) value(%s) failed, %s", key, rule->default_value, err);
             goto error;
         }
         if (!rule->set_value(rule->data_ctx, value)) {
@@ -314,6 +314,12 @@ sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
         config_rule_t* rule = latte_pair_value(pair);
         
         dict_entry_t* entry = dict_find(old_config_dict, key);
+        if (rule->flags & CONFIG_FLAG_DISABLE_SAVE) {
+            if (entry != NULL) {
+                if (rule->delete_value != NULL) rule->delete_value(dict_get_entry_val(entry));
+            }
+            continue;
+        }
         sds now_str = rule->to_sds(rule, key, rule->get_value(rule->data_ctx));
         if (entry == NULL) {
             if (rule->default_value == NULL && now_str == NULL) {
@@ -1035,8 +1041,15 @@ void config_rule_delete(config_rule_t* rule) {
 /* 设置值 */
 int config_set_value(config_manager_t* manager, char** argv, int argc, char** err) {
     config_rule_t* rule = config_get_rule(manager, argv[0]);
+    *err = NULL;
     if (rule == NULL) {
+        LATTE_LIB_LOG(LOG_ERROR, "Error: %s rule not found", argv[0]);
         *err = "Error: rule not found";
+        return 0;
+    }
+    if (rule->flags & CONFIG_FLAG_DISABLE_WRITE) {
+        LATTE_LIB_LOG(LOG_INFO, "Error: %s rule is read only", argv[0]);
+        *err = "Error: rule is read only";
         return 0;
     }
     void * value = rule->load_value(rule, argv + 1, argc - 1, err);
@@ -1075,6 +1088,10 @@ sds config_rule_to_sds(config_manager_t* manager, char* key) {
     config_rule_t* rule = config_get_rule(manager, key);
     if (rule == NULL) {
         LATTE_LIB_LOG(LOG_ERROR, "Error: %s rule not found", key);
+        return NULL;
+    }
+    if (rule->flags & CONFIG_FLAG_DISABLE_SAVE) {
+        LATTE_LIB_LOG(LOG_INFO, "Error: %s rule is can't save", key);
         return NULL;
     }
     sds result = rule->to_sds(rule, key, rule->get_value(rule->data_ctx));

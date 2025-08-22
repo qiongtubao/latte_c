@@ -6,6 +6,11 @@
 #include "dict/dict.h"
 #include "value/value.h"
 
+#define CONFIG_FLAG_DISABLE_WRITE 0x00000001
+#define CONFIG_FLAG_DISABLE_SAVE 0x00000002
+
+
+
 
 typedef struct config_rule_t config_rule_t;
 
