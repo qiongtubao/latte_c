@@ -93,7 +93,7 @@ void* thread_consumer_main(void* arg) {
     //init_shared_query_buffer();  // 初始化共享查询缓冲区
     set_thread_id(thread->tid);
     size_t jobs_to_process = 0;
-    time_point_t start_time = ustime();
+    ustime_point_t start_time = ustime();
     long long qps = 0;
     while (1) {
         for (size_t i = 0; i < 1000000; i++) {
