@@ -3,6 +3,7 @@
 #define __LATTE_CLIENT_H
 
 #include "server.h"
+#include "time/localtime.h"
 
 /* Client flags*/
 #define CLIENT_CLOSE_AFTER_REPLY (1<<0) /* Close after writing entire reply. */
@@ -30,6 +31,8 @@ typedef struct client_reply_block_t {
 } client_reply_block_t;
 /* latteClient */
 typedef int (*handle_func)(struct latte_client_t* client, int nread);
+typedef void (*start_func)(struct latte_client_t* client);
+typedef void (*end_func)(struct latte_client_t* client);
 typedef struct latte_client_t {
     uint64_t id;
     connection *conn;
@@ -37,6 +40,8 @@ typedef struct latte_client_t {
     size_t qb_pos;
     size_t querybuf_peak;   /* 最近（100毫秒或更长时间）查询缓冲区大小的峰值 */
     handle_func exec;
+    start_func start;
+    end_func end;
     int flags;
     struct latte_server_t* server;
     struct list_node_t* client_list_node;
@@ -48,6 +53,14 @@ typedef struct latte_client_t {
     size_t sentlen;
     async_io_request_t* async_io_request_cache;
     struct list_node_t* async_io_client_node;
+    /*统计*/
+    ustime_point_t start_time;
+    ustime_point_t read_time;
+    ustime_point_t exec_time;
+    ustime_point_t exec_end_time;
+    ustime_point_t write_time;
+    ustime_point_t end_time;
+
 } latte_client_t;
 
 void protected_init_latte_client(latte_client_t* client);
@@ -64,4 +77,5 @@ void free_latte_client(latte_client_t *c);
 
 int writeToClient(latte_client_t *c, int handler_installed);
 int clientHasPendingReplies(latte_client_t *c);
+int async_io_try_write(latte_client_t* c);
 #endif

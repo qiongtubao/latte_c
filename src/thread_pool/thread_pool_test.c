@@ -18,7 +18,7 @@ typedef struct test_thread_task_t {
 
 typedef struct test_thread_ctx_t {
     int status;
-    time_point_t idle_time;
+    ustime_point_t idle_time;
     list_t* queue;
     long long push_count;
     long long pop_count;
@@ -149,7 +149,7 @@ void thread_pool_add_task(thread_pool_t* pool, int i, void* task) {
 }
 
 int thread_pool_test() {
-    time_point_t start_time = ustime();
+    ustime_point_t start_time = ustime();
     thread_pool_t* pool = latte_thread_pool_new(5, 10, create_test_thread_func, delete_test_thread_func); 
     for (int i = 0; i < 10000000; i++) {
         test_thread_task_t* task = zmalloc(sizeof(test_thread_task_t));
@@ -158,7 +158,7 @@ int thread_pool_test() {
         thread_pool_add_task(pool, i, task);
     }
     latte_thread_pool_delete(pool);
-    time_point_t end_time = ustime();
+    ustime_point_t end_time = ustime();
     log_debug("test", "time used: %lld\n", end_time - start_time); 
     return 1;
 }

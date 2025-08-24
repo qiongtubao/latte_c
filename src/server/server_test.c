@@ -60,11 +60,21 @@ int echoHandler(struct latte_client_t* lc, int nread) {
     LATTE_LIB_LOG(LOG_DEBUG, "echoHandler");
     return 1;
 }
+
+void print_time(latte_client_t* client) {
+    LATTE_LIB_LOG(LOG_DEBUG, "print_time %ld %ld %ld ", 
+        client->exec_time - client->read_time, 
+        client->exec_end_time - client->exec_time,
+        client->end_time - client->exec_end_time);
+}
+
  latte_client_t *createLatteClient() {
      latte_client_t* client = zmalloc(sizeof(latte_client_t));
     client->exec = echoHandler;
     client->flags = 0;
     LATTE_LIB_LOG(LOG_DEBUG, "createLatteClient");
+    client->start = NULL;
+    client->end = print_time;
     return client;
 }
 
@@ -73,7 +83,6 @@ void freeLatteClient(latte_client_t* client) {
     zfree(client->async_io_request_cache->buf);
     zfree(client->async_io_request_cache);
     list_delete(client->reply);
-
     zfree(client->conn);
     zfree(client);
 }
@@ -197,6 +206,7 @@ int test_server() {
     log_debug("latte_c_server", "Quit message sent\n");
 
     valread = read(sock, buffer, BUFFER_SIZE);
+    LATTE_LIB_LOG(LOG_INFO, "read from server %s %d\n", buffer, valread);
     assert(strncmp("bye", buffer, 3) == 0);
     // 关闭socket
     close(sock);

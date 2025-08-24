@@ -3,6 +3,7 @@
 #include <string.h>
 // #ifdef USE_ASYNC_IO
 #include "async_io/async_io.h"
+#include "utils/utils.h"
 // #endif
 sds_t latte_client_info_to_sds(latte_client_t* client);
 
@@ -11,8 +12,17 @@ void client_async_io_write_finished(async_io_request_t* request) {
     latte_client_t* client = request->ctx;
     list_del_node(client->server->clients_async_pending_write, client->async_io_client_node);
     client->async_io_client_node = NULL;
+    
+    //这里只处理 一次async_io 情况  后期想想如何处理多次async_io
+    client->end_time = ustime();
+    if (client->end != NULL) {
+        client->end(client);
+    }
+
+    // reset
     request->len = -1;
     request->is_finished = false;
+    LATTE_LIB_LOG(LOG_DEBUG, "client_async_io_write_finished %d", request->len);
 }
 
 /**client **/
@@ -29,6 +39,8 @@ void protected_init_latte_client(latte_client_t* client) {
         zmalloc(CLIENT_ASYNC_IO_MAX_SIZE), 
         -1, client, client_async_io_write_finished);
     client->async_io_client_node = NULL;
+
+    
 }
 
 
@@ -124,6 +136,8 @@ void free_latte_client_async(latte_client_t *c) {
 
 void read_query_from_client(connection *conn) { 
     latte_client_t *c = connGetPrivateData(conn);
+    c->start_time = ustime();
+    if (c->start) c->start(c);
     int nread, readlen;
     size_t qblen;
     /**
@@ -152,7 +166,7 @@ void read_query_from_client(connection *conn) {
     qblen = sds_len(c->querybuf);
     if (c->querybuf_peak < qblen) c->querybuf_peak = qblen;
     c->querybuf = sds_make_room_for(c->querybuf, readlen);
-    
+    c->read_time = ustime();
     nread = connRead(c->conn, c->querybuf + qblen, readlen);
     if (nread == -1) {
         if (connGetState(conn) == CONN_STATE_CONNECTED) {
@@ -168,10 +182,16 @@ void read_query_from_client(connection *conn) {
     } 
     sds_incr_len(c->querybuf,nread);
     LATTE_LIB_LOG(LOG_DEBUG, "read_query_from_client exec %s %d", c->querybuf, nread);
+    c->exec_time = ustime();
     if (c->exec(c, nread)) {
         //清理掉c->querybuf
         sds_range(c->querybuf,c->qb_pos,-1);
         c->qb_pos = 0;
+    }
+    c->exec_end_time = ustime();
+    if (async_io_try_write(c)) {
+        /* 如果使用异步io 则记录写入时间 */
+        c->write_time = ustime(); // | ASYNC_IO_WRITE_TIME_FLAG
     }
 }
 
@@ -218,19 +238,44 @@ void _add_reply_proto_to_list(latte_client_t* c, const char* s, size_t len) {
     }
 }
 
-void add_reply_proto(latte_client_t* c, const char* s, size_t len) {
-    //TODO use async_io 
-    // #ifdef USE_ASYNC_IO
-    if (c->server->use_async_io && len < CLIENT_ASYNC_IO_MAX_SIZE) {
-        LATTE_LIB_LOG(LOG_DEBUG, "add_reply_proto use async_io %d", len);
-        memcpy(c->async_io_request_cache->buf, s, len); 
-        c->async_io_request_cache->len = len;
-        c->async_io_request_cache->fd = c->conn->fd;
+
+int async_io_try_write(latte_client_t* c) {
+    if (c->async_io_request_cache->len > 0) {
         if (async_io_net_write(c->async_io_request_cache)) {
             list_add_node_tail(c->server->clients_async_pending_write, c);
             c->async_io_client_node = list_last(c->server->clients_async_pending_write);
+            return 1;
+        } else {
+            list_add_node_tail(c->server->clients_pending_write, c);
+            if (_add_reply_to_buffer(c,c->async_io_request_cache->buf,c->async_io_request_cache->len) != 0)
+                _add_reply_proto_to_list(c,c->async_io_request_cache->buf,c->async_io_request_cache->len);
+            c->async_io_request_cache->len = -1;
+            return 0;
+        }
+        
+    }
+    return 0;
+}
+
+#define max(a, b) ((a) > (b) ? (a) : (b))
+void add_reply_proto(latte_client_t* c, const char* s, size_t len) {
+    //TODO use async_io 
+    // #ifdef USE_ASYNC_IO
+    if (c->server->use_async_io || c->async_io_request_cache->len > 0) {
+        if (max(c->async_io_request_cache->len, 0) + len < CLIENT_ASYNC_IO_MAX_SIZE) {
+            LATTE_LIB_LOG(LOG_DEBUG, "add_reply_proto use async_io %d", len);
+            latte_assert_with_info(c->async_io_request_cache->len == -1, "async_io_request_cache->len != -1");
+            if (c->async_io_request_cache->len == -1) {
+                c->async_io_request_cache->len = 0;
+            }
+            memcpy(c->async_io_request_cache->buf + c->async_io_request_cache->len, s, len); 
+            c->async_io_request_cache->len += len;
+            c->async_io_request_cache->fd = c->conn->fd; 
+            LATTE_LIB_LOG(LOG_DEBUG, "add_reply_proto use async_io %d", c->async_io_request_cache->len);
             return;
         } else {
+            //async_io 发送大量数据 如何处理  暂时还没想好如何处理
+            latte_assert_with_info(0, "async_io_request_cache->len + len > CLIENT_ASYNC_IO_MAX_SIZE");
             c->async_io_request_cache->len = -1;
         }
     }
@@ -258,7 +303,7 @@ int writeToClient(latte_client_t *c, int handler_installed) {
     /* Update total number of writes on server */
     // atomicIncr(c->server.stat_total_writes_processed, 1);
     
-
+    c->write_time = ustime();
     ssize_t nwritten = 0, totwritten = 0;
     size_t objlen;
     client_reply_block_t *o;
@@ -348,6 +393,8 @@ int writeToClient(latte_client_t *c, int handler_installed) {
             return -1;
         }
     }
+    c->end_time = ustime();
+    if (c->end) c->end(c);
     return 0;
 }
 
