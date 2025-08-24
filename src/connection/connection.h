@@ -34,6 +34,8 @@ typedef void (*ConnectionCallbackFunc)(struct connection *conn);
 typedef struct ConnectionType {
     void (*ae_handler)(struct ae_event_loop_t *el, int fd, void *clientData, int mask);
     int (*connect)(struct ae_event_loop_t *el, struct connection *conn, const char *addr, int port, const char *source_addr, ConnectionCallbackFunc connect_handler);
+    int (*addr)(connection *conn, char *ip, size_t ip_len, int *port, int remote);
+    
     int (*write)(struct connection *conn, const void *data, size_t data_len);
     int (*read)(struct connection *conn, void *buf, size_t buf_len);
     void (*close)(struct ae_event_loop_t *el, struct connection *conn);
@@ -63,7 +65,7 @@ struct connection {
 
 connection *connCreateSocket();
 connection *connCreateAcceptedSocket(int fd);
-int connGetState(connection *conn);
+int conn_get_state(connection *conn);
 void *connGetPrivateData(connection *conn);
 const char *connGetInfo(connection *conn, char *buf, size_t buf_len);
 /* anet-style wrappers to conns */
@@ -78,7 +80,7 @@ int connKeepAlive(connection *conn, int interval);
  * With barrier enabled, we never fire the event if the read handler already
  * fired in the same event loop iteration. Useful when you want to persist
  * things to disk before sending replies, and want to do that in a group fashion. */
-static inline int connSetWriteHandlerWithBarrier(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func, int barrier) {
+static inline int conn_set_write_handlerWithBarrier(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func, int barrier) {
     return conn->type->set_write_handler(el, conn, func, barrier);
 }
 
@@ -91,16 +93,16 @@ static inline void connClose(struct ae_event_loop_t *el, connection *conn) {
  * Like write(2), a short write is possible. A -1 return indicates an error.
  *
  * The caller should NOT rely on errno. Testing for an EAGAIN-like condition, use
- * connGetState() to see if the connection state is still CONN_STATE_CONNECTED.
+ * conn_get_state() to see if the connection state is still CONN_STATE_CONNECTED.
  */
-static inline int connWrite(connection *conn, const void *data, size_t data_len) {
+static inline int conn_write(connection *conn, const void *data, size_t data_len) {
     return conn->type->write(conn, data, data_len);
 }
 
 /* Returns the last error encountered by the connection, as a string.  If no error,
  * a NULL is returned.
  */
-static inline const char *connGetLastError(connection *conn) {
+static inline const char *conn_get_last_error(connection *conn) {
     return conn->type->get_last_error(conn);
 }
 
@@ -130,14 +132,14 @@ static inline int connAccept(struct ae_event_loop_t *el, connection *conn, Conne
 /* Register a read handler, to be called when the connection is readable.
  * If NULL, the existing handler is removed.
  */
-static inline int connSetReadHandler(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func) {
+static inline int conn_set_read_handler(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func) {
     return conn->type->set_read_handler(el, conn, func);
 }
 
 /* Register a write handler, to be called when the connection is writable.
  * If NULL, the existing handler is removed.
  */
-static inline int connSetWriteHandler(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func) {
+static inline int conn_set_write_handler(struct ae_event_loop_t *el, connection *conn, ConnectionCallbackFunc func) {
     return conn->type->set_write_handler(el, conn, func, 0);
 }
 
@@ -145,10 +147,41 @@ static inline int connSetWriteHandler(struct ae_event_loop_t *el, connection *co
 /* 
 从连接中读取，与read(2)的行为相同。
 与read(2)类似，可能会出现短读。返回值为0表示连接已关闭，返回-1表示出现错误。
-调用者不应依赖errno。要测试类似于EAGAIN的条件，请使用connGetState()来查看连接状态是否仍为CONN_STATE_CONNECTED。
+调用者不应依赖errno。要测试类似于EAGAIN的条件，请使用conn_get_state()来查看连接状态是否仍为CONN_STATE_CONNECTED。
  */
-static inline int connRead(connection *conn, void *buf, size_t buf_len) {
+static inline int conn_read(connection *conn, void *buf, size_t buf_len) {
     return conn->type->read(conn, buf, buf_len);
+}
+
+
+/* Get address information of a connection.
+ * remote works as boolean type to get local/remote address */
+ static inline int conn_addr(connection *conn, char *ip, size_t ip_len, int *port, int remote) {
+    if (conn && conn->type->addr) {
+        return conn->type->addr(conn, ip, ip_len, port, remote);
+    }
+
+    return -1;
+}
+
+/* Format an IP,port pair into something easy to parse. If IP is IPv6
+ * (matches for ":"), the ip is surrounded by []. IP and port are just
+ * separated by colons. This the standard to display addresses within Redis. */
+static inline int format_addr(char *buf, size_t buf_len, char *ip, int port) {
+    return snprintf(buf, buf_len, strchr(ip,':') ?
+           "[%s]:%d" : "%s:%d", ip, port);
+}
+#define CONN_ADDR_STR_LEN 128
+static inline int conn_format_addr(connection *conn, char *buf, size_t buf_len, int remote)
+{
+    char ip[CONN_ADDR_STR_LEN];
+    int port;
+
+    if (conn_addr(conn, ip, sizeof(ip), &port, remote) < 0) {
+        return -1;
+    }
+
+    return format_addr(buf, buf_len, ip, port);
 }
 
 #endif  /* __REDIS_CONNECTION_H */

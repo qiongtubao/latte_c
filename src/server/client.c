@@ -39,7 +39,8 @@ void protected_init_latte_client(latte_client_t* client) {
         zmalloc(CLIENT_ASYNC_IO_MAX_SIZE), 
         -1, client, client_async_io_write_finished);
     client->async_io_client_node = NULL;
-
+    client->name = NULL;
+    client->peer_id = NULL;
     
 }
 
@@ -47,8 +48,8 @@ void protected_init_latte_client(latte_client_t* client) {
 void clientAcceptHandler(connection *conn) {
     latte_client_t *c = connGetPrivateData(conn);
 
-    if (connGetState(conn) != CONN_STATE_CONNECTED) {
-        LATTE_LIB_LOG(LOG_ERROR, "Error accepting a client connection: %s\n", connGetLastError(conn));
+    if (conn_get_state(conn) != CONN_STATE_CONNECTED) {
+        LATTE_LIB_LOG(LOG_ERROR, "Error accepting a client connection: %s\n", conn_get_last_error(conn));
         free_latte_client_async(c);
         return;
     }
@@ -67,9 +68,9 @@ void init_latte_client(struct ae_event_loop_t* el, latte_client_t* c, struct con
      */
     if (connAccept(el, conn, clientAcceptHandler) == CONNECTION_ERR) {
         char conninfo[100];
-        if (connGetState(conn) == CONN_STATE_ERROR) {
+        if (conn_get_state(conn) == CONN_STATE_ERROR) {
             LATTE_LIB_LOG(LOG_ERROR, "Error accepting a client connection: %s (conn: %s)\n", 
-                connGetLastError(conn), 
+                conn_get_last_error(conn), 
                 connGetInfo(conn, conninfo, sizeof(conninfo))
             );
         }
@@ -167,12 +168,12 @@ void read_query_from_client(connection *conn) {
     if (c->querybuf_peak < qblen) c->querybuf_peak = qblen;
     c->querybuf = sds_make_room_for(c->querybuf, readlen);
     c->read_time = ustime();
-    nread = connRead(c->conn, c->querybuf + qblen, readlen);
+    nread = conn_read(c->conn, c->querybuf + qblen, readlen);
     if (nread == -1) {
-        if (connGetState(conn) == CONN_STATE_CONNECTED) {
+        if (conn_get_state(conn) == CONN_STATE_CONNECTED) {
             return;
         } else {
-            LATTE_LIB_LOG(LOG_ERROR, "Reading from client: %s\n",connGetLastError(c->conn));
+            LATTE_LIB_LOG(LOG_ERROR, "Reading from client: %s\n",conn_get_last_error(c->conn));
             free_latte_client_async(c);
             return;
         }
@@ -287,7 +288,7 @@ void add_reply_proto(latte_client_t* c, const char* s, size_t len) {
 }
 
 
-int clientHasPendingReplies(latte_client_t *c) {
+int client_has_pending_replies(latte_client_t *c) {
     return c->bufpos || list_length(c->reply);
 }
 /* Write data in output buffers to client. Return C_OK if the client
@@ -298,8 +299,8 @@ int clientHasPendingReplies(latte_client_t *c) {
  * This function is called by threads, but always with handler_installed
  * set to 0. So when handler_installed is set to 0 the function must be
  * thread safe. */
-int writeToClient(latte_client_t *c, int handler_installed) {
-    // LATTE_LIB_LOG(LOG_DEBUG, "writeToClient %d", c->conn->fd);
+int write_to_client(latte_client_t *c, int handler_installed) {
+    // LATTE_LIB_LOG(LOG_DEBUG, "write_to_client %d", c->conn->fd);
     /* Update total number of writes on server */
     // atomicIncr(c->server.stat_total_writes_processed, 1);
     
@@ -307,9 +308,9 @@ int writeToClient(latte_client_t *c, int handler_installed) {
     ssize_t nwritten = 0, totwritten = 0;
     size_t objlen;
     client_reply_block_t *o;
-    while(clientHasPendingReplies(c)) {
+    while(client_has_pending_replies(c)) {
         if (c->bufpos > 0) {
-            nwritten = connWrite(c->conn,c->buf+c->sentlen,c->bufpos-c->sentlen);
+            nwritten = conn_write(c->conn,c->buf+c->sentlen,c->bufpos-c->sentlen);
             if (nwritten <= 0) break;
             c->sentlen += nwritten;
             totwritten += nwritten;
@@ -330,7 +331,7 @@ int writeToClient(latte_client_t *c, int handler_installed) {
                 continue;
             }
            
-            nwritten = connWrite(c->conn, o->buf + c->sentlen, objlen - c->sentlen);
+            nwritten = conn_write(c->conn, o->buf + c->sentlen, objlen - c->sentlen);
             if (nwritten <= 0) break;
             c->sentlen += nwritten;
             totwritten += nwritten;
@@ -365,9 +366,9 @@ int writeToClient(latte_client_t *c, int handler_installed) {
     }
     // atomicIncr(c->server.stat_net_output_bytes, totwritten);
     if (nwritten == -1) {
-        if (connGetState(c->conn) != CONN_STATE_CONNECTED) {
+        if (conn_get_state(c->conn) != CONN_STATE_CONNECTED) {
             LATTE_LIB_LOG(LOG_ERROR,
-                "Error writing to client: %s", connGetLastError(c->conn));
+                "Error writing to client: %s", conn_get_last_error(c->conn));
             free_latte_client_async(c);
             return -1;
         }
@@ -379,13 +380,13 @@ int writeToClient(latte_client_t *c, int handler_installed) {
          * We just rely on data / pings received for timeout detection. */
         // if (!(c->flags & CLIENT_MASTER)) c->lastinteraction = server.unixtime;
     }
-    if (!clientHasPendingReplies(c)) {
+    if (!client_has_pending_replies(c)) {
         c->sentlen = 0;
-        /* Note that writeToClient() is called in a threaded way, but
-         * adDeleteFileEvent() is not thread safe: however writeToClient()
+        /* Note that write_to_client() is called in a threaded way, but
+         * adDeleteFileEvent() is not thread safe: however write_to_client()
          * is always called with handler_installed set to 0 from threads
          * so we are fine. */
-        if (handler_installed) connSetWriteHandler(c->server->el,c->conn, NULL);
+        if (handler_installed) conn_set_write_handler(c->server->el,c->conn, NULL);
 
         /* Close connection after entire reply has been sent. */
         if (c->flags & CLIENT_CLOSE_AFTER_REPLY) {
@@ -400,3 +401,27 @@ int writeToClient(latte_client_t *c, int handler_installed) {
 
 
 
+sds client_get_name(latte_client_t* c) {
+    return c->name;
+}
+#define NET_IP_STR_LEN 46 /* INET6_ADDRSTRLEN is 46, but we need to be sure */
+#define NET_ADDR_STR_LEN (NET_IP_STR_LEN+32) /* Must be enough for ip:port */
+
+void gen_client_addr_string(latte_client_t* c, char* addr, size_t addr_len, int remote) {
+    // if (c->flags & CLIENT_UNIX_SOCKET) {
+    //     /* Unix socket client. */
+    //     snprintf(addr,addr_len,"%s:0",server.unixsocket);
+    // } else {
+        /* TCP client. */
+        conn_format_addr(c->conn,addr, addr_len,remote);
+    // }
+}
+
+sds client_get_peer_id(latte_client_t* c) {
+    if (c->peer_id == NULL) {
+        char peer_id[NET_ADDR_STR_LEN] = {0};
+        gen_client_addr_string(c, peer_id, sizeof(peer_id), 1);
+        c->peer_id = sds_new(peer_id);
+    }
+    return c->peer_id;
+}

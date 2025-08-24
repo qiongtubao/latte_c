@@ -34,7 +34,7 @@
     03 Aug 2025 12:11:32.693 958790 DEBUG client.c:add_reply_proto:235: add_reply_proto use buffer 17
     03 Aug 2025 12:11:32.693 958790 DEBUG server_test.c:echoHandler:37: echoHandler
     03 Aug 2025 12:11:32.693 958790 DEBUG server.c:handleClientsWithPendingWrites:143: handleClientsWithPendingWrites processed 1
-    03 Aug 2025 12:11:32.693 958790 DEBUG client.c:writeToClient:254: writeToClient 7
+    03 Aug 2025 12:11:32.693 958790 DEBUG client.c:write_to_client:254: write_to_client 7
     03 Aug 2025 12:11:32.693 958790 DEBUG client.c:read_query_from_client:169: read_query_from_client exec quit 4
     03 Aug 2025 12:11:32.693 958790 DEBUG server_test.c:echoHandler:23: echoHandler quit 4
     03 Aug 2025 12:11:32.693 958790 DEBUG server_test.c:echoHandler:28: quit
@@ -51,7 +51,7 @@ int echoHandler(struct latte_client_t* lc, int nread) {
         LATTE_LIB_LOG(LOG_DEBUG,"quit");
         return 1;
     }
-    // if (connWrite(lc->conn, lc->querybuf, sds_len(lc->querybuf)) == -1) {
+    // if (conn_write(lc->conn, lc->querybuf, sds_len(lc->querybuf)) == -1) {
     //     printf("write fail");
     // }
     // lc->qb_pos = sds_len(lc->querybuf);

@@ -34,6 +34,8 @@ typedef int (*handle_func)(struct latte_client_t* client, int nread);
 typedef void (*start_func)(struct latte_client_t* client);
 typedef void (*end_func)(struct latte_client_t* client);
 typedef struct latte_client_t {
+    sds name; 
+    sds peer_id;
     uint64_t id;
     connection *conn;
     sds_t querybuf;    /* 我们用来累积客户端查询的缓冲区 */
@@ -75,7 +77,10 @@ void init_latte_client(struct ae_event_loop_t* el, latte_client_t* c, struct con
 void free_latte_client_async(latte_client_t *c);
 void free_latte_client(latte_client_t *c);
 
-int writeToClient(latte_client_t *c, int handler_installed);
-int clientHasPendingReplies(latte_client_t *c);
+int write_to_client(latte_client_t *c, int handler_installed);
+int client_has_pending_replies(latte_client_t *c);
 int async_io_try_write(latte_client_t* c);
+
+sds client_get_name(latte_client_t* c);
+sds client_get_peer_id(latte_client_t* c);
 #endif

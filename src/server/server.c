@@ -120,7 +120,7 @@ int createSocketAcceptHandler(struct latte_server_t* server, socket_fds_t *sfd, 
 /* Write event handler. Just send data to the client. */
 void sendReplyToClient(connection *conn) {
     latte_client_t *c = connGetPrivateData(conn);
-    writeToClient(c,1);
+    write_to_client(c,1);
 }
 
 
@@ -162,11 +162,11 @@ int handleClientsWithPendingWrites(latte_server_t* server) {
         }
 
         /* Try to write buffers to the client socket. */
-        if (writeToClient(c,0) == -1) continue;
+        if (write_to_client(c,0) == -1) continue;
 
         /* If after the synchronous writes above we still have data to
          * output to the client, we need to install the writable handler. */
-        if (clientHasPendingReplies(c)) {
+        if (client_has_pending_replies(c)) {
             int ae_barrier = 0;
             /* For the fsync=always policy, we want that a given FD is never
              * served for reading and writing in the same event loop iteration,
@@ -178,7 +178,7 @@ int handleClientsWithPendingWrites(latte_server_t* server) {
             // {
             //     ae_barrier = 1;
             // }
-            if (connSetWriteHandlerWithBarrier(server->el, c->conn, sendReplyToClient, ae_barrier) == -1) {
+            if (conn_set_write_handlerWithBarrier(server->el, c->conn, sendReplyToClient, ae_barrier) == -1) {
                 free_latte_client_async(c);
             }
         }
@@ -259,9 +259,9 @@ static void acceptCommonHandler(latte_server_t* server,connection *conn, int fla
     struct latte_client_t *c;
     char conninfo[100];
     UNUSED(ip);
-    if (connGetState(conn) != CONN_STATE_ACCEPTING) {
+    if (conn_get_state(conn) != CONN_STATE_ACCEPTING) {
         LATTE_LIB_LOG(LOG_ERROR, "Accepted client connection in error state: %s (conn: %s)",
-            connGetLastError(conn),
+            conn_get_last_error(conn),
             connGetInfo(conn, conninfo, sizeof(conninfo)));
         connClose(server->el,conn);
         return;
@@ -280,7 +280,7 @@ static void acceptCommonHandler(latte_server_t* server,connection *conn, int fla
         /* That's a best effort error message, don't check write errors.
          * Note that for TLS connections, no handshake was done yet so nothing
          * is written and the connection will just drop. */
-        if (connWrite(conn,err,strlen(err)) == -1) {
+        if (conn_write(conn,err,strlen(err)) == -1) {
             /* Nothing to do, Just to avoid the warning... */
         }
         // server.stat_rejected_conn++;
@@ -291,7 +291,7 @@ static void acceptCommonHandler(latte_server_t* server,connection *conn, int fla
     c = server->createClient();
     if (c == NULL) {
         LATTE_LIB_LOG(LOG_ERROR, "Error registering fd event for the new client: %s (conn: %s)\n",
-            connGetLastError(conn),
+            conn_get_last_error(conn),
             connGetInfo(conn, conninfo, sizeof(conninfo)));
         connClose(server->el, conn); /* May be already closed, just ignore errors */
         return;
@@ -308,7 +308,7 @@ static void acceptCommonHandler(latte_server_t* server,connection *conn, int fla
         connEnableTcpNoDelay(conn); // 设置TCP_NODELAY
         // if (server.tcpkeepalive)
         //     connKeepAlive(conn,server.tcpkeepalive);
-        connSetReadHandler(server->el, conn, read_query_from_client);
+        conn_set_read_handler(server->el, conn, read_query_from_client);
         connSetPrivateData(conn, c);
     }
     init_latte_client(server->el, c, conn, flags);
