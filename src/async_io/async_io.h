@@ -19,7 +19,7 @@ typedef struct async_io_request_t {
     async_io_type type;
     int fd;
     char* buf;
-    size_t len;
+    int len;
     size_t offset;
     void* ctx;
     void (*callback)(struct async_io_request_t* request);
