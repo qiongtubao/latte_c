@@ -96,9 +96,7 @@ vector_t* test_bind_vector_new() {
     vector_t* v = vector_new();
     char* bind[2] = {"*", "-::*"};
     for(int i = 0; i < 2; i++) {
-        value_t* val = value_new();
-        value_set_sds(val, sds_new(bind[i]));
-        vector_push(v, val);
+        vector_push(v, sds_new(bind[i]));
     }
     return v;
 }
@@ -137,8 +135,8 @@ void *server_thread(void *arg) {
     LATTE_LIB_LOG(LOG_DEBUG, "server_thread end");
     //end of server
     while (vector_size(server->bind) > 0) {
-        value_t* addr = vector_pop(server->bind);
-        value_delete(addr);
+        sds addr = vector_pop(server->bind);
+        sds_delete(addr);
     }
     vector_delete(server->bind);
     server->clients->free = _freeLatteClient;

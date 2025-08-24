@@ -28,8 +28,7 @@ int listenToPort(struct latte_server_t* server,char* neterr, vector_t* bind, int
     int j;
     latte_iterator_t* iterator = vector_get_iterator(bind);
     while(latte_iterator_has_next(iterator)) {
-        value_t* v = latte_iterator_next(iterator);
-        char* addr = value_get_sds(v);
+        sds addr = latte_iterator_next(iterator);
         int optional = *addr == '-';
         if (optional) addr++;
         if (strchr(addr, ':')) {

@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <ae/ae.h>
+#include <string.h>
 #define CONN_INFO_LEN 32
 
 typedef struct connection connection;
