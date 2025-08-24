@@ -21,7 +21,7 @@ int echoHandler(struct latteClient* lc) {
         stopServer(lc->server);
         return 1;
     }
-    if (connWrite(lc->conn, lc->querybuf, sds_len(lc->querybuf)) == -1) {
+    if (conn_write(lc->conn, lc->querybuf, sds_len(lc->querybuf)) == -1) {
         printf("write fail");
     }
     lc->qb_pos = sds_len(lc->querybuf);

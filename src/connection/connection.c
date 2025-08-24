@@ -137,6 +137,14 @@ static void connSocketClose(struct ae_event_loop_t *el, connection *conn) {
     zfree(conn);
 }
 
+static int connSocketAddr(connection *conn, char *ip, size_t ip_len, int *port, int remote) {
+    if (anetFdToString(conn->fd, ip, ip_len, port, remote) == 0)
+        return CONNECTION_OK;
+
+    conn->last_errno = errno;
+    return CONNECTION_ERR;
+}
+
 static int connSocketWrite(connection *conn, const void *data, size_t data_len) {
     int ret = write(conn->fd, data, data_len);
     if (ret < 0 && errno != EAGAIN) {
@@ -396,6 +404,7 @@ static int connSocketGetType(connection *conn) {
 
 ConnectionType CT_Socket = {
     .ae_handler = connSocketEventHandler,
+    .addr = connSocketAddr,
     .close = connSocketClose,
     .write = connSocketWrite,
     .read = connSocketRead,
@@ -417,7 +426,7 @@ ConnectionType CT_Socket = {
  * The socket is not ready for I/O until connAccept() was called and
  * invoked the connection-level accept handler.
  *
- * Callers should use connGetState() and verify the created connection
+ * Callers should use conn_get_state() and verify the created connection
  * is not in an error state (which is not possible for a socket connection,
  * but could but possible with other protocols).
  */
@@ -429,7 +438,7 @@ connection *connCreateAcceptedSocket(int fd) {
 }
 
 /* util */
-int connGetState(connection *conn) {
+int conn_get_state(connection *conn) {
     return conn->state;
 }
 
