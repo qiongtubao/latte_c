@@ -33,14 +33,14 @@ endif
 	cd src/$* && $(MAKE) asan_test
 
 %_module:
-	cd src/$* && $(MAKE) install_lib BUILD_DIR=../../$(BUILD_DIR)
+	cd src/$* && $(MAKE) SANITIZER=$(SANITIZER) install_lib BUILD_DIR=../../$(BUILD_DIR)
 
 build: persist-settings
 	mkdir -p $(BUILD_DIR)/lib
 	mkdir -p $(BUILD_DIR)/out
 	mkdir -p $(BUILD_DIR)/include
 	rm -rf $(BUILD_DIR)/objs.list && touch $(BUILD_DIR)/objs.list
-	$(foreach var,$(MODULES),$(MAKE) $(var)_module;)
+	$(foreach var,$(MODULES),$(MAKE) SANITIZER=$(SANITIZER) $(var)_module;)
 	$(MAKE) latte_lib	
 
 latte_lib: 	
