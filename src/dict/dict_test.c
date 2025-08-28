@@ -178,6 +178,7 @@ int test_dict_iterator() {
     latte_iterator_delete(it);
 
     dict_add(dict, (void*)4L, (void*)4L);
+    dict_delete(dict);
     
     return 1;
 }

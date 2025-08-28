@@ -85,9 +85,9 @@ distclean: clean
 	rm -f .make-*
 
 install_lib: $(BUILD_OBJ) $(LIB_OBJ)
-	$(foreach var,$(subst $(space),,$(subst $(comma),$(space),$(BUILD_OBJ))), $(shell if [ "$(var)" != "$(findstring $(var),$(shell sh -c 'cat $(BUILD_DIR)/objs.list'))" ]; then echo $(MAKE)  install_o INSTALL_O="$(var)" BUILD_DIR="$(BUILD_DIR);";fi))
+	$(foreach var,$(subst $(space),,$(subst $(comma),$(space),$(BUILD_OBJ))), $(shell if [ "$(var)" != "$(findstring $(var),$(shell sh -c 'cat $(BUILD_DIR)/objs.list'))" ]; then echo $(MAKE) SANITIZER=$(SANITIZER) install_o INSTALL_O="$(var)" BUILD_DIR="$(BUILD_DIR);";fi))
 	@echo "install_lib $(BUILD_OBJ)"
-	$(foreach var,$(LIB_MODULES),cd $(LATTE_LIB_WORKSPACE)/src/$(var) && $(MAKE) install_lib && cd ../$(MODULE);)
+	$(foreach var,$(LIB_MODULES),cd $(LATTE_LIB_WORKSPACE)/src/$(var) && $(MAKE) SANITIZER=$(SANITIZER) install_lib && cd ../$(MODULE);)
 
 
 install_o:

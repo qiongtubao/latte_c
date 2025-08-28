@@ -210,7 +210,6 @@ int dict_rehash(dict_t*d, int n) {
 
         /* Note that rehashidx can't overflow as we are sure there are more
          * elements because ht[0].used != 0 */
-        printf("exp %ld > %ld", DICTHT_SIZE(d->ht_size_exp[0]), (unsigned long)d->rehashidx);
         assert(DICTHT_SIZE(d->ht_size_exp[0]) > (unsigned long)d->rehashidx);
         while(d->ht_table[0][d->rehashidx] == NULL) {
             d->rehashidx++;
