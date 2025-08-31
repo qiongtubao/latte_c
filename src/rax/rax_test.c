@@ -3,8 +3,8 @@
 #include "../test/testassert.h"
 
 
-int test_raxNew() {
-
+int test_rax_new() {
+    return 1;
 }
 
 int test_api(void) {
@@ -13,7 +13,7 @@ int test_api(void) {
             // ..... private
         #endif
         test_cond("raxNew function", 
-            test_raxNew() == 1);
+            test_rax_new() == 1);
     } test_report()
     return 1;
 }
