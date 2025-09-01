@@ -4,6 +4,9 @@
 
 
 int test_rax_new() {
+    rax_t* rax = rax_new();
+    assert(rax != NULL);
+    rax_delete(rax);
     return 1;
 }
 

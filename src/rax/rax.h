@@ -15,7 +15,7 @@ typedef struct rax_node_t {
 } rax_node_t;
 
 typedef struct rax_t {
-    rax_node_t *node;
+    rax_node_t* head;
     uint64_t num_ele;
     uint64_t num_nodes;
     void *meta_data[];
@@ -32,6 +32,7 @@ typedef struct rax_stack_t {
 rax_t* rax_new();
 rax_t* rax_new_with_meta(int meta_size);
 void rax_delete(rax_t *rax);
+void raw_delete_with_callback(rax_t* rax, void (*free_callback)(void*));
 int rax_insert(rax_t* rax, unsigned char *key, size_t len, void *data, void** old);
 int rax_try_insert(rax_t* rax, unsigned char *key, size_t len, void *data, void** old);
 int rax_remove(rax_t* rax, unsigned char *key, size_t len, void** data);
