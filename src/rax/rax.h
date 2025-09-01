@@ -25,7 +25,7 @@ typedef struct rax_t {
 typedef struct rax_stack_t {
     void **stack;
     size_t items, max_items;
-    void * static_item[RAX_STACK_STATIC_SIZE];
+    void * static_items[RAX_STACK_STATIC_SIZE];
     int oom;
 } rax_stack_t;
 

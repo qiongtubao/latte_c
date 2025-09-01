@@ -6,6 +6,8 @@
 int test_rax_new() {
     rax_t* rax = rax_new();
     assert(rax != NULL);
+    rax_insert(rax, "foo", 3, "bar", NULL);
+    rax_remove(rax, "foo", 3, NULL);
     rax_delete(rax);
     return 1;
 }
