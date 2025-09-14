@@ -14,3 +14,4 @@ include $(LATTE_LIB_WORKSPACE)/mks/info.mk
 include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/debug/lib.mk

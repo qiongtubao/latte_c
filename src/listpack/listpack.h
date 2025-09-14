@@ -30,12 +30,12 @@ void list_pack_delete(list_pack_t* lp);
 void list_pack_free_generic(void* lp);
 /* 内存收缩 */
 list_pack_t* list_pack_shrink_to_fit(list_pack_t* lp);
-unsigned char* list_pack_insert_string(list_pack_t* lp, unsigned char* s, uint32_t slen, 
-                                        unsigned char* p, int where, list_pack_t** newp);
-unsigned char*  list_pack_insert_integer(list_pack_t* lp, long long lval,
-                                        unsigned char* p, int where, list_pack_t** newp);
-unsigned char*  list_pack_append(list_pack_t* lp, unsigned char* s, uint32_t slen);
-unsigned char*  list_pack_append_integer(list_pack_t* lp, long long lval);
+list_pack_t* list_pack_insert_string(list_pack_t* lp, unsigned char* s, uint32_t slen, 
+                                        unsigned char* p, int where, unsigned char** newp);
+list_pack_t*  list_pack_insert_integer(list_pack_t* lp, long long lval,
+                                        unsigned char* p, int where, unsigned char** newp);
+list_pack_t*  list_pack_append(list_pack_t* lp, unsigned char* s, uint32_t slen);
+list_pack_t*  list_pack_append_integer(list_pack_t* lp, long long lval);
 
 
 #endif

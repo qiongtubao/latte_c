@@ -12,6 +12,7 @@ int test_list_pack(void) {
     list_pack_t* lp = list_pack_new(1024);
     assert(lp != NULL);
     lp = list_pack_shrink_to_fit(lp);
+    list_pack_insert_string(lp, "hello", 5, lp + 6, LP_BEFORE, NULL);
     list_pack_delete(lp);
     return 1;
 }
