@@ -34,3 +34,23 @@ list_pack_t* list_pack_new(size_t capacity) {
 void list_pack_delete(list_pack_t* lp) {
     zfree(lp);
 }
+
+void list_pack_free_generic(void* lp) {
+    list_pack_delete((list_pack_t*)lp);
+}
+
+
+#define list_pack_get_total_bytes(p)           (((uint32_t)(p)[0]<<0) | \
+                                      ((uint32_t)(p)[1]<<8) | \
+                                      ((uint32_t)(p)[2]<<16) | \
+                                      ((uint32_t)(p)[3]<<24))
+
+/*内存收缩*/
+unsigned char* list_pack_shrink_to_fit(list_pack_t* lp) {
+    size_t size = list_pack_get_total_bytes(lp);
+    if (size < zmalloc_size(lp)) {
+        return zrealloc(lp, size);
+    } else {
+        return lp;
+    }
+}

@@ -26,8 +26,10 @@ typedef struct list_pack_entry_t {
 typedef unsigned char list_pack_t; 
 list_pack_t* list_pack_new(size_t capacity);
 void list_pack_delete(list_pack_t* lp);
+/* 方便使用dict中free的方法*/
 void list_pack_free_generic(void* lp);
-unsigned char* list_pack_shrink_to_fit(list_pack_t* lp);
+/* 内存收缩 */
+list_pack_t* list_pack_shrink_to_fit(list_pack_t* lp);
 unsigned char* list_pack_insert_string(list_pack_t* lp, unsigned char* s, uint32_t slen, 
                                         unsigned char* p, int where, list_pack_t** newp);
 unsigned char*  list_pack_insert_integer(list_pack_t* lp, long long lval,
