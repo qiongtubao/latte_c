@@ -3,6 +3,10 @@
 #include <assert.h>
 #include "debug/latte_debug.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <limits.h>
+#include <sys/types.h>
 
 
 
@@ -391,14 +395,20 @@ static list_pack_t* _list_pack_insert(list_pack_t* lp /*指向起始地址的指
         replaced_len += list_pack_encode_backlen_bytes(replaced_len); /* += backlen 长度*/
         assert_integrity_len(lp, p, replaced_len); /* 检查是否越界*/
     }
-    uint64_t new_list_pack_bytes = old_list_pack_bytes + size + backlen_size
+    uint64_t new_list_pack_bytes = old_list_pack_bytes + enclen + backlen_size
                              - replaced_len;/*当前lp长度  +  (类型 + 数据长度) + （backlen长度） - 删除长度*/ 
-    if (new_list_pack_bytes > UINT32_MAX) return NULL; /* 超过32位最大值 返回NULL*/
+    if (new_list_pack_bytes > UINT32_MAX) {
+        latte_assert(0);
+        return NULL; /* 超过32位最大值 返回NULL*/
+    }
 
     unsigned char* dst = lp + poff; /* 指向插入位置*/
     if (new_list_pack_bytes > old_list_pack_bytes 
         && new_list_pack_bytes > zmalloc_size(lp)) { /* 如果新长度大于旧长度，并且大于当前内存大小，则重新分配内存 */
-       if ((lp = zrealloc(lp, new_list_pack_bytes)) == NULL) return NULL;
+       if ((lp = zrealloc_usable(lp, new_list_pack_bytes, NULL)) == NULL) {
+            latte_assert(0);
+            return NULL;
+       }
        dst = lp + poff;/* 重新分配内存后，更新插入的位置 */
     }
     
@@ -412,7 +422,7 @@ static list_pack_t* _list_pack_insert(list_pack_t* lp /*指向起始地址的指
     }
 
     if (new_list_pack_bytes < old_list_pack_bytes) { /* 如果新长度小于旧长度，则重新分配内存 */
-        if ((lp = zrealloc(lp, new_list_pack_bytes)) == NULL) return NULL;
+        if ((lp = zrealloc_usable(lp, new_list_pack_bytes, NULL)) == NULL) return NULL;
         dst = lp + poff; /* 重新分配内存后，更新插入的位置 */
     }
 
