@@ -4,16 +4,16 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define LP_INTBUF_SIZE 21 /* 20 digits of -2^63 + 1 null term = 21. */
+#define LIST_PACK_INTBUF_SIZE 21 /* 20 digits of -2^63 + 1 null term = 21. */
 
 
 /* lpInsert() where argument possible values: */
 //向前插入
-#define LP_BEFORE 0  
+#define LIST_PACK_BEFORE 0  
 //向后插入
-#define LP_AFTER 1
+#define LIST_PACK_AFTER 1
 //删除
-#define LP_REPLACE 2
+#define LIST_PACK_REPLACE 2
 
 /* 总的字符串 +  list 个数 +  entry(type + len + data + total_entry_bit)  */
 
@@ -34,8 +34,19 @@ list_pack_t* list_pack_insert_string(list_pack_t* lp, unsigned char* s, uint32_t
                                         unsigned char* p, int where, unsigned char** newp);
 list_pack_t*  list_pack_insert_integer(list_pack_t* lp, long long lval,
                                         unsigned char* p, int where, unsigned char** newp);
-list_pack_t*  list_pack_append(list_pack_t* lp, unsigned char* s, uint32_t slen);
+/*尾部追加*/
+list_pack_t*  list_pack_append_string(list_pack_t* lp, unsigned char* s, uint32_t slen);
+
 list_pack_t*  list_pack_append_integer(list_pack_t* lp, long long lval);
 
+/*头部追加*/
+list_pack_t* list_pack_prepend_string(list_pack_t* lp, unsigned char* s, uint32_t slen);
+list_pack_t* list_pack_prepend_integer(list_pack_t* lp, long long lval);
 
+/* 节点个数 */
+unsigned long list_pack_length(list_pack_t* lp);
+/* 下一个节点 */
+unsigned char* list_pack_next(list_pack_t* lp, unsigned char* p);
+/* 总字节数 */
+size_t list_pack_bytes(list_pack_t* lp);
 #endif

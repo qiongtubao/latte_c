@@ -353,25 +353,26 @@ static inline void list_pack_encode_string(unsigned char *buf, unsigned char *s,
     }
 }
 
-list_pack_t* list_pack_insert(list_pack_t* lp, unsigned char* elestr, unsigned char* eleint, uint32_t size, 
-    unsigned char* p, int where, unsigned char** newp) {
+/* private 方法 不对外暴露*/
+static list_pack_t* _list_pack_insert(list_pack_t* lp /*指向起始地址的指针*/, unsigned char* elestr /*插入的字符串*/, unsigned char* eleint /*插入的数字*/, uint32_t size /*插入的长度*/, 
+    unsigned char* p /*插入的位置*/, int where /*插入方式*/, unsigned char** newp /*插入后新的位置*/) {
     unsigned char intenc[LP_MAX_INT_ENCODING_LEN];
     unsigned char backlen[LP_MAX_BACKLEN_SIZE];
     uint64_t enclen;
     int delete = (elestr == NULL && eleint == NULL); /* 判断是删除还是插入 */
 
-    if (delete) where = LP_REPLACE;
-    if (where == LP_AFTER) {
+    if (delete) where = LIST_PACK_REPLACE;
+    if (where == LIST_PACK_AFTER) {/*后插入 需要转换为前插入*/
         p = list_pack_skip(p);
-        where = LP_BEFORE;
+        where = LIST_PACK_BEFORE;
         assert_integrity(lp, p);
     }
 
-    unsigned long poff = p - lp;
+    unsigned long poff = p - lp; /* 插入位置相对于起始地址的偏移量 */
 
     int enctype;
     if (elestr) {   /*插入字符串*/
-        enctype = list_pack_encode_get_type(elestr, size, intenc, &enclen);
+        enctype = list_pack_encode_get_type(elestr, size, intenc, &enclen); /*转换成int类型*/
         if (enctype == LP_ENCODING_INT) eleint = intenc;
     } else if (eleint) { /*插入数字*/
         enctype =  LP_ENCODING_INT; 
@@ -382,29 +383,29 @@ list_pack_t* list_pack_insert(list_pack_t* lp, unsigned char* elestr, unsigned c
     }
 
     
-    unsigned long backlen_size = (!delete) ? list_pack_encode_backlen(backlen,enclen) : 0; /*解析出长度*/
-    uint64_t old_list_pack_bytes = list_pack_get_total_bytes(lp);
-    uint32_t replaced_len = 0;
-    if (where == LP_REPLACE) {
-        replaced_len = list_pack_current_encode_size_unsafe(p);
-        replaced_len += list_pack_encode_backlen_bytes(replaced_len);
-        assert_integrity_len(lp, p, replaced_len);
+    unsigned long backlen_size = (!delete) ? list_pack_encode_backlen(backlen,enclen) : 0; /*解析出entry长度*/
+    uint64_t old_list_pack_bytes = list_pack_get_total_bytes(lp); /* 旧的lp长度*/
+    uint32_t replaced_len = 0; /* 删除长度*/
+    if (where == LIST_PACK_REPLACE) {
+        replaced_len = list_pack_current_encode_size_unsafe(p); /* 类型 + 数据长度 */
+        replaced_len += list_pack_encode_backlen_bytes(replaced_len); /* += backlen 长度*/
+        assert_integrity_len(lp, p, replaced_len); /* 检查是否越界*/
     }
     uint64_t new_list_pack_bytes = old_list_pack_bytes + size + backlen_size
-                             - replaced_len;/*当前lp长度  +  (类型 + 数据长度) + （backlen长度） - 删除长度*/
-    if (new_list_pack_bytes > UINT32_MAX) return NULL; /* 超过32位最大值*/
+                             - replaced_len;/*当前lp长度  +  (类型 + 数据长度) + （backlen长度） - 删除长度*/ 
+    if (new_list_pack_bytes > UINT32_MAX) return NULL; /* 超过32位最大值 返回NULL*/
 
-    unsigned char* dst = lp + poff;
+    unsigned char* dst = lp + poff; /* 指向插入位置*/
     if (new_list_pack_bytes > old_list_pack_bytes 
         && new_list_pack_bytes > zmalloc_size(lp)) { /* 如果新长度大于旧长度，并且大于当前内存大小，则重新分配内存 */
        if ((lp = zrealloc(lp, new_list_pack_bytes)) == NULL) return NULL;
-       dst = lp + poff;/* 重新分配内存后，需要更新dst指针 */
+       dst = lp + poff;/* 重新分配内存后，更新插入的位置 */
     }
     
-    if (where == LP_BEFORE) {/* 插入 */
+    if (where == LIST_PACK_BEFORE) {/* 插入 */
         memmove(dst + enclen + backlen_size, dst, 
             old_list_pack_bytes - poff); /* 插入后，需要将后面的数据移动到后面 */
-    } else { /* 删除 */
+    } else {  /* 删除 */
         memmove(dst + enclen + backlen_size, 
             dst + replaced_len, 
             old_list_pack_bytes - poff - replaced_len); /* 删除后，需要将后面的数据移动到前面 */
@@ -412,12 +413,12 @@ list_pack_t* list_pack_insert(list_pack_t* lp, unsigned char* elestr, unsigned c
 
     if (new_list_pack_bytes < old_list_pack_bytes) { /* 如果新长度小于旧长度，则重新分配内存 */
         if ((lp = zrealloc(lp, new_list_pack_bytes)) == NULL) return NULL;
-        dst = lp + poff; /* 重新分配内存后，需要更新dst指针 */
+        dst = lp + poff; /* 重新分配内存后，更新插入的位置 */
     }
 
     if (newp) {
-        *newp = dst; /*设置添加点*/
-        if (delete && dst[0] == LP_EOF) *newp = NULL; /* 如果删除后，lp为空，则设置添加点为NULL */
+        *newp = dst; /*设置新插入位置的指针*/
+        if (delete && dst[0] == LP_EOF) *newp = NULL; /* 如果删除后 或者 结束了 插入位置指针设置为NULL*/
     }
 
     if (!delete) { /* 插入 */
@@ -433,7 +434,7 @@ list_pack_t* list_pack_insert(list_pack_t* lp, unsigned char* elestr, unsigned c
         dst += backlen_size; /* 移动到结束位置 */
     }
 
-    if (where != LP_REPLACE || delete) {
+    if (where != LIST_PACK_REPLACE || delete) {
         uint32_t num_elements = list_pack_get_num_elements(lp);
         if (num_elements != UINT16_MAX) { /* 如果个数不是最大值，则更新个数 */
             if (!delete) 
@@ -448,7 +449,161 @@ list_pack_t* list_pack_insert(list_pack_t* lp, unsigned char* elestr, unsigned c
 }
 
 /* 插入字符串 */
-unsigned char* list_pack_insert_string(list_pack_t* lp, unsigned char* s, uint32_t slen, 
-    unsigned char* p, int where, list_pack_t** newp) {
-    return list_pack_insert(lp, s, NULL, slen, p, where, newp);
+list_pack_t* list_pack_insert_string(list_pack_t* lp, unsigned char* s, uint32_t slen, 
+    unsigned char* p, int where, unsigned char** newp) {
+    return _list_pack_insert(lp, s, NULL, slen, p, where, newp);
+}
+
+list_pack_t*  list_pack_insert_integer(list_pack_t* lp, long long lval,
+    unsigned char* p, int where, unsigned char** newp) {
+    uint64_t enclen; /* The length of the encoded element. */
+    unsigned char intenc[LP_MAX_INT_ENCODING_LEN];
+    list_pack_encode_integer_get_type(lval, intenc, &enclen);
+    return _list_pack_insert(lp, NULL, intenc, enclen, p, where, newp);
+}
+
+list_pack_t*  list_pack_append_string(list_pack_t* lp, unsigned char* s, uint32_t slen) {
+    uint64_t list_pack_bytes = list_pack_get_total_bytes(lp);
+    unsigned char* eofptr = lp + list_pack_bytes - 1;
+    return _list_pack_insert(lp, s, NULL, slen, eofptr, LIST_PACK_BEFORE, NULL);
+}
+
+list_pack_t*  list_pack_append_integer(list_pack_t* lp, long long lval) {
+    uint64_t list_pack_bytes = list_pack_get_total_bytes(lp);
+    unsigned char* eofptr = lp + list_pack_bytes - 1;
+    return list_pack_insert_integer(lp, lval, eofptr, LIST_PACK_BEFORE, NULL);
+}
+
+
+
+static inline uint32_t list_pack_current_encode_size_bytes(const unsigned char encoding) {
+    if (LP_ENCODING_IS_7BIT_UINT(encoding)) return 1;
+    if (LP_ENCODING_IS_6BIT_STR(encoding)) return 1;
+    if (LP_ENCODING_IS_13BIT_INT(encoding)) return 1;
+    if (LP_ENCODING_IS_16BIT_INT(encoding)) return 1;
+    if (LP_ENCODING_IS_24BIT_INT(encoding)) return 1;
+    if (LP_ENCODING_IS_32BIT_INT(encoding)) return 1;
+    if (LP_ENCODING_IS_64BIT_INT(encoding)) return 1;
+    if (LP_ENCODING_IS_12BIT_STR(encoding)) return 2;
+    if (LP_ENCODING_IS_32BIT_STR(encoding)) return 5;
+    if (encoding == LP_EOF) return 1;
+    return 0;
+}
+
+
+
+static inline uint64_t list_pack_decode_backlen(unsigned char* p) {
+    uint64_t val = 0;
+    uint64_t shift = 0;
+    do {
+        val |= (uint64_t)(p[0] & 127) << shift; /* 0111 1111 表示有效位*/
+        if (!(p[0] & 128)) break; /* 第一位是1 表示结束*/
+        shift += 7;     /* 移位+7*/
+        p--;           /* 从后往前读  读下一个字节*/
+        if (shift > 28) return UINT64_MAX; /* 如果超过4字节（4*7=28）返回最大值*/
+    } while (1);
+    return val;
+}
+
+int list_pack_validate_next(unsigned char *lp, unsigned char **pp, size_t lpbytes) {
+    #define OUT_OF_RANGE(p) ( \
+            (p) < lp + LP_HDR_SIZE || \
+            (p) > lp + lpbytes - 1)
+        unsigned char *p = *pp;
+        if (!p)
+            return 0;
+    
+        /* Before accessing p, make sure it's valid. */
+        if (OUT_OF_RANGE(p))
+            return 0;
+    
+        if (*p == LP_EOF) {
+            *pp = NULL;
+            return 1;
+        }
+    
+        /* check that we can read the encoded size */
+        uint32_t lenbytes = list_pack_current_encode_size_bytes(p[0]);
+        if (!lenbytes)
+            return 0;
+    
+        /* make sure the encoded entry length doesn't reach outside the edge of the listpack */
+        if (OUT_OF_RANGE(p + lenbytes))
+            return 0;
+    
+        /* get the entry length and encoded backlen. */
+        unsigned long entrylen = list_pack_current_encode_size_unsafe(p);
+        unsigned long encodedBacklen = list_pack_encode_backlen_bytes(entrylen);
+        entrylen += encodedBacklen;
+    
+        /* make sure the entry doesn't reach outside the edge of the listpack */
+        if (OUT_OF_RANGE(p + entrylen))
+            return 0;
+    
+        /* move to the next entry */
+        p += entrylen;
+    
+        /* make sure the encoded length at the end patches the one at the beginning. */
+        uint64_t prevlen = list_pack_decode_backlen(p-1);
+        if (prevlen + encodedBacklen != entrylen)
+            return 0;
+    
+        *pp = p;
+        return 1;
+    #undef OUT_OF_RANGE
+    }
+
+
+static inline void list_pack_assert_valid_entry(unsigned char* lp, size_t lpbytes, unsigned char *p) {
+    latte_assert(list_pack_validate_next(lp, &p, lpbytes));
+}
+
+unsigned char* list_pack_first(list_pack_t* lp) {
+    unsigned char *p = lp + LP_HDR_SIZE;
+    if (p[0] == LP_EOF) return NULL;
+    list_pack_assert_valid_entry(lp, list_pack_bytes(lp), p);
+    return p;
+}
+
+list_pack_t* list_pack_prepend_string(list_pack_t* lp, unsigned char* s, uint32_t slen) {
+    unsigned char *p = list_pack_first(lp);
+    if (!p) return list_pack_append_string(lp, s, slen); /*原来没数据的listpack就执行追加操作*/
+    return _list_pack_insert(lp, s, NULL, slen, p, LIST_PACK_BEFORE, NULL);
+}
+
+list_pack_t* list_pack_prepend_integer(list_pack_t* lp, long long lval){
+    unsigned char* p = list_pack_first(lp);
+    if (!p) return list_pack_append_integer(lp, lval);
+    return list_pack_insert_integer(lp, lval, p, LIST_PACK_BEFORE, NULL);
+}
+
+unsigned long list_pack_length(list_pack_t* lp) {
+    uint32_t numele = list_pack_get_num_elements(lp);
+    if (numele != UINT16_MAX) return numele;
+    /* 如果个数是最大值，则需要遍历整个listpack*/
+    uint32_t count = 0;
+    unsigned char *p = list_pack_first(lp);
+    while (p) {
+        count++;
+        p = list_pack_next(lp, p);
+    }
+    /*自愈设置个数*/
+    if (count < UINT16_MAX) list_pack_set_num_elements(lp, count);
+    return count;
+}
+
+
+
+
+
+
+size_t list_pack_bytes(list_pack_t* lp) {
+    return list_pack_get_total_bytes(lp);
+}
+
+unsigned char* list_pack_next(list_pack_t* lp, unsigned char* p) {
+    p = list_pack_skip(p);
+    if (p[0] == LP_EOF) return NULL;
+    list_pack_assert_valid_entry(lp, list_pack_bytes(lp), p);
+    return p;
 }

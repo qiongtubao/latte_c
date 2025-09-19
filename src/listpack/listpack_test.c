@@ -12,7 +12,17 @@ int test_list_pack(void) {
     list_pack_t* lp = list_pack_new(1024);
     assert(lp != NULL);
     lp = list_pack_shrink_to_fit(lp);
-    list_pack_insert_string(lp, "hello", 5, lp + 6, LP_BEFORE, NULL);
+    unsigned char* newp = NULL;
+    list_pack_insert_string(lp, "hello", 5, lp + 6, LIST_PACK_BEFORE, &newp);
+    assert(newp != NULL);
+    assert(newp == lp + 6);
+    log_debug("test","%d\n",list_pack_bytes(lp));
+    assert(list_pack_bytes(lp) == 13);
+    list_pack_insert_integer(lp, 100, lp + 6, LIST_PACK_BEFORE, &newp);
+    assert(newp != NULL);
+    assert(newp == lp + 6);
+    assert(list_pack_length(lp) == 2);
+    assert(list_pack_bytes(lp) == 15);
     list_pack_delete(lp);
     return 1;
 }
