@@ -15,7 +15,7 @@
 //删除
 #define LIST_PACK_REPLACE 2
 
-/* 总的字符串 +  list 个数 +  entry(type + len + data + total_entry_bit)  */
+/* 总的字符串 +  list 个数 +  entry(类型 + 数据长度 + 数据 + 前面所有的长度)  */
 
 typedef struct list_pack_entry_t {
     unsigned char* sval;
@@ -43,10 +43,24 @@ list_pack_t*  list_pack_append_integer(list_pack_t* lp, long long lval);
 list_pack_t* list_pack_prepend_string(list_pack_t* lp, unsigned char* s, uint32_t slen);
 list_pack_t* list_pack_prepend_integer(list_pack_t* lp, long long lval);
 
+/* 替换节点 */
+list_pack_t* list_pack_replace_string(list_pack_t* lp, unsigned char** p, unsigned char* s, uint32_t slen);
+list_pack_t* list_pack_replace_integer(list_pack_t* lp, unsigned char** p, long long lval);
+
+/* 删除节点 */
+list_pack_t* list_pack_remove(list_pack_t* lp, unsigned char *p, unsigned char **newp);
+/* 删除连续的多个节点*/
+list_pack_t* list_pack_remove_range_with_entry(list_pack_t* lp, unsigned char** p, unsigned long num);
+
 /* 节点个数 */
 unsigned long list_pack_length(list_pack_t* lp);
 /* 下一个节点 */
 unsigned char* list_pack_next(list_pack_t* lp, unsigned char* p);
+/* 前一个节点 */
+unsigned char* list_pack_prev(list_pack_t* lp, unsigned char* p);
 /* 总字节数 */
 size_t list_pack_bytes(list_pack_t* lp);
+/* 最后一个节点 */
+unsigned char* list_pack_last(list_pack_t* lp);
+
 #endif

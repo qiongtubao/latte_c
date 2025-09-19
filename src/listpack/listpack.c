@@ -71,7 +71,7 @@ unsigned char* list_pack_shrink_to_fit(list_pack_t* lp) {
 } while (0)
 
 #define assert_integrity_len(lp, p, len) do { \
-    assert((p) >= (lp)+LP_HDR_SIZE && (p)+(len) < (lp)+list_pack_get_total_bytes((lp))); \
+    latte_assert((p) >= (lp)+LP_HDR_SIZE && (p)+(len) < (lp)+list_pack_get_total_bytes((lp))); \
 } while (0)
 
 #define LP_ENCODING_INT 0 /*数字类型*/
@@ -361,7 +361,7 @@ static list_pack_t* _list_pack_insert(list_pack_t* lp /*指向起始地址的指
     uint64_t enclen;
     int delete = (elestr == NULL && eleint == NULL); /* 判断是删除还是插入 */
 
-    if (delete) where = LIST_PACK_REPLACE;
+    if (delete) where = LIST_PACK_REPLACE; /*删除也是替换的一种*/
     if (where == LIST_PACK_AFTER) {/*后插入 需要转换为前插入*/
         p = list_pack_skip(p);
         where = LIST_PACK_BEFORE;
@@ -378,7 +378,7 @@ static list_pack_t* _list_pack_insert(list_pack_t* lp /*指向起始地址的指
         enctype =  LP_ENCODING_INT; 
         enclen = size;
     } else {
-        enctype = -1; /*删除行为*/
+        enctype = -1; /*替换行为*/
         enclen = 0;;
     }
 
@@ -405,10 +405,10 @@ static list_pack_t* _list_pack_insert(list_pack_t* lp /*指向起始地址的指
     if (where == LIST_PACK_BEFORE) {/* 插入 */
         memmove(dst + enclen + backlen_size, dst, 
             old_list_pack_bytes - poff); /* 插入后，需要将后面的数据移动到后面 */
-    } else {  /* 删除 */
+    } else {  /* 替换 */
         memmove(dst + enclen + backlen_size, 
             dst + replaced_len, 
-            old_list_pack_bytes - poff - replaced_len); /* 删除后，需要将后面的数据移动到前面 */
+            old_list_pack_bytes - poff - replaced_len); /* 替换后，需要将后面的数据移动到前面 */
     }
 
     if (new_list_pack_bytes < old_list_pack_bytes) { /* 如果新长度小于旧长度，则重新分配内存 */
@@ -418,7 +418,7 @@ static list_pack_t* _list_pack_insert(list_pack_t* lp /*指向起始地址的指
 
     if (newp) {
         *newp = dst; /*设置新插入位置的指针*/
-        if (delete && dst[0] == LP_EOF) *newp = NULL; /* 如果删除后 或者 结束了 插入位置指针设置为NULL*/
+        if (delete && dst[0] == LP_EOF) *newp = NULL; /* 如果替换后 或者 结束了 插入位置指针设置为NULL*/
     }
 
     if (!delete) { /* 插入 */
@@ -606,4 +606,65 @@ unsigned char* list_pack_next(list_pack_t* lp, unsigned char* p) {
     if (p[0] == LP_EOF) return NULL;
     list_pack_assert_valid_entry(lp, list_pack_bytes(lp), p);
     return p;
+}
+
+
+
+unsigned char* list_pack_prev(list_pack_t* lp, unsigned char* p) {
+    if(p - lp == LP_HDR_SIZE) return NULL;
+    p--;
+    uint64_t prevlen = list_pack_decode_backlen(p);
+    prevlen += list_pack_encode_backlen_bytes(prevlen);
+    p -= prevlen -1;
+    list_pack_assert_valid_entry(lp, list_pack_bytes(lp), p);
+    return p;
+}
+
+
+unsigned char* list_pack_last(list_pack_t* lp) {
+    unsigned char *p = lp + list_pack_bytes(lp) - 1; /* 最后2个字节位置，最后一个字节EOF */
+    return list_pack_prev(lp, p); /* 向前移 到达最后一个节点的开始位置*/
+}
+
+
+list_pack_t* list_pack_replace_string(list_pack_t* lp, unsigned char** p, unsigned char* s, uint32_t slen) {
+    return _list_pack_insert(lp, s, NULL, slen, *p, LIST_PACK_REPLACE, NULL);
+}
+
+list_pack_t* list_pack_replace_integer(list_pack_t* lp, unsigned char** p, long long lval) {
+    return list_pack_insert_integer(lp, lval, *p, LIST_PACK_REPLACE, p);
+}
+
+list_pack_t* list_pack_remove(list_pack_t* lp, unsigned char* p, unsigned char** newp) {
+    return _list_pack_insert(lp, NULL, NULL, 0, p, LIST_PACK_REPLACE, newp);
+}
+
+list_pack_t* list_pack_remove_range_with_entry(list_pack_t* lp, unsigned char** p, unsigned long num) {
+    size_t bytes = list_pack_bytes(lp);
+    unsigned long deleted = 0;
+    unsigned char* eofptr = lp + bytes - 1;
+    unsigned char* first, *tail;
+    first = tail = *p;
+
+    if (num == 0) return lp;
+
+    while (num--) {
+        deleted++;
+        tail = list_pack_skip(tail);
+        if (tail[0] == LP_EOF) break;
+        list_pack_assert_valid_entry(lp, bytes, tail);
+    }
+    unsigned long poff = first - lp;
+    memmove(first, tail, eofptr - tail + 1);
+    list_pack_set_total_bytes(lp, bytes - (tail-first));
+    uint32_t numele = list_pack_get_num_elements(lp);
+    if (numele != UINT16_MAX) {
+        list_pack_set_num_elements(lp, numele - deleted);
+    }
+    lp = list_pack_shrink_to_fit(lp);
+
+    *p = lp + poff;
+    if ((*p)[0] == LP_EOF) *p = NULL;
+
+    return lp;
 }
