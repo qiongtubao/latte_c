@@ -4,6 +4,8 @@ include $(LATTE_LIB_WORKSPACE)/src/sds/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/iterator/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
 FINAL_CC_CFLAGS+= -I../listpack
 ../listpack/listpack.o:
 	cd ../listpack && make listpack.o

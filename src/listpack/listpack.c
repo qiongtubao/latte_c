@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <limits.h>
 #include <sys/types.h>
+#include "utils/utils.h"
 
 
 
@@ -678,3 +679,177 @@ list_pack_t* list_pack_remove_range_with_entry(list_pack_t* lp, unsigned char** 
 
     return lp;
 }
+
+
+static inline unsigned char *list_pack_get_with_buffer(unsigned char *p, int64_t *count, unsigned char *intbuf) {
+    int64_t val;
+    uint64_t uval, negstart, negmax;
+    latte_assert(p); /* assertion for valgrind (avoid NPD) */
+    const unsigned char encoding = p[0];
+
+    /* string encoding */
+    if (LP_ENCODING_IS_6BIT_STR(encoding)) {
+        *count = LP_ENCODING_6BIT_STR_LEN(p);
+        return p+1;
+    }
+    if (LP_ENCODING_IS_12BIT_STR(encoding)) {
+        *count = LP_ENCODING_12BIT_STR_LEN(p);
+        return p+2;
+    }
+    if (LP_ENCODING_IS_32BIT_STR(encoding)) {
+        *count = LP_ENCODING_32BIT_STR_LEN(p);
+        return p+5;
+    }
+    /* int encoding */
+    if (LP_ENCODING_IS_7BIT_UINT(encoding)) {
+        negstart = UINT64_MAX; /* 7 bit ints are always positive. */
+        negmax = 0;
+        uval = encoding & 0x7f;
+    } else if (LP_ENCODING_IS_13BIT_INT(encoding)) {
+        uval = ((encoding&0x1f)<<8) | p[1];
+        negstart = (uint64_t)1<<12;
+        negmax = 8191;
+    } else if (LP_ENCODING_IS_16BIT_INT(encoding)) {
+        uval = (uint64_t)p[1] |
+               (uint64_t)p[2]<<8;
+        negstart = (uint64_t)1<<15;
+        negmax = UINT16_MAX;
+    } else if (LP_ENCODING_IS_24BIT_INT(encoding)) {
+        uval = (uint64_t)p[1] |
+               (uint64_t)p[2]<<8 |
+               (uint64_t)p[3]<<16;
+        negstart = (uint64_t)1<<23;
+        negmax = UINT32_MAX>>8;
+    } else if (LP_ENCODING_IS_32BIT_INT(encoding)) {
+        uval = (uint64_t)p[1] |
+               (uint64_t)p[2]<<8 |
+               (uint64_t)p[3]<<16 |
+               (uint64_t)p[4]<<24;
+        negstart = (uint64_t)1<<31;
+        negmax = UINT32_MAX;
+    } else if (LP_ENCODING_IS_64BIT_INT(encoding)) {
+        uval = (uint64_t)p[1] |
+               (uint64_t)p[2]<<8 |
+               (uint64_t)p[3]<<16 |
+               (uint64_t)p[4]<<24 |
+               (uint64_t)p[5]<<32 |
+               (uint64_t)p[6]<<40 |
+               (uint64_t)p[7]<<48 |
+               (uint64_t)p[8]<<56;
+        negstart = (uint64_t)1<<63;
+        negmax = UINT64_MAX;
+    } else {
+        uval = 12345678900000000ULL + encoding;
+        negstart = UINT64_MAX;
+        negmax = 0;
+    }
+
+    /* We reach this code path only for integer encodings.
+     * Convert the unsigned value to the signed one using two's complement
+     * rule. */
+    if (uval >= negstart) {
+        /* This three steps conversion should avoid undefined behaviors
+         * in the unsigned -> signed conversion. */
+        uval = negmax-uval;
+        val = uval;
+        val = -val-1;
+    } else {
+        val = uval;
+    }
+
+    /* Return the string representation of the integer or the value itself
+     * depending on intbuf being NULL or not. */
+    if (intbuf) {
+        *count = ll2string((char*)intbuf,LIST_PACK_INTBUF_SIZE,(long long)val);
+        return intbuf;
+    } else {
+        *count = val;
+        return NULL;
+    }
+}
+
+unsigned char* list_pack_get(unsigned char *p, int64_t *count, unsigned char *intbuf) {
+    return list_pack_get_with_buffer(p, count, intbuf);
+}   
+
+unsigned char* list_pack_get_value(unsigned char* p, unsigned int *slen, long long *lval) {
+    unsigned char *vstr;
+    int64_t ele_len;
+
+    vstr = list_pack_get(p, &ele_len, NULL);
+    if (vstr) {
+        *slen = ele_len;
+    } else {
+        *lval = ele_len;
+    }
+    return vstr;
+}
+
+/* 迭代器 */
+typedef struct list_pack_iterator_data_t {
+    list_pack_t* lp;
+    unsigned char* p;
+    int where;
+    latte_list_pack_value_t value;
+} list_pack_iterator_data_t;
+
+bool list_pack_iterator_has_next(latte_iterator_t* iter) {
+    list_pack_iterator_data_t* data = iter->data;
+    if (data->where == LIST_PACK_BEFORE) {
+        if (data->p == NULL) {
+            data->p = list_pack_last(data->lp);
+        } else {
+            data->p = list_pack_prev(data->lp, data->p);
+        }
+        return data->p != NULL;
+    } else {
+        if (data->p == NULL) {
+            data->p = list_pack_first(data->lp);
+        } else {
+            data->p = list_pack_next(data->lp, data->p);
+        }
+        return data->p != NULL;
+    }
+}
+
+void* list_pack_iterator_next(latte_iterator_t* iter) {
+    list_pack_iterator_data_t* data = iter->data;
+    if (data->p == NULL) return NULL;
+    data->value.sval = NULL;
+    data->value.slen = 0;
+    data->value.lval = 0;
+    data->value.sval = list_pack_get_value(data->p, &data->value.slen, &data->value.lval);
+    return &data->value;
+}
+
+void list_pack_iterator_release(latte_iterator_t* iter) {
+    list_pack_iterator_data_t* data = iter->data;
+    zfree(data);
+    zfree(iter);
+}
+
+latte_iterator_func list_pack_iterator_func = {
+    .has_next = list_pack_iterator_has_next,
+    .next = list_pack_iterator_next,
+    .release = list_pack_iterator_release
+};
+
+
+
+
+
+latte_iterator_t* list_pack_get_iterator(list_pack_t* lp, int where) {
+    latte_iterator_t* iter = zmalloc(sizeof(latte_iterator_t));
+    iter->func = &list_pack_iterator_func;
+    list_pack_iterator_data_t* data = zmalloc(sizeof(list_pack_iterator_data_t));
+    data->lp = lp;
+    data->p = NULL;
+    data->where = where;
+    data->value.sval = NULL;
+    data->value.slen = 0;
+    data->value.lval = 0;
+    iter->data = data;
+    return iter;
+}
+
+

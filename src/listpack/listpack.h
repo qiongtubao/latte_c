@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include "iterator/iterator.h"
 
 #define LIST_PACK_INTBUF_SIZE 21 /* 20 digits of -2^63 + 1 null term = 21. */
 
@@ -62,5 +63,18 @@ unsigned char* list_pack_prev(list_pack_t* lp, unsigned char* p);
 size_t list_pack_bytes(list_pack_t* lp);
 /* 最后一个节点 */
 unsigned char* list_pack_last(list_pack_t* lp);
+/* 获取节点值 */
+unsigned char* list_pack_get_value(unsigned char* p, unsigned int *slen, long long *lval);
+
+typedef struct latte_list_pack_value_t {
+    unsigned char* sval;
+    uint32_t slen;
+    long long lval;
+} latte_list_pack_value_t;
+
+
+latte_iterator_t* list_pack_get_iterator(list_pack_t* lp, int where);
+
+
 
 #endif

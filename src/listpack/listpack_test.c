@@ -39,6 +39,16 @@ int test_list_pack(void) {
     assert(list_pack_length(lp) == 6);
     assert(list_pack_bytes(lp) == 35);
 
+    latte_iterator_t* iter = list_pack_get_iterator(lp, LIST_PACK_AFTER);
+    while (latte_iterator_has_next(iter)) {
+        latte_list_pack_value_t* value = latte_iterator_next(iter);
+        if (value->sval != NULL) {
+            log_debug("test","str: %s, len: %d",value->sval, value->slen);
+        } else {
+            log_debug("test","int: %lld",value->lval);
+        }
+    }
+    latte_iterator_delete(iter);
     list_pack_delete(lp);
     return 1;
 }
