@@ -50,7 +50,9 @@ int test_list_pack(void) {
     assert(list_pack_length(lp) == 6);
     assert(list_pack_bytes(lp) == 39);
 
-    lp = list_pack_remove(lp, tp, &tp);
+    char* newtp = NULL;
+    tp = lp + 6;
+    lp = list_pack_remove(lp, tp, &newtp);
     assert(list_pack_length(lp) == 5);
     assert(list_pack_bytes(lp) == 32);
 
