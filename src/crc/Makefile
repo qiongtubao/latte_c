@@ -1,10 +1,11 @@
 LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=crc16xmodem.o crc32c.o
+BUILD_OBJ?= crc32c.o crc16xmodem.o crc64.o crc64_redis.o 
 LIB_OBJ?=
 TEST_MAIN?=crc_test
-MODULE?=crc
 LIB_MODULES?=sds
-BUILD_INCLUDE=crc.h
+MODULE?=crc
+BUILD_INCLUDE=crc.h crc64.h
+
 include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
 include $(LATTE_LIB_WORKSPACE)/mks/final.mk
 include $(LATTE_LIB_WORKSPACE)/mks/malloc.mk
