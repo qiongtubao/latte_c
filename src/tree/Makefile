@@ -1,5 +1,5 @@
 LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=avl_tree.o b_plus_tree.o
+BUILD_OBJ=avl_tree.o b_plus_tree.o maple_tree.o
 LIB_OBJ?=
 TEST_MAIN?=tree_test
 LIB_MODULES?=zmalloc iterator utils log vector

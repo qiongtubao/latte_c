@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include "avl_tree.h"
 #include "b_plus_tree.h"
+#include "maple_tree.h"
 #include "zmalloc/zmalloc.h"
 #include "log/log.h"
 #include <stdio.h>
@@ -128,6 +129,46 @@ b_plus_tree_func_t btype = {
 };
 
 
+
+
+maple_tree_type_t mapleType = {
+    .compare = KeyOperator,
+    .release_key = NULL,
+    .release_value = NULL
+};
+
+int test_maple_tree() {
+    maple_tree_t* tree = maple_tree_new(&mapleType);
+    assert(maple_tree_get(tree, (void*)10L) == NULL);
+    assert(maple_tree_put(tree, (void*)10L, (void*)100L) == 1);
+    assert((long)maple_tree_get(tree, (void*)10L) == 100L);
+    assert(maple_tree_put(tree, (void*)10L, (void*)200L) == 0);
+    assert((long)maple_tree_get(tree, (void*)10L) == 200L);
+    
+    assert(maple_tree_put(tree, (void*)1L, (void*)1L) == 1);
+    assert(maple_tree_put(tree, (void*)5L, (void*)5L) == 1);
+    assert(maple_tree_put(tree, (void*)15L, (void*)15L) == 1);
+    
+    assert(maple_tree_size(tree) == 4);
+
+    latte_iterator_t* it = maple_tree_get_iterator(tree);
+    long result[4] = {1L, 5L, 10L, 15L};
+    int i = 0;
+    while(latte_iterator_has_next(it)) {
+        latte_pair_t* pair = latte_iterator_next(it);
+        assert((long)pair->key == result[i]);
+        i++;
+    }
+    assert(i == 4);
+    latte_iterator_delete(it);
+
+    assert(maple_tree_remove(tree, (void*)10L) == 1);
+    assert(maple_tree_get(tree, (void*)10L) == NULL);
+    assert(maple_tree_size(tree) == 3);
+    
+    maple_tree_delete(tree);
+    return 1;
+}
 
 int test_bplus_tree() {
     b_plus_tree_t* tree = b_plus_tree_new(&btype, 16);
@@ -349,6 +390,8 @@ int test_api(void) {
             test_tree_run() == 1);  
         test_cond("about tree  random function",
             test_tree_random() == 1);
+        test_cond("about maple tree function",
+            test_maple_tree() == 1);
           
     } test_report()
     return 1;
