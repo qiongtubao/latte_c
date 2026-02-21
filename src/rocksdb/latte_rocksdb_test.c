@@ -238,8 +238,8 @@ int test_rockdb_write() {
 
     assert(error_is_ok(error));
 
-    // error = latte_rocksdb_write_cf(rocksdb, "default", "key1", "value");
-    // assert(error_is_ok(error));
+    error = latte_rocksdb_write_cf(rocksdb, "default", "key1", "value", NULL);
+    assert(error_is_ok(error));
     return 1;
 }
 

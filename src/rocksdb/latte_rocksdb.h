@@ -63,7 +63,9 @@ latte_error_t* latte_rocksdb_open(latte_rocksdb_t* db);
 
 void latte_rocksdb_close(latte_rocksdb_t* db);
 
-latte_rocksdb_column_family_meta_t* latte_rocksdb_add_column_family(latte_rocksdb_t* rocksdb, 
+latte_rocksdb_column_family_meta_t* latte_rocksdb_add_column_family(latte_rocksdb_t* rocksdb,
         char* name);
+
+latte_error_t* latte_rocksdb_write_cf(latte_rocksdb_t* rocksdb, const char* cf_name, ...);
 
 #endif

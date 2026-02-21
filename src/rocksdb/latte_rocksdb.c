@@ -1,4 +1,5 @@
 #include "latte_rocksdb.h"
+#include <stdarg.h>
 
 #include "error/error.h"
 #include "dict/dict.h"
@@ -7,10 +8,10 @@
 #include "utils/utils.h"
 
 struct dict_func_t latte_rocksdb_meta_dict_type = {
-    dict_sds_hash,                    /* hash function */
+    dict_char_hash,                    /* hash function */
     NULL,                           /* key dup */
     NULL,                           /* val dup */
-    dict_sds_key_compare,              /* key compare */
+    dict_char_key_compare,              /* key compare */
     NULL,              /* key destructor */
     NULL,                           /* val destructor */
     NULL                            /* allow to expand */
@@ -90,6 +91,44 @@ latte_error_t* latte_rocksdb_open(latte_rocksdb_t* rocksdb) {
         latte_rocksdb_column_family_meta_t* meta = dict_get_entry_val(entry);
         meta->handle = cf_handles[i];
     } 
+    return &Ok;
+}
+
+latte_error_t* latte_rocksdb_write_cf(latte_rocksdb_t* rocksdb, const char* cf_name, ...) {
+    dict_entry_t* entry = dict_find(rocksdb->column_families_metas, cf_name);
+    if (entry == NULL) {
+        return error_new(-1, "column family not found: %s", cf_name);
+    }
+
+    latte_rocksdb_column_family_meta_t* meta = dict_get_entry_val(entry);
+    rocksdb_writebatch_t* batch = rocksdb_writebatch_create();
+    char* errs = NULL;
+
+    va_list args;
+    va_start(args, cf_name);
+
+    while (1) {
+        const char* key = va_arg(args, const char*);
+        if (key == NULL) break;
+
+        size_t key_len = va_arg(args, size_t);
+        const char* value = va_arg(args, const char*);
+        size_t value_len = va_arg(args, size_t);
+
+        rocksdb_writebatch_put_cf(batch, meta->handle, key, key_len, value, value_len);
+    }
+
+    va_end(args);
+
+    rocksdb_write(rocksdb->db, rocksdb->write_opts, batch, &errs);
+    rocksdb_writebatch_destroy(batch);
+
+    if (errs != NULL) {
+        latte_error_t* err = error_new(-1, "rocksdb_write fail: %s", errs);
+        rocksdb_free(errs);
+        return err;
+    }
+
     return &Ok;
 }
 
