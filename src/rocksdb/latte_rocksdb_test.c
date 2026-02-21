@@ -10,10 +10,10 @@ latte_rocksdb_t* test_create_rocksdb(char* db_path) {
     // 设置数据库不存在时自动创建
     LATTE_SET_DB_OPTION(rocksdb, set_create_if_missing, 1);
 
-    // 设置Column Family不存在时自动创建
+    // // 设置Column Family不存在时自动创建
     LATTE_SET_DB_OPTION(rocksdb, set_create_missing_column_families, 1);
 
-    // 优化点查询性能
+    // // 优化点查询性能
     LATTE_SET_DB_OPTION(rocksdb, optimize_for_point_lookup, 1);
 
     // 设置最小写缓冲区合并数量
@@ -128,7 +128,7 @@ latte_rocksdb_t* test_create_rocksdb(char* db_path) {
         80000,
         (double)95/100);
 
-    // 创建块表选项对象
+    //创建块表选项对象
     rocksdb_block_based_table_options_t* block_opts = rocksdb_block_based_options_create();
     // 设置块大小
     rocksdb_block_based_options_set_block_size(block_opts, 8192);
@@ -146,6 +146,7 @@ latte_rocksdb_t* test_create_rocksdb(char* db_path) {
     LATTE_ROCKSDB_SET_CF_OPTION(default_meta, set_block_based_table_factory, block_opts);
     // 销毁块表选项对象
     rocksdb_block_based_options_destroy(block_opts);
+   
 
     latte_rocksdb_column_family_meta_t* meta_meta = latte_rocksdb_add_column_family(rocksdb, "meta");
     // // 按Level设置压缩算法
@@ -231,21 +232,78 @@ latte_rocksdb_t* test_create_rocksdb(char* db_path) {
 }
 
 int test_rockdb_write() {
-    latte_rocksdb_t* rocksdb = test_create_rocksdb("write_test/");
-    printf("test_rockdb_write 00\n");
+    latte_rocksdb_t* rocksdb = test_create_rocksdb("./write_test/");
+
     latte_error_t* error = latte_rocksdb_open(rocksdb);
-    
+
     assert(error_is_ok(error));
-    printf("test_rockdb_write 01\n");
+
+    // error = latte_rocksdb_write_cf(rocksdb, "default", "key1", "value");
+    // assert(error_is_ok(error));
+    return 1;
+}
+
+
+int test_rocksdb_api_test() {
+    // 1. 创建数据库选项
+  rocksdb_options_t* db_options = rocksdb_options_create();
+  rocksdb_options_set_create_if_missing(db_options, 1);
+
+  // 2. 创建列族选项
+  rocksdb_options_t* cf_options_default = rocksdb_options_create();
+  rocksdb_options_t* cf_options_user = rocksdb_options_create();
+  rocksdb_options_t* cf_options_order = rocksdb_options_create();
+
+  // 3. 配置列族选项
+  rocksdb_options_set_write_buffer_size(cf_options_user, 64 * 1024 * 1024);
+  rocksdb_options_set_write_buffer_size(cf_options_order, 32 * 1024 * 1024);
+
+  // 4. 准备列族名称和选项数组
+  const char* cf_names[] = {"default", "user", "order"};
+  rocksdb_options_t* cf_opts[] = {cf_options_default, cf_options_user, cf_options_order};
+  int num_cfs = 3;
+
+  // 5. 打开数据库
+  rocksdb_column_family_handle_t* cf_handles[3];
+  char* err = NULL;
+  rocksdb_t* db = rocksdb_open_column_families(
+      db_options, "./test", num_cfs,
+      cf_names, cf_opts, cf_handles, &err);
+
+
+  // 6. 检查错误
+  if (err != NULL || db == NULL) {
+      fprintf(stderr, "Failed to open database: %s\n", err);
+      rocksdb_free(err);
+      return -1;
+  }
+
+  // 7. 使用数据库
+  rocksdb_put_cf(db, rocksdb_writeoptions_create(), cf_handles[1],
+                 "user1", 5, "John Doe", 8, &err);
+
+  // 8. 关闭数据库
+  rocksdb_close(db);
+
+  // 9. 释放资源
+  for (int i = 0; i < num_cfs; i++) {
+      rocksdb_column_family_handle_destroy(cf_handles[i]);
+  }
+  rocksdb_options_destroy(db_options);
+  rocksdb_options_destroy(cf_options_default);
+  rocksdb_options_destroy(cf_options_user);
+  rocksdb_options_destroy(cf_options_order);
     return 1;
 }
 
 int test_api(void) {
+    printf("test_api start\n");
     {
         #ifdef LATTE_TEST
             // ..... private
         #endif
-        test_cond("rocksdb write function", 
+        printf("About to call test_rockdb_write\n");
+        test_cond("rocksdb write function",
             test_rockdb_write() == 1);
     } test_report()
     return 1;
