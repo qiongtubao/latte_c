@@ -1,10 +1,10 @@
 LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ=avl_tree.o b_plus_tree.o maple_tree.o
+BUILD_OBJ?=listpack.o
 LIB_OBJ?=
-TEST_MAIN?=tree_test
-LIB_MODULES?=zmalloc iterator utils log vector
-MODULE?=tree
-BUILD_INCLUDE=avl_tree.h b_plus_tree.h
+TEST_MAIN?=listpack_test
+LIB_MODULES?=zmalloc sds dict utils time
+MODULE?=listpack
+BUILD_INCLUDE=listpack.h
 
 include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
 include $(LATTE_LIB_WORKSPACE)/mks/final.mk
@@ -12,11 +12,8 @@ include $(LATTE_LIB_WORKSPACE)/mks/malloc.mk
 include $(LATTE_LIB_WORKSPACE)/mks/latte.mk
 include $(LATTE_LIB_WORKSPACE)/mks/info.mk
 include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/debug/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/iterator/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/utils/lib.mk
-include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
-include $(LATTE_LIB_WORKSPACE)/src/vector/lib.mk
-
-
-
-

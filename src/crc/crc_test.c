@@ -23,10 +23,27 @@ int test_crc32c() {
 }
 
 
+
 int test_crc32jamcrc() {
     assert(0x340bc6d9 == crc32jamcrc("123456789", 9));
     return 1;
 }
+
+int test_crc64_redis() {
+    
+    char *data = "123456789";
+    // This value needs to be verified against the specific Jones implementation.
+    // Standard Jones CRC64 initialization is often 0.
+    // Common check value for CRC-64-Jones ("123456789", init=0) is 0xe9c6d914c4b8d9ca.
+    // However, Redis init is 0. Let's assume standard behavior first.
+    // If it fails, I will debug.
+    uint64_t res = crc64_redis(0, (unsigned char*)data, 9);
+    printf("CRC64: %llx\n", (unsigned long long)res);
+    // e9c6d914c4b8d9ca redis crc64
+    assert(0xe9c6d914c4b8d9ca == res);
+    return 1;
+}
+
 int test_api(void) {
     {
         #ifdef LATTE_TEST
@@ -38,6 +55,8 @@ int test_api(void) {
             test_crc32c() == 1); 
         test_cond("crc32 jamcrc function", 
             test_crc32jamcrc() == 1);
+        test_cond("crc64 function", 
+            test_crc64_redis() == 1);
     } test_report()
     return 1;
 }

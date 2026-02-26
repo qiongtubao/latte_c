@@ -123,6 +123,7 @@ size_t zmalloc_get_smap_bytes_by_field(char *field, long pid);
 size_t zmalloc_get_memory_size(void);
 void zlibc_free(void *ptr);
 void zmadvise_dontneed(void *ptr);
+void *zrealloc_usable(void *ptr, size_t size, size_t *usable);
 
 #ifdef HAVE_DEFRAG
 void zfree_no_tcache(void *ptr);

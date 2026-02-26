@@ -4,6 +4,7 @@
 #include "object.h"
 #include <stdlib.h>
 #include <string.h>
+typedef struct latte_object_t redisObject;
 /* Each module type implementation should export a set of methods in order
  * to serialize and deserialize the value in the RDB file, rewrite the AOF
  * log, create the digest for "DEBUG DIGEST", and free the value when a key

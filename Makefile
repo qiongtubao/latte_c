@@ -57,8 +57,11 @@ clean_all:
 
 ./deps/jemalloc:
 	-(cd ./deps && $(MAKE) jemalloc) 
+
+./deps/rocksdb:
+	-(cd ./deps && $(MAKE) rocksdb)
 	
-test_all: ./deps/jemalloc
+test_all: ./deps/jemalloc ./deps/rocksdb
 	make zmalloc_test
 	make sds_test
 	make log_test

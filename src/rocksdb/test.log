@@ -1,0 +1,164 @@
+rm: foo.o: No such file or directory
+rm: foo.o: No such file or directory
+rm: foo.c: No such file or directory
+rm: foo.c: No such file or directory
+rm: rm: foo.c: No such file or directory
+foo.c: No such file or directory
+rm: foo.c: No such file or directory
+rm: foo.c: No such file or directory
+rm: foo.c: No such file or directory
+rm: foo.c: No such file or directory
+b_plus_tree.c:171:62: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+b_plus_tree.c:171:62: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("split move child node set key %d = %d\n", i, parent_node->keys[i - 1]);
+                                                   ~~        ^~~~~~~~~~~~~~~~~~~~~~~~
+        printf("split move child node set key %d = %d\n", i, parent_node->keys[i - 1]);
+                                                   ~~        ^~~~~~~~~~~~~~~~~~~~~~~~
+b_plus_tree.c:201:62b_plus_tree.c:201:62: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+            printf("[insert leaf node] set %d = %d \n", i+1, node->keys[i]);
+                                                ~~           ^~~~~~~~~~~~~
+: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+            printf("[insert leaf node] set %d = %d \n", i+1, node->keys[i]);
+                                                ~~           ^~~~~~~~~~~~~
+b_plus_tree.c:207b_plus_tree.c:207:14: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        + 1, key);
+             ^~~
+:14: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        + 1, key);
+             ^~~
+b_plus_tree.c:215b_plus_tree.c:215:63: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+:63: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("[insert no leaf node] find start %d %d\n", i, node->keys[i]);
+                                                    ~~        ^~~~~~~~~~~~~
+        printf("[insert no leaf node] find start %d %d\n", i, node->keys[i]);
+                                                    ~~        ^~~~~~~~~~~~~
+b_plus_tree.c:221:109: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("[insert no leaf node] find %p %d %p %d %d %d\n", node, i, node->children[i], node->numKeys, key, node->keys[i-1]);
+                                                       ~~                                                   ^~~
+b_plus_tree.c:221:114: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+b_plus_tree.c:221:109: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("[insert no leaf node] find %p %d %p %d %d %d\n", node, i, node->children[i], node->numKeys, key, node->keys[i-1]);
+                                                       ~~                                                   ^~~
+b_plus_tree.c:221:114: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("[insert no leaf node] find %p %d %p %d %d %d\n", node, i, node->children[i], node->numKeys, key, node->keys[i-1]);
+                                                          ~~                                                     ^~~~~~~~~~~~~~~
+        printf("[insert no leaf node] find %p %d %p %d %d %d\n", node, i, node->children[i], node->numKeys, key, node->keys[i-1]);
+                                                          ~~                                                     ^~~~~~~~~~~~~~~
+b_plus_tree.c:444:29: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+b_plus_tree.c:444:29: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("%d != %d\n",key, leaf->keys[index]);
+                ~~          ^~~
+b_plus_tree.c:444:34: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("%d != %d\n",key, leaf->keys[index]);
+                      ~~         ^~~~~~~~~~~~~~~~~
+        printf("%d != %d\n",key, leaf->keys[index]);
+                ~~          ^~~
+b_plus_tree.c:444:34: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("%d != %d\n",key, leaf->keys[index]);
+                      ~~         ^~~~~~~~~~~~~~~~~
+b_plus_tree.c:470:41: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("leaf[0] = %d, %d = %d", sibling->keys[sibling->numKeys - 1], parent->keys[index - 1], sibling->keys[sibling->numKeys - 1]);
+                          ~~            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+b_plus_tree.c:470:41: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("leaf[0] = %d, %d = %d", sibling->keys[sibling->numKeys - 1], parent->keys[index - 1], sibling->keys[sibling->numKeys - 1]);
+                          ~~            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+b_plus_tree.c:470:78: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+b_plus_tree.c:470:78: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("leaf[0] = %d, %d = %d", sibling->keys[sibling->numKeys - 1], parent->keys[index - 1], sibling->keys[sibling->numKeys - 1]);        printf("leaf[0] = %d, %d = %d", sibling->keys[sibling->numKeys - 1], parent->keys[index - 1], sibling->keys[sibling->numKeys - 1]);
+                              ~~                                             ^~~~~~~~~~~~~~~~~~~~~~~
+b_plus_tree.c:470
+                              ~~                                             ^~~~~~~~~~~~~~~~~~~~~~~
+b_plus_tree.c:470:103: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+:103: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("leaf[0] = %d, %d = %d", sibling->keys[sibling->numKeys - 1], parent->keys[index - 1], sibling->keys[sibling->numKeys - 1]);
+                                   ~~                                                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        printf("leaf[0] = %d, %d = %d", sibling->keys[sibling->numKeys - 1], parent->keys[index - 1], sibling->keys[sibling->numKeys - 1]);
+                                   ~~                                                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+b_plus_tree.c:480:44: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("leaf[last] = %d, %d = %d", sibling->keys[0],parent->keys[index],sibling->keys[1]);
+                             ~~            ^~~~~~~~~~~~~~~~
+b_plus_tree.cb_plus_tree.c:480:44: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("leaf[last] = %d, %d = %d", sibling->keys[0],parent->keys[index],sibling->keys[1]);
+                             ~~            ^~~~~~~~~~~~~~~~
+b_plus_tree.c:480:61: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+:480:61: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("leaf[last] = %d, %d = %d", sibling->keys[0],parent->keys[index],sibling->keys[1]);
+                                 ~~                         ^~~~~~~~~~~~~~~~~~~
+        printf("leaf[last] = %d, %d = %d", sibling->keys[0],parent->keys[index],sibling->keys[1]);
+                                 ~~                         ^~~~~~~~~~~~~~~~~~~
+b_plus_tree.c:480:81:b_plus_tree.c:480:81: warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+ warning: format specifies type 'int' but the argument has type 'void *' [-Wformat]
+        printf("leaf[last] = %d, %d = %d", sibling->keys[0],parent->keys[index],sibling->keys[1]);
+                                      ~~                                        ^~~~~~~~~~~~~~~~
+        printf("leaf[last] = %d, %d = %d", sibling->keys[0],parent->keys[index],sibling->keys[1]);
+                                      ~~                                        ^~~~~~~~~~~~~~~~
+b_plus_tree.c:464:57: warning: unused parameter 'tree' [-Wunused-parameter]
+b_plus_tree.c:464:57: warning: unused parameter 'tree' [-Wunused-parameter]
+void b_plus_tree_borrow_key_from_sibling(b_plus_tree_t* tree, b_plus_tree_node_t* parent, int index, int direction, b_plus_tree_node_t* leaf, b_plus_tree_node_t* sibling) {
+                                                        ^
+void b_plus_tree_borrow_key_from_sibling(b_plus_tree_t* tree, b_plus_tree_node_t* parent, int index, int direction, b_plus_tree_node_t* leaf, b_plus_tree_node_t* sibling) {
+                                                        ^
+b_plus_tree.c:492:b_plus_tree.c:492:45: warning: unused parameter 'tree' [-Wunused-parameter]
+45: warning: unused parameter 'tree' [-Wunused-parameter]
+void b_plus_tree_merge_nodes(b_plus_tree_t* tree, b_plus_tree_node_t* parent, int index, b_plus_tree_node_t* left, b_plus_tree_node_t* right) {
+                                            ^
+void b_plus_tree_merge_nodes(b_plus_tree_t* tree, b_plus_tree_node_t* parent, int index, b_plus_tree_node_t* left, b_plus_tree_node_t* right) {
+                                            ^
+16 warnings generated.
+16 warnings generated.
+rm: foo.o: No such file or directory
+rm: foo.o: No such file or directory
+override rw-r--r-- zhouguodong/staff for foo.c? override rw-r--r-- zhouguodong/staff for foo.c? rm: foo.crm: foo.c: : No such file or directory
+No such file or directory
+listpack.c:692:7: warning: '/*' within block comment [-Wcomment]
+listpack.c:692:7: warning: '/*' within block comment [-Wcomment]
+ * 'co/* Return the listpack element pointed by 'p'.
+      ^
+listpack.c:707:7: warning: '/*' within block comment [-Wcomment]
+ * If /* Return the listpack element pointed by 'p'.
+      ^
+ * 'co/* Return the listpack element pointed by 'p'.
+      ^
+listpack.c:707:7: warning: '/*' within block comment [-Wcomment]
+ * If /* Return the listpack element pointed by 'p'.
+      ^
+2 warnings2 warnings generated.
+ generated.
+clang: warning: ../../deps/rocksdb/librocksdb.a: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: -lpthread: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: -ldl: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: -lsnappy: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: -lz: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: -Z-reserved-lib-stdc++: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: ../../deps/rocksdb/librocksdb.a: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: -lpthread: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: -ldl: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: -lsnappy: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: -lz: 'linker' input unused [-Wunused-command-line-argument]
+clang: warning: -Z-reserved-lib-stdc++: 'linker' input unused [-Wunused-command-line-argument]
+latte_rocksdb.c:66:9: warning: passing 'sds[size]' (aka 'char *[size]') to parameter of type 'const char *const *' discards qualifiers in nested pointer types [-Wincompatible-pointer-types-discards-qualifiers]
+latte_rocksdb.c:66:9: warning: passing 'sds[size]' (aka 'char *[size]') to parameter of type 'const char *const *' discards qualifiers in nested pointer types [-Wincompatible-pointer-types-discards-qualifiers]
+        cf_name, cf_opts, cf_handles, errs);
+        ^~~~~~~
+        cf_name, cf_opts, cf_handles, errs);
+        ^~~~~~~
+../../deps/rocksdb/include/rocksdb/c.h:376:24: note: passing argument to parameter 'column_family_names' here../../deps/rocksdb/include/rocksdb/c.h:376:24: note: passing argument to parameter 'column_family_names' here
+
+    const char* const* column_family_names,
+                       ^
+    const char* const* column_family_names,
+                       ^
+latte_rocksdb.c:66:18: warning: passing 'rocksdb_options_t *[size]' (aka 'struct rocksdb_options_t *[size]') to parameter of type 'const rocksdb_options_t *const *' (aka 'const struct rocksdb_options_t *const *') discards qualifiers in nested pointer types [-Wincompatible-pointer-types-discards-qualifiers]
+latte_rocksdb.c:66:18: warning: passing 'rocksdb_options_t *[size]' (aka 'struct rocksdb_options_t *[size]') to parameter of type 'const rocksdb_options_t *const *' (aka 'const struct rocksdb_options_t *const *') discards qualifiers in nested pointer types [-Wincompatible-pointer-types-discards-qualifiers]
+        cf_name, cf_opts, cf_handles, errs);
+                 ^~~~~~~
+        cf_name, cf_opts, cf_handles, errs);
+                 ^~~~~~~
+../../deps/rocksdb/include/rocksdb/c.h:377:37: ../../deps/rocksdb/include/rocksdb/c.h:377:37: note: passing argument to parameter 'column_family_options' here
+note: passing argument to parameter 'column_family_options' here
+    const rocksdb_options_t* const* column_family_options,
+                                    ^
+    const rocksdb_options_t* const* column_family_options,
+                                    ^
+2 warnings generated.
+2 warnings generated.
