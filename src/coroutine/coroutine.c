@@ -1,9 +1,13 @@
 /**
  * 协程实现：基于 POSIX ucontext，每个协程独立栈，协作式调度。
  * macOS 上 ucontext 已弃用但仍可用，此处屏蔽弃用警告。
+ * Linux glibc 需 _GNU_SOURCE 才能暴露 ucontext_t 的 uc_stack/uc_link 成员。
  */
-#if defined(__APPLE__)
 #define _XOPEN_SOURCE 600
+#if defined(__linux__)
+#define _GNU_SOURCE
+#endif
+#if defined(__APPLE__)
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
