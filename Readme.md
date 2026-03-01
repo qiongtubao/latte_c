@@ -1,3 +1,28 @@
+# Latte C
+
+C 语言基础库与组件集合，用于构建高性能服务。
+
+---
+
+# 功能概览（模块与功能）
+
+| 模块 | 路径 | 功能简述 |
+|------|------|----------|
+| **协程** | [src/coroutine](src/coroutine/README.md) | 类 Go 协程、协作式调度、WaitGroup 并发等待 |
+| **RocksDB** | src/rocksdb | RocksDB C 封装：多 CF、读写、flush、compact、close |
+| **内存** | src/zmalloc | 统一内存分配封装，可切换 libc/jemalloc |
+| **字符串** | src/sds | 动态字符串，多类型 sdshdr5/8/16/32/64 |
+| **事件循环** | src/ae | 事件驱动与定时器 |
+| **字典** | src/dict | 哈希表等字典结构 |
+| **配置** | src/config | 配置加载与解析 |
+| **日志** | src/log | 日志输出 |
+| **网络** | src/anet | 网络封装 |
+| **对象/其他** | src/object, list, set, stream, pool, cache, json, ... | 各类数据结构与工具 |
+
+更细的功能与 API 见各模块目录下的 README（若有，如协程见 [src/coroutine/README.md](src/coroutine/README.md)）。项目开发与变更记录见 [History.md](History.md)。
+
+---
+
 # 命名规范
 c 语言系统判断在 utils/sys_config.h 
 
