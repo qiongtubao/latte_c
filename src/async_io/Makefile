@@ -19,3 +19,5 @@ include $(LATTE_LIB_WORKSPACE)/src/error/lib.mk
 include $(LATTE_LIB_WORKSPACE)/mks/sys_config.mk
 #test include
 include $(LATTE_LIB_WORKSPACE)/src/ae/lib.mk
+
+include $(LATTE_LIB_WORKSPACE)/mks/sys_config.mk
