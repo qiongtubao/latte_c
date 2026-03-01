@@ -2,7 +2,12 @@
 #include "../test/testassert.h"
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 #include "coroutine.h"
+
+static double time_elapsed_sec(const struct timeval* start, const struct timeval* end) {
+    return (end->tv_sec - start->tv_sec) + (end->tv_usec - start->tv_usec) / 1e6;
+}
 
 /* 用于断言的可写全局计数 */
 static int s_step_count;
@@ -137,6 +142,50 @@ int test_waitgroup_one_worker(void) {
     return 1;
 }
 
+/* ---------- 并发 sleep：3 个协程分别 1s/2s/3s，总耗时应约 3–4s（并发） ---------- */
+typedef struct {
+    latte_waitgroup_t* wg;
+    double duration_sec;
+} sleep_arg_t;
+
+static void sleep_worker(void* arg) {
+    sleep_arg_t* a = (sleep_arg_t*)arg;
+    struct timeval start, now;
+    gettimeofday(&start, NULL);
+    for (;;) {
+        gettimeofday(&now, NULL);
+        if (time_elapsed_sec(&start, &now) >= a->duration_sec)
+            break;
+        latte_yield();
+    }
+    latte_waitgroup_done(a->wg);
+}
+
+static void starter_sleep_three(void* arg) {
+    latte_waitgroup_t* wg = (latte_waitgroup_t*)arg;
+    latte_waitgroup_add(wg, 3);
+    sleep_arg_t a1 = { wg, 1.0 }, a2 = { wg, 2.0 }, a3 = { wg, 3.0 };
+    latte_go(sleep_worker, &a1);
+    latte_go(sleep_worker, &a2);
+    latte_go(sleep_worker, &a3);
+    latte_waitgroup_wait(wg);
+}
+
+/* 3 个协程并发 sleep 1s/2s/3s，总耗时应在 3–4s（若串行则需 6s） */
+int test_sleep_concurrent(void) {
+    latte_waitgroup_t* wg = latte_waitgroup_create();
+    assert(wg != NULL);
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+    latte_go(starter_sleep_three, wg);
+    gettimeofday(&end, NULL);
+    double elapsed = time_elapsed_sec(&start, &end);
+    latte_waitgroup_free(wg);
+    assert(elapsed >= 3.0 && elapsed <= 4.5); /* 并发约 3s，留 0.5s 余量 */
+    (void)elapsed; /* 避免未用告警（assert 在 release 可能被关） */
+    return 1;
+}
+
 int test_api(void) {
     {
 #ifdef LATTE_TEST
@@ -158,6 +207,8 @@ int test_api(void) {
             test_waitgroup_zero_no_block() == 1);
         test_cond("waitgroup one worker",
             test_waitgroup_one_worker() == 1);
+        test_cond("sleep concurrent 1s+2s+3s in 3–4s",
+            test_sleep_concurrent() == 1);
     } test_report()
     return 1;
 }

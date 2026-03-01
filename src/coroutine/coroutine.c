@@ -1,5 +1,13 @@
 /**
  * 协程实现：基于 POSIX ucontext，每个协程独立栈，协作式调度。
+ *
+ * 并发：就绪队列 + 单调度循环。run_scheduler 循环 pop 协程、setcontext 执行；
+ * 协程通过 latte_yield() 或返回（DONE）时 swapcontext 回到调度器，调度器再调度下一个，
+ * 从而实现多协程在单线程内交替执行（并发感）。
+ *
+ * 等待：WaitGroup 的 Wait() 即 while (count > 0) latte_yield()，不占 CPU，
+ * 让其他协程运行直至 count 被 Done() 减为 0。
+ *
  * macOS 上 ucontext 已弃用但仍可用，此处屏蔽弃用警告。
  * Linux glibc 需 _GNU_SOURCE 才能暴露 ucontext_t 的 uc_stack/uc_link 成员。
  */
@@ -42,12 +50,12 @@ typedef struct latte_coroutine_t {
 static size_t s_stack_size = LATTE_CORO_DEFAULT_STACK_SIZE;
 
 static ucontext_t s_scheduler_ctx;
-static latte_coroutine_t* s_ready_head = NULL;
+static latte_coroutine_t* s_ready_head = NULL;  /* 就绪队列头，并发调度即从此队列轮转取协程 */
+static latte_coroutine_t* s_ready_tail = NULL;
+static latte_coroutine_t* s_current = NULL;   /* 当前正在运行的协程 */
 /* 协程内调用 latte_go 时不在协程栈上 getcontext，由调度器创建新协程 */
 static latte_coroutine_fn s_pending_fn = NULL;
 static void* s_pending_arg = NULL;
-static latte_coroutine_t* s_ready_tail = NULL;
-static latte_coroutine_t* s_current = NULL;
 
 static void push_ready(latte_coroutine_t* c) {
     c->next = NULL;
@@ -69,9 +77,13 @@ static latte_coroutine_t* pop_ready(void) {
 
 static void coro_wrapper(void);
 
+/**
+ * 调度循环：驱动并发。每次从就绪队列取一个协程执行，该协程 yield 或结束时回到此处，
+ * 再取下一个，直到队列空。所有“等待”最终都通过 yield 把 CPU 让给其他协程。
+ */
 static void run_scheduler(void) {
     for (;;) {
-        /* 统一返回点：协程 yield/完成时 swapcontext 回到此处，便于多次 latte_go 时回到当前调用栈 */
+        /* 统一返回点：协程 yield/完成时 swapcontext 回到此处 */
         getcontext(&s_scheduler_ctx);
         if (s_current != NULL) {
             if (s_current->state == LATTE_CORO_READY)
@@ -158,6 +170,7 @@ static void coro_wrapper(void) {
     }
 }
 
+/** 主动让出：当前协程进入就绪队列，调度器切到其他协程，实现协作式并发。 */
 void latte_yield(void) {
     latte_coroutine_t* c = s_current;
     if (!c) return;
@@ -170,7 +183,10 @@ void latte_coroutine_set_stack_size(size_t size) {
         s_stack_size = size;
 }
 
-/* ---------- WaitGroup 实现 ---------- */
+/* ---------- WaitGroup 实现：并发等待 ----------
+ * count：待完成的子协程数。Add(n) 后启动 n 个子协程，每个结束时 Done() 减 1；
+ * Wait() 在协程内循环 yield 直到 count==0，即“等所有子协程结束”。
+ */
 struct latte_waitgroup_t {
     int count;
 };
@@ -197,6 +213,7 @@ void latte_waitgroup_done(latte_waitgroup_t* wg) {
         latte_waitgroup_add(wg, -1);
 }
 
+/** 等待：在协程内反复 yield，直到 count 被其他协程的 Done() 减为 0，再返回。 */
 void latte_waitgroup_wait(latte_waitgroup_t* wg) {
     if (!wg) return;
     while (wg->count > 0)
