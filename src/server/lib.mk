@@ -9,6 +9,7 @@ include $(LATTE_LIB_WORKSPACE)/src/sds/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/endianconv/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/value/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/async_io/lib.mk
 FINAL_CC_CFLAGS+= -I../server
 LIB_OBJ+= ../server/server.o ../server/client.o ../server/cron.o
 USED_SERVER=yes

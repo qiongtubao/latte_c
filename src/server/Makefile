@@ -2,7 +2,7 @@ LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=server.o client.o cron.o
 LIB_OBJ?=
 TEST_MAIN?=server_test
-LIB_MODULES?=zmalloc sds list endianconv connection ae rax log value func_task
+LIB_MODULES?=zmalloc sds list endianconv connection ae rax log value func_task async_io
 MODULE?=server
 BUILD_INCLUDE=server.h client.h cron.h
 
