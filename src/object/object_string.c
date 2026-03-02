@@ -8,6 +8,8 @@
 
 #define OBJ_SHARED_INTEGERS 10000
 
+struct shared_integers_objects_t shared_integers;
+
 latte_object_t *embedded_string_object_new(const char *ptr, size_t len) {
     latte_object_t*  obj = zmalloc(sizeof(latte_object_t) + sizeof(struct sdshdr8)+len + 1);
     struct sdshdr8 *sh = (void*)(obj + 1);
