@@ -92,7 +92,7 @@ static int test_save_load(void) {
     assert(err == NULL);
     odb_oio_buffer_rewind(o);
     void *loaded = NULL;
-    err = object_manager_load(o, &loaded);
+    err = object_manager_load(o, &loaded, NULL);
     assert(err == NULL);
     assert(loaded != NULL);
     latte_object_t *lo = (latte_object_t*)loaded;
@@ -142,11 +142,92 @@ static int test_wrapped_refcount(void) {
     return 1;
 }
 
+static int test_save_load_registry(void) {
+    global_object_manager_init();
+    assert(object_manager_register(TEST_TYPE_NAME, blob_create, blob_release, blob_save, blob_load, blob_calc) == 0);
+    
+    /* 保存类型注册表 */
+    oio *o = odb_oio_create_buffer();
+    assert(o != NULL);
+    latte_error_t *err = object_manager_save_registry(o);
+    assert(err == NULL);
+    
+    /* 重新初始化 manager 并注册相同类型（可能分配到不同的 id） */
+    global_object_manager_init();
+    assert(object_manager_register(TEST_TYPE_NAME, blob_create, blob_release, blob_save, blob_load, blob_calc) == 0);
+    
+    /* 加载类型注册表并验证 */
+    odb_oio_buffer_rewind(o);
+    uint8_t id_map[256];
+    err = object_manager_load_registry(o, id_map);
+    assert(err == NULL);
+    
+    /* 验证映射：保存时的 id 0 应该映射到当前的 id（可能是 0，也可能不是） */
+    assert(id_map[0] != 0xFF);
+    assert(id_map[0] < 256);
+    assert(object_manager_get_type_name(id_map[0]) != NULL);
+    assert(strcmp(object_manager_get_type_name(id_map[0]), TEST_TYPE_NAME) == 0);
+    
+    odb_oio_free(o);
+    return 1;
+}
+
+static int test_load_with_context(void) {
+    global_object_manager_init();
+    assert(object_manager_register(TEST_TYPE_NAME, blob_create, blob_release, blob_save, blob_load, blob_calc) == 0);
+    
+    /* 创建并保存对象 */
+    latte_object_t *orig = object_manager_create_object(TEST_TYPE_NAME);
+    assert(orig != NULL);
+    blob_t *b0 = (blob_t*)orig->ptr;
+    sds_delete(b0->s);
+    b0->s = sds_new("test context");
+    
+    oio *o = odb_oio_create_buffer();
+    assert(o != NULL);
+    
+    /* 保存类型注册表 */
+    latte_error_t *err = object_manager_save_registry(o);
+    assert(err == NULL);
+    
+    /* 保存对象 */
+    err = object_manager_save(o, orig);
+    assert(err == NULL);
+    
+    /* 重新初始化 manager 并注册相同类型（可能分配到不同的 id） */
+    global_object_manager_init();
+    assert(object_manager_register(TEST_TYPE_NAME, blob_create, blob_release, blob_save, blob_load, blob_calc) == 0);
+    
+    /* 加载类型注册表 */
+    odb_oio_buffer_rewind(o);
+    uint8_t id_map[256];
+    err = object_manager_load_registry(o, id_map);
+    assert(err == NULL);
+    
+    /* 使用 id 映射加载对象 */
+    void *loaded = NULL;
+    err = object_manager_load(o, &loaded, id_map);
+    assert(err == NULL);
+    assert(loaded != NULL);
+    
+    latte_object_t *lo = (latte_object_t*)loaded;
+    blob_t *b = (blob_t*)lo->ptr;
+    assert(sds_len(b->s) == 12);
+    assert(memcmp(b->s, "test context", 12) == 0);
+    
+    object_manager_release_object(lo);
+    object_manager_release_object(orig);
+    odb_oio_free(o);
+    return 1;
+}
+
 int main(void) {
     test_cond("object_manager register create release", test_register_create_release() == 1);
     test_cond("object_manager save load", test_save_load() == 1);
     test_cond("object_manager calc", test_calc() == 1);
     test_cond("object_manager wrapped + incr/decr refcount", test_wrapped_refcount() == 1);
+    test_cond("object_manager save load registry", test_save_load_registry() == 1);
+    test_cond("object_manager load with context", test_load_with_context() == 1);
     test_report();
     global_object_manager_free();
     return 0;

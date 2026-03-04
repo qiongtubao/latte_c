@@ -73,14 +73,31 @@ latte_error_t* object_manager_save( oio *o, const latte_object_t *obj);
 
 /**
  * 从 odb 加载 object：先读 type_id，再调用该类型的 load_fn，并将 type_id 写回 object 首字节。
- * 成功时 *out_obj 为对象（调用方用 object_manager_release_object 释放）；失败返回 -1。
+ * id_map: 可选的 id 映射表。如果为 NULL，直接使用读取的 type_id；如果不为 NULL，通过映射表转换 type_id。
+ *         映射表由 object_manager_load_registry 生成，索引为保存时的 type_id，值为当前 manager 中的 type_id。
+ * 成功时 *out_obj 为对象（调用方用 object_manager_release_object 释放）；失败返回错误。
  */
-latte_error_t* object_manager_load( oio *o, void **out_obj);
+latte_error_t* object_manager_load(oio *o, void **out_obj, const uint8_t id_map[256]);
 
 /** 按 type_id 取注册时的类型名；未注册或无效返回 NULL（只读，勿 free） */
 const char* object_manager_get_type_name(uint8_t type_id);
 
 /** 对 object 执行该类型的计算方法（从 object 首字节读 type_id）。未注册 calc 则返回 0。 */
 uint64_t object_manager_calc(const void *obj);
+
+/**
+ * 保存类型注册表到 odb：写入所有已注册类型的 id 和 name。
+ * 格式：类型数量(u32) + 每个类型[id(u8) + name(string)]
+ * 返回 NULL 成功，否则返回错误。
+ */
+latte_error_t* object_manager_save_registry(oio *o);
+
+/**
+ * 从 odb 加载类型注册表并验证：读取所有类型的 id 和 name，检查当前 manager 是否已注册所有类型。
+ * id_map: 输出参数，256 大小的数组，索引为保存时的 type_id，值为当前 manager 中的 type_id。
+ *         如果某个类型未注册，对应位置为 0xFF。
+ * 返回 NULL 成功，否则返回错误（如类型未注册）。
+ */
+latte_error_t* object_manager_load_registry(oio *o, uint8_t id_map[256]);
 
 #endif /* __LATTE_OBJECT_MANAGER_H__ */
