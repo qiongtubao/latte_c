@@ -4,7 +4,7 @@ LIB_OBJ?=
 LIB_MODULES=connection sds log crc ae
 TEST_MAIN?=odb_test
 MODULE?=odb
-BUILD_INCLUDE=odb.h
+BUILD_INCLUDE=odb.h oio.h
 
 include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
 include $(LATTE_LIB_WORKSPACE)/mks/final.mk
