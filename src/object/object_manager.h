@@ -25,8 +25,10 @@ typedef uint64_t (*object_calc_fn)(latte_object_t *obj);
 
 extern struct object_manager_t global_object_manager;
 
-/** 创建管理器；用完后 object_manager_free */
+/** 初始化全局 manager（重复调用会先释放已有注册再清零） */
 void global_object_manager_init(void);
+/** 释放全局 manager 内所有 type name，程序退出或重 init 前可调用 */
+void global_object_manager_free(void);
 
 /**
  * 用字符串名称注册类型：创建、释放、保存、加载、计算方法；

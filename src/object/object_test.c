@@ -148,5 +148,6 @@ int main(void) {
     test_cond("object_manager calc", test_calc() == 1);
     test_cond("object_manager wrapped + incr/decr refcount", test_wrapped_refcount() == 1);
     test_report();
+    global_object_manager_free();
     return 0;
 }

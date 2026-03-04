@@ -46,8 +46,24 @@ static int first_free_slot(struct object_manager_t *m) {
     return -1;
 }
 
+static void release_all_types(struct object_manager_t *m) {
+    for (unsigned i = 0; i < OBJECT_MANAGER_MAX_TYPES; i++) {
+        if (m->types[i].name) {
+            sds_delete(m->types[i].name);
+            m->types[i].name = NULL;
+        }
+    }
+}
+
 void global_object_manager_init(void) {
     struct object_manager_t *m = mgr();
+    release_all_types(m);
+    memset(m, 0, sizeof(*m));
+}
+
+void global_object_manager_free(void) {
+    struct object_manager_t *m = mgr();
+    release_all_types(m);
     memset(m, 0, sizeof(*m));
 }
 
