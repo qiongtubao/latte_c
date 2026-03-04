@@ -122,3 +122,21 @@ jobs:
           sudo apt-get install -y lcov liburing-dev
           echo run coroutine_asan_test
           cd src/coroutine && make asan_test 
+  odb_asan_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: odb_asan_test
+        run: |
+          sudo apt-get install -y lcov liburing-dev
+          echo run odb_asan_test
+          cd src/odb && make asan_test 
+  object_asan_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: object_asan_test
+        run: |
+          sudo apt-get install -y lcov liburing-dev
+          echo run object_asan_test
+          cd src/object && make asan_test 

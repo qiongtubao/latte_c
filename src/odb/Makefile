@@ -1,9 +1,10 @@
 LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=object_manager.o object.o
+BUILD_OBJ?=odb.o
 LIB_OBJ?=
-TEST_MAIN?=object_test
-MODULE?=object
-BUILD_INCLUDE?=object.h object_manager.h
+LIB_MODULES=connection sds log crc ae
+TEST_MAIN?=odb_test
+MODULE?=odb
+BUILD_INCLUDE=odb.h
 
 include $(LATTE_LIB_WORKSPACE)/mks/sys.mk
 include $(LATTE_LIB_WORKSPACE)/mks/final.mk
@@ -12,5 +13,8 @@ include $(LATTE_LIB_WORKSPACE)/mks/latte.mk
 include $(LATTE_LIB_WORKSPACE)/mks/info.mk
 include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/sds/lib.mk
-include $(LATTE_LIB_WORKSPACE)/src/odb/lib.mk
-include $(LATTE_LIB_WORKSPACE)/src/error/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/ae/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/connection/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/crc/lib.mk
+
