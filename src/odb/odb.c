@@ -95,7 +95,7 @@ oio *odb_oio_create_file(FILE *fp) {
 
 void odb_oio_free(oio *o) {
     if (!o) return;
-    if (o->io.buffer.ptr) {
+    if (o->io.buffer.ptr && o->read == oio_buffer_read) {
         sds_delete(o->io.buffer.ptr);
         o->io.buffer.ptr = NULL;
     }
