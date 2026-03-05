@@ -43,8 +43,9 @@ build: persist-settings
 	$(foreach var,$(MODULES),$(MAKE) SANITIZER=$(SANITIZER) $(var)_module;)
 	$(MAKE) latte_lib	
 
+# 仅在使用 jemalloc 且存在 lib 时复制；Mac 默认用 libc，可不依赖 jemalloc.a
 latte_lib: 	
-	cd $(BUILD_DIR) && cp $(LATTE_LIB_WORKSPACE)/deps/jemalloc/lib/libjemalloc.a ./lib/ && $(AR) $(ARFLAGS) ./lib/liblatte.a  $(ALL_OBJ) $(LATTE_LIBS)
+	cd $(BUILD_DIR) && ( [ -z '$(LATTE_LIBS)' ] || cp $(LATTE_LIB_WORKSPACE)/deps/jemalloc/lib/libjemalloc.a ./lib/ ) && $(AR) $(ARFLAGS) ./lib/liblatte.a  $(ALL_OBJ) $(LATTE_LIBS)
 
 %_test_lib: build
 	cd src/$* && $(MAKE) test_lib BUILD_DIR=../../$(BUILD_DIR)
