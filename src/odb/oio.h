@@ -1,3 +1,12 @@
+/*
+ * oio.h - odb 模块头文件
+ * 
+ * Latte C 库组件
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #ifndef __LATTE_OIO_H__ 
 
 #define __LATTE_OIO_H__

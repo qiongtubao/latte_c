@@ -1,3 +1,12 @@
+/*
+ * latte_debug.h - debug 模块头文件
+ * 
+ * Latte C 库组件
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #ifndef __LATTE_DEBUG_H
 #define __LATTE_DEBUG_H
 

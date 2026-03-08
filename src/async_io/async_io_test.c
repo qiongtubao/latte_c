@@ -1,3 +1,12 @@
+/*
+ * async_io_test.c - async_io 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "../test/testhelp.h"
 #include "../test/testassert.h"
 #include "async_io.h"

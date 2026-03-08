@@ -1,3 +1,12 @@
+/*
+ * thread_single_object.c - thread_single_object 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "thread_single_object.h"
 #include "dict/dict_plugins.h"
 #include "debug/latte_debug.h"

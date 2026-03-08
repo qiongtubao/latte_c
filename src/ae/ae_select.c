@@ -1,3 +1,13 @@
+/*
+ * ae_select.c - 事件循环后端实现
+ * 
+ * Latte C 事件循环的 ae_select.c 专用后端
+ * 基于系统 ae_select.c 机制实现高效事件多路复用
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "ae.h"
 #include <sys/select.h>
 #include <string.h>

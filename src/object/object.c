@@ -1,3 +1,11 @@
+/* object.c
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 /**
  * latte_object_t 引用计数与释放；refcount 归 0 时联动 object_manager 释放。
  */

@@ -1,16 +1,37 @@
+/*
+ * lru_cache.c - cache 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "lru_cache.h"
 #include "zmalloc/zmalloc.h"
 #include <assert.h>
 
 lru_cache_t* lru_cache_new(lru_cache_func_t* func) {
     lru_cache_t* cache = zmalloc(sizeof(lru_cache_t));
+    /*
+     * list_new - 创建新链表
+     */
     cache->list = list_new();
+    /*
+     * dict_new - 创建新哈希表
+     */
     cache->searcher = dict_new(&func->super);
     return cache;
 }
 
 void lru_cache_delete(lru_cache_t* cache) {
+    /*
+     * list_delete - 删除整个链表
+     */
     list_delete(cache->list);
+    /*
+     * dict_delete - 删除哈希表
+     */
     dict_delete(cache->searcher);
     zfree(cache);
 }
@@ -20,6 +41,9 @@ size_t lru_cache_len(lru_cache_t* cache) {
 }
 
 void* lru_cache_get(lru_cache_t* cache, void* key) {
+    /*
+     * dict_find - 查找键值
+     */
     dict_entry_t* entry = dict_find(cache->searcher, key);
     if (entry == NULL) {
         return NULL;
@@ -30,6 +54,9 @@ void* lru_cache_get(lru_cache_t* cache, void* key) {
 }
 
 int lru_cache_put(lru_cache_t* cache, void* key, void* val) {
+    /*
+     * dict_find - 查找键值
+     */
     dict_entry_t* entry = dict_find(cache->searcher, key);
     if (entry != NULL) {
         list_node_t* node = (list_node_t*)dict_get_entry_val(entry);
@@ -39,14 +66,26 @@ int lru_cache_put(lru_cache_t* cache, void* key, void* val) {
     }
     latte_pair_t* pair = latte_pair_new(key, val);
     if (pair == NULL) return -1;
+    /*
+     * list_add_node_head - 在头部添加节点
+     */
     cache->list = list_add_node_head(cache->list, pair);
     assert(cache->list->head != NULL);
+    /*
+     * dict_add - 添加键值对
+     */
     return DICT_OK == dict_add(cache->searcher, key, cache->list->head) ? 1: -1;
 }
 
 void lru_cache_remove(lru_cache_t* cache, void* key) {
+    /*
+     * dict_find - 查找键值
+     */
     dict_entry_t* node = dict_find(cache->searcher, key);
     if (node != NULL) {
+        /*
+         * list_del_node - 删除指定节点
+         */
         list_del_node(cache->list, dict_get_entry_val(node));
         dict_delete_key(cache->searcher, key);
     }
@@ -55,6 +94,9 @@ void lru_cache_remove(lru_cache_t* cache, void* key) {
 void lru_cache_pop(lru_cache_t* cache) {
     latte_pair_t*  pair = (latte_pair_t*)list_node_value(cache->list->tail);
     assert(DICT_OK == dict_delete_key(cache->searcher, latte_pair_key(pair)));
+    /*
+     * list_del_node - 删除指定节点
+     */
     list_del_node(cache->list, cache->list->tail);
 }
 

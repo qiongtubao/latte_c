@@ -1,3 +1,12 @@
+/*
+ * latte_json.c - json 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "latte_json.h"
 #include "dict/dict_plugins.h"
 // #include "json.h"

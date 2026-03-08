@@ -1,3 +1,12 @@
+/*
+ * error.c - error 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "error.h"
 #include <stdio.h>
 #include <stdarg.h>

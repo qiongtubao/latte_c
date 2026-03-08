@@ -1,3 +1,12 @@
+/*
+ * func_task.c - func_task 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "func_task.h"
 #include <stdarg.h>
 #include "zmalloc/zmalloc.h"
