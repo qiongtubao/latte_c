@@ -1,3 +1,12 @@
+/*
+ * task_test.c - task 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 
 #include "test/testhelp.h"
 #include "test/testassert.h"
@@ -16,16 +25,16 @@ void world(latteThreadJob* job) {
 }
 
 int test_task() {
-    aeEventLoop* el = aeCreateEventLoop(1024);
+    ae_event_loop_t* el = ae_event_loop_new(1024);
     taskThread* thread = createTaskThread(1, el);
     startTaskThread(thread);
     latteThreadJob* job = createThreadJob(hello, world, 1, "latte");
     submitTask(thread, job);
     sleep(1);
-    aeProcessEvents(el, AE_ALL_EVENTS|
+    ae_process_events(el, AE_ALL_EVENTS|
                                    AE_CALL_BEFORE_SLEEP|
                                    AE_CALL_AFTER_SLEEP);
-    aeDeleteEventLoop(el);
+    ae_event_loop_delete(el);
     stopTaskThread(thread);
     releaseTaskThread(thread);
     return 1;

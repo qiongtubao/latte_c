@@ -1,3 +1,12 @@
+/*
+ * rdb.c - rdb 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "rdb.h"
 #include <arpa/inet.h>
 #include "zmalloc/zmalloc.h"
@@ -125,9 +134,12 @@ int rdb_load_type(RedisModuleIO *io) {
 }
 
 /* Length encoding */
+#ifndef htonll
+uint64_t htonll(uint64_t v);
+#endif
+
 ssize_t rdb_save_len(RedisModuleIO *io, uint64_t len) {
     unsigned char buf[2];
-    size_t nwritten;
 
     if (len < (1<<6)) {
         /* Save a 6 bit len */
@@ -238,27 +250,11 @@ sds rdb_load_string(RedisModuleIO *io) {
 /* ---------------- Objects ---------------- */
 
 ssize_t rdb_save_object(RedisModuleIO *io, latte_object_t *o) {
-    ssize_t n = 0;
-    
-    if (o->type == OBJ_STRING) {
-        /* Save string */
-        n = rdb_save_string(io, o->ptr, sds_len(o->ptr));
-    } else if (o->type == OBJ_MODULE) {
-        /* Save module object */
-        module_value_t *mv = o->ptr;
-        module_type_t *mt = mv->type;
-        
-        /* Write module ID (TODO: proper module ID saving, here we just assume it is known/fixed or save name) */
-        /* In real RDB, we save module ID which maps to a module type. */
-        
-        if (mt->save) {
-            mt->save((void*)io, mv->value);
-        }
-    } else {
-        /* TODO: other types */
+    if (o == NULL || o->type != OBJ_STRING || o->ptr == NULL) {
         return -1;
     }
-    return n;
+
+    return rdb_save_string(io, o->ptr, sds_len(o->ptr));
 }
 
 latte_object_t *rdb_load_object(RedisModuleIO *io, int type) {

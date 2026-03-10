@@ -1,3 +1,12 @@
+/*
+ * task.c - task 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 
 #include "task.h"
 #include "zmalloc/zmalloc.h"
@@ -48,7 +57,7 @@ void notifyCallbackHandler(latteThread* thread) {
     }
 }
 
-void taskCallbackHandler(aeEventLoop *el, int fd, void* privdata, int  mask) {
+void taskCallbackHandler(ae_event_loop_t *el, int fd, void* privdata, int  mask) {
     char notify_recv_buf[512];
     int nread = read(fd, notify_recv_buf, sizeof(notify_recv_buf));
     if (nread == 0) {
@@ -81,7 +90,7 @@ void releaseOneTaskThread(latteThread* thread) {
     close(thread->notify_send_fd);
 }
 
-int taskThreadInit(int id, latteThread* thread, aeEventLoop* el) {
+int taskThreadInit(int id, latteThread* thread, ae_event_loop_t* el) {
     pthread_mutex_init(&thread->mutex, NULL);
     pthread_cond_init(&thread->job_cond, NULL);
     pthread_cond_init(&thread->step_cond, NULL);
@@ -111,7 +120,7 @@ int taskThreadInit(int id, latteThread* thread, aeEventLoop* el) {
     }
 
     if (el != NULL && 
-        aeCreateFileEvent(el, thread->notify_recv_fd,
+        ae_file_event_new(el, thread->notify_recv_fd,
                 AE_READABLE, taskCallbackHandler, thread) == AE_ERR) {
         printf("Fatal: create notify recv event failed: %s",
                 strerror(errno));
@@ -121,7 +130,7 @@ int taskThreadInit(int id, latteThread* thread, aeEventLoop* el) {
 }
 
 
-taskThread* createTaskThread(int tnum, aeEventLoop* el) {
+taskThread* createTaskThread(int tnum, ae_event_loop_t* el) {
     taskThread* t = zmalloc(sizeof(taskThread));
     t->num = tnum;
     t->status = THREAD_INIT;

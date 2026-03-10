@@ -1,3 +1,26 @@
+/*
+ * dict.c - 哈希表 (字典) 实现文件
+ * 
+ * Latte C 库核心组件：高性能哈希表
+ * 
+ * 设计参考：Redis 7.2.5 dict.c
+ * 
+ * 核心特性：
+ * 1. 渐进式 rehash - 分批迁移，避免单次卡顿
+ * 2. 双哈希表结构 - t[0] 当前表，t[1] rehash 目标表
+ * 3. 链地址法解决冲突
+ * 4. 可定制回调 (hash/dup/compare/destructor)
+ * 5. 支持元数据扩展
+ * 6. 自动扩容/缩容
+ * 
+ * 关键算法：
+ * - SipHash: 哈希函数 (抗碰撞)
+ * - 渐进式 rehash: 每次操作迁移少量条目
+ * - 负载因子控制: 100% 扩容，10% 缩容
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
 
 #include "dict.h"
 #include "zmalloc/zmalloc.h"
@@ -5,63 +28,107 @@
 #include <sys/time.h>
 #include <string.h>
 
-/* Using dictEnableResize() / dictDisableResize() we make possible to
- * enable/disable resizing of the hash table as needed. This is very important
- * for Redis, as we use copy-on-write and don't want to move too much memory
- * around when there is a child performing saving operations.
- *
- * Note that even when dict_can_resize is set to 0, not all resizes are
- * prevented: a hash table is still allowed to grow if the ratio between
- * the number of elements and the buckets > dict_force_resize_ratio. */
+/* 全局状态：是否允许自动扩容
+ * 
+ * 用途：
+ * - Redis RDB/AOF 保存时临时禁用扩容
+ * - 避免 fork 子进程时大量内存分配
+ * 
+ * 注意：即使禁用，当负载因子 > 5 时仍会强制扩容
+ */
 static int dict_can_resize = 1;
-static unsigned int dict_force_resize_ratio = 5;
+static unsigned int dict_force_resize_ratio = 5;  /* 强制扩容阈值 */
 
+/* -------------------------- 哈希函数 -------------------------------- */
 
-
-
-
-/* -------------------------- hash functions -------------------------------- */
-
+/* 哈希函数种子 (16 字节)
+ * 使用 SipHash 算法，需要随机种子防止碰撞攻击
+ */
 static uint8_t dict_hash_function_seed[16];
 
+/*
+ * dict_set_hash_function_seed - 设置哈希函数种子
+ * 
+ * 参数：seed - 16 字节种子数组
+ * 
+ * 用途：
+ * - 启动时随机化种子
+ * - 提高哈希分布质量
+ */
 void dict_set_hash_function_seed(uint8_t *seed) {
-    memcpy(dict_hash_function_seed,seed,sizeof(dict_hash_function_seed));
+    memcpy(dict_hash_function_seed, seed, sizeof(dict_hash_function_seed));
 }
 
+/*
+ * dict_get_hash_function_seed - 获取哈希函数种子
+ * 
+ * 返回：种子指针
+ */
 uint8_t *dict_get_hash_function_seed(void) {
     return dict_hash_function_seed;
 }
 
-/* The default hashing function uses SipHash implementation
- * in siphash.c. */
-
+/* 默认哈希函数：SipHash
+ * 基于 siphash.c 实现，抗碰撞能力强
+ */
 uint64_t siphash(const uint8_t *in, const size_t inlen, const uint8_t *k);
 uint64_t siphash_nocase(const uint8_t *in, const size_t inlen, const uint8_t *k);
 
+/*
+ * dict_gen_hash_function - 生成键的哈希值 (区分大小写)
+ * 
+ * 参数：key - 键指针
+ *       len - 键长度
+ * 返回：64 位哈希值
+ */
 uint64_t dict_gen_hash_function(const void *key, size_t len) {
-    return siphash(key,len,dict_hash_function_seed);
+    return siphash(key, len, dict_hash_function_seed);
 }
 
+/*
+ * dict_gen_case_hash_function - 生成键的哈希值 (不区分大小写)
+ * 
+ * 参数：buf - 键指针
+ *       len - 键长度
+ * 返回：64 位哈希值
+ */
 uint64_t dict_gen_case_hash_function(const unsigned char *buf, size_t len) {
-    return siphash_nocase(buf,len,dict_hash_function_seed);
+    return siphash_nocase(buf, len, dict_hash_function_seed);
 }
 
+/* -------------------------- 哈希表内部管理 -------------------------------- */
 
-
-
-
-/* Reset hash table parameters already initialized with _dict_init()*/
-static void _dict_reset(dict_t*d, int htidx)
-{
+/*
+ * _dict_reset - 重置单个哈希表参数
+ * 
+ * 参数：d - 字典指针
+ *       htidx - 表索引 (0 或 1)
+ * 
+ * 操作：
+ * - 清空表指针
+ * - 设置大小为 -1 (空表)
+ * - 重置使用计数
+ */
+static void _dict_reset(dict_t *d, int htidx) {
     d->ht_table[htidx] = NULL;
     d->ht_size_exp[htidx] = -1;
     d->ht_used[htidx] = 0;
 }
 
-
-/* Initialize the hash table */
-int _dict_init(dict_t*d, dict_func_t*type)
-{
+/*
+ * _dict_init - 初始化哈希表参数
+ * 
+ * 参数：d - 字典指针
+ *       type - 回调函数集
+ * 返回：DICT_OK
+ * 
+ * 操作：
+ * - 重置两个表 (t[0] 和 t[1])
+ * - 设置回调函数集
+ * - 初始化 rehash 索引为 -1 (未进行 rehash)
+ * - 清空暂停计数器
+ */
+int _dict_init(dict_t *d, dict_func_t *type) {
     _dict_reset(d, 0);
     _dict_reset(d, 1);
     d->type = type;
@@ -70,13 +137,21 @@ int _dict_init(dict_t*d, dict_func_t*type)
     return DICT_OK;
 }
 
-
-
-
-/* Create a new hash table */
-dict_t*dict_new(dict_func_t*type)
-{
-    dict_t*d = zmalloc(sizeof(*d));
+/*
+ * dict_new - 创建新字典
+ * 
+ * 参数：type - 回调函数集指针
+ * 返回：成功返回字典指针，失败返回 NULL
+ * 
+ * 创建过程：
+ * 1. 分配字典结构
+ * 2. 初始化哈希表参数
+ */
+/*
+ * dict_new - 创建新哈希表
+ */
+dict_t* dict_new(dict_func_t *type) {
+    dict_t *d = zmalloc(sizeof(*d));
 
     _dict_init(d,type);
     return d;
@@ -135,6 +210,9 @@ static long _dict_key_index(dict_t*d, const void *key, uint64_t hash, dict_entry
 /* Expand or create the hash table,
  * when malloc_failed is non-NULL, it'll avoid panic if malloc fails (in which case it'll be set to 1).
  * Returns DICT_OK if expand was performed, and DICT_ERR if skipped. */
+/*
+ * dict_expand - 扩展哈希表
+ */
 int _dict_expand(dict_t*d, unsigned long size, int* malloc_failed)
 {
     if (malloc_failed) *malloc_failed = 0;
@@ -188,6 +266,9 @@ int _dict_expand(dict_t*d, unsigned long size, int* malloc_failed)
 
 /* return DICT_ERR if expand was not performed */
 int dict_expand(dict_t*d, unsigned long size) {
+    /*
+     * dict_expand - 扩展哈希表
+     */
     return _dict_expand(d, size, NULL);
 }
 
@@ -201,6 +282,9 @@ int dict_expand(dict_t*d, unsigned long size) {
  * guaranteed that this function will rehash even a single bucket, since it
  * will visit at max N*10 empty buckets in total, otherwise the amount of
  * work it does would be unbound and the function may block for a long time. */
+/*
+ * dict_rehash - 重新哈希
+ */
 int dict_rehash(dict_t*d, int n) {
     int empty_visits = n*10; /* Max number of empty buckets to visit. */
     if (!dict_is_rehashing(d)) return 0;
@@ -259,6 +343,9 @@ int dict_rehash(dict_t*d, int n) {
  * dictionary so that the hash table automatically migrates from H1 to H2
  * while it is actively used. */
 static void _dict_rehash_step(dict_t*d) {
+    /*
+     * dict_rehash - 重新哈希
+     */
     if (d->pauserehash == 0) dict_rehash(d,1);
 }
 
@@ -377,6 +464,9 @@ static int _dict_expand_if_needed(dict_t*d)
          d->ht_used[0]/ DICTHT_SIZE(d->ht_size_exp[0]) > dict_force_resize_ratio) &&
         dict_expand_allowed(d))
     {
+        /*
+         * dict_expand - 扩展哈希表
+         */
         return dict_expand(d, d->ht_used[0] + 1);
     }
     return DICT_OK;
@@ -416,6 +506,9 @@ static long _dict_key_index(dict_t*d, const void *key, uint64_t hash, dict_entry
 }
 
 
+/*
+ * dict_find - 查找键值
+ */
 dict_entry_t*dict_find(dict_t*d, const void *key)
 {
     dict_entry_t*he;
@@ -446,6 +539,9 @@ dict_entry_t* dict_add_get(dict_t* d, void* key, void* val) {
     return entry;
 }
 
+/*
+ * dict_add - 添加键值对
+ */
 int dict_add(dict_t*d, void *key, void *val) {
     dict_entry_t* entry =  dict_add_get(d, key, val);
     if (!entry) return DICT_ERR;
@@ -515,6 +611,9 @@ int dict_resize(dict_t*d)
     minimal = d->ht_used[0];
     if (minimal < DICT_HT_INITIAL_SIZE)
         minimal = DICT_HT_INITIAL_SIZE;
+    /*
+     * dict_expand - 扩展哈希表
+     */
     return dict_expand(d, minimal);
 }
 
@@ -649,6 +748,9 @@ int dict_delete_key(dict_t*ht, const void *key) {
 void* dict_fetch_value(dict_t *d, const void *key) {
     dict_entry_t* he;
 
+    /*
+     * dict_find - 查找键值
+     */
     he = dict_find(d, key);
     return he ? dict_get_entry_val(he) : NULL;
 }
@@ -741,6 +843,9 @@ int private_dict_cmp(dict_t* a, dict_t* b, cmp_func cmp) {
     while(latte_iterator_has_next(it)) {
         latte_pair_t* pair = latte_iterator_next(it);
         void* key = latte_pair_key(pair);
+        /*
+         * dict_find - 查找键值
+         */
         dict_entry_t* entry = dict_find(b, key);
         if (entry == NULL) {
             result = -1;

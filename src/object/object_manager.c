@@ -1,3 +1,11 @@
+/* object_manager.c
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 /**
  * Object 管理实现：全局 global_object_manager，按类型名注册，类型 id 递增分配。
  */

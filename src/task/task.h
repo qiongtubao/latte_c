@@ -1,3 +1,12 @@
+/*
+ * task.h - task 模块头文件
+ * 
+ * Latte C 库组件
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #ifndef __LATTE_TASK_H
 #define __LATTE_TASK_H
 
@@ -5,8 +14,7 @@
 #include "list/list.h"
 #include "ae/ae.h"
 
-typedef int task_fn(void* job);
-typedef void callback_fn(void* job);
+/* task_fn and callback_fn are defined in func_task/func_task.h via ae/ae.h */
 
 typedef struct latteThreadJob {
     int argv;
@@ -42,7 +50,7 @@ typedef struct taskThread {
     int maxJobs;
 } taskThread;
 
-taskThread* createTaskThread(int tnum, aeEventLoop* loop);
+taskThread* createTaskThread(int tnum, ae_event_loop_t* loop);
 void releaseTaskThread(taskThread* thread);
 void startTaskThread(taskThread* thread);
 void stopTaskThread(taskThread* thread);

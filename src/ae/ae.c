@@ -1,4 +1,23 @@
-
+/*
+ * ae.c - 事件循环 (AE) 实现文件
+ * 
+ * Latte C 库核心组件：高性能事件驱动框架
+ * 
+ * 主要功能：
+ * 1. 事件注册与取消 (文件事件 + 时间事件)
+ * 2. 多路复用后端自动选择 (epoll/kqueue/iouring/select)
+ * 3. 定时器管理 (一次性/周期性)
+ * 4. 非阻塞 I/O 封装
+ * 5. 可扩展钩子 (beforesleep/aftersleep)
+ * 
+ * 核心流程：
+ * - ae_main: 进入事件循环
+ * - ae_process_events: 处理就绪事件
+ * - ae_api_process_events: 后端具体实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
 
 #include "ae.h"
 
@@ -12,13 +31,20 @@
 #include <time.h>
 #include <errno.h>
 #include "zmalloc/zmalloc.h"
-#include "utils/sys_config.h"   //这里判断是否HAVE_EVPORT,HAVE_EPOLL,HAVE_KQUEUE
+#include "utils/sys_config.h"   // 系统配置，判断 HAVE_EVPORT/HAVE_EPOLL/HAVE_KQUEUE
 #include "anet/anet.h"
 #include "log/log.h"
 
 
-/* Include the best multiplexing layer supported by this system.
- * The following should be ordered by performances, descending. */
+/* 包含最佳的多路复用后端 (按性能降序排列)
+ * 
+ * 选择优先级：
+ * 1. io_uring (Linux 4.18+, 最新高性能)
+ * 2. evport (Solaris 11+)
+ * 3. epoll (Linux, 主流)
+ * 4. kqueue (BSD/macOS)
+ * 5. select (兜底，所有 Unix)
+ */
 #ifdef HAVE_IOURING
     #include "ae_iouring.c"
 #else
@@ -37,40 +63,76 @@
     #endif
 #endif
 
+/* 删除函数任务回调包装器
+ * 用于列表释放时正确删除 func_task
+ */
 void _latte_func_task_delete(void* task) {
     latte_func_task_delete((latte_func_task_t*)task);
 }
 
-/* create a new event loop */
-ae_event_loop_t *ae_event_loop_new(int setsize) { //创建一个事件循环
+/*
+ * ae_event_loop_new - 创建新的事件循环
+ * 
+ * 参数：setsize - 最大可跟踪的文件描述符数量
+ * 返回：成功返回事件循环指针，失败返回 NULL
+ * 
+ * 创建过程：
+ * 1. 分配事件循环结构
+ * 2. 初始化事件数组和触发数组
+ * 3. 初始化时间事件链表
+ * 4. 调用后端初始化 (ae_api_create)
+ * 5. 初始化事件数组所有项为 AE_NONE
+ */
+/*
+ * ae_event_loop_new - 创建新事件循环
+ */
+ae_event_loop_t *ae_event_loop_new(int setsize) {
     ae_event_loop_t *eventLoop;
     int i;
 
-    monotonicInit();  //提高时间精度  /* just in case the calling app didn't initialize */
+    monotonicInit();  // 初始化单调时钟 (提高时间精度)
 
+    /* 分配事件循环主结构 */
     if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
-    eventLoop->events = zmalloc(sizeof(ae_file_event_t)*setsize);   //创建一个事件数组
-    eventLoop->fired = zmalloc(sizeof(ae_fired_event_t)*setsize);   //创建一个触发事件的数组
+    
+    /* 分配文件事件数组 (fd 索引) */
+    eventLoop->events = zmalloc(sizeof(ae_file_event_t)*setsize);
+    
+    /* 分配触发事件数组 (用于存储一轮中触发的事件) */
+    eventLoop->fired = zmalloc(sizeof(ae_fired_event_t)*setsize);
+    
     if (eventLoop->events == NULL || eventLoop->fired == NULL) goto err;
-    eventLoop->setsize = setsize;
-    eventLoop->timeEventHead = NULL;
-    eventLoop->timeEventNextId = 0;
-    eventLoop->stop = 0;
-    eventLoop->maxfd = -1;
-    eventLoop->beforesleep = NULL;
-    eventLoop->beforesleeps = list_new();
+    
+    /* 初始化基本字段 */
+    eventLoop->setsize = setsize;           // 最大 fd 数量
+    eventLoop->timeEventHead = NULL;        // 时间事件链表为空
+    eventLoop->timeEventNextId = 0;         // 下一个时间事件 ID
+    eventLoop->stop = 0;                    // 未停止
+    eventLoop->maxfd = -1;                  // 最大 fd 初始为 -1
+    eventLoop->beforesleep = NULL;          // 单例睡眠前回调
+    /*
+     * list_new - 创建新链表
+     */
+    eventLoop->beforesleeps = list_new();   // 睡眠前回调列表
     eventLoop->beforesleeps->free = _latte_func_task_delete;
-    eventLoop->aftersleep = NULL;
-    eventLoop->aftersleeps = list_new();
-    eventLoop->flags = 0;
-    if (ae_api_create(eventLoop) == -1) goto err;   //创建一个事件循环
-    /* Events with mask == AE_NONE are not set. So let's initialize the
-     * vector with it. */
+    eventLoop->aftersleep = NULL;           // 单例睡眠后回调
+    /*
+     * list_new - 创建新链表
+     */
+    eventLoop->aftersleeps = list_new();    // 睡眠后回调列表
+    eventLoop->flags = 0;                   // 标志位清空
+    
+    /* 调用后端初始化 (创建 epoll/kqueue 等) */
+    if (ae_api_create(eventLoop) == -1) goto err;
+    
+    /* 初始化事件数组所有项为 AE_NONE (未注册状态) */
     for (i = 0; i < setsize; i++)
-        eventLoop->events[i].mask = AE_NONE;   //初始化事件数组
+        eventLoop->events[i].mask = AE_NONE;
+    
     return eventLoop;
 
 err:
+    /* 错误处理：释放已分配资源 */
     if (eventLoop) {
         zfree(eventLoop->events);
         zfree(eventLoop->fired);
@@ -79,89 +141,146 @@ err:
     return NULL;
 }
 
-/* Return the current set size. */
-int ae_get_set_size(ae_event_loop_t *eventLoop) { //返回当前事件循环的设置大小
+/*
+ * ae_get_set_size - 获取事件循环的最大 fd 数量
+ * 
+ * 参数：eventLoop - 事件循环指针
+ * 返回：setsize 值
+ */
+int ae_get_set_size(ae_event_loop_t *eventLoop) {
     return eventLoop->setsize;
 }
 
-/* Tells the next iteration/s of the event processing to set timeout of 0. */
-void ae_set_dont_wait(ae_event_loop_t *eventLoop, int noWait) { //告诉下一个事件循环设置是否等待
+/*
+ * ae_set_dont_wait - 设置是否等待模式
+ * 
+ * 参数：eventLoop - 事件循环指针
+ *       noWait - 1 表示不等待 (立即返回), 0 表示正常等待
+ * 
+ * 作用：设置 AE_DONT_WAIT 标志，使下一次轮询不阻塞
+ */
+void ae_set_dont_wait(ae_event_loop_t *eventLoop, int noWait) {
     if (noWait)
         eventLoop->flags |= AE_DONT_WAIT;
     else
         eventLoop->flags &= ~AE_DONT_WAIT;
 }
 
-/* Resize the maximum set size of the event loop.
- * If the requested set size is smaller than the current set size, but
- * there is already a file descriptor in use that is >= the requested
- * set size minus one, AE_ERR is returned and the operation is not
- * performed at all.
- *
- * Otherwise AE_OK is returned and the operation is successful. */
-int ae_resize_set_size(ae_event_loop_t *eventLoop, int setsize) { //重新fd数组大小
+/*
+ * ae_resize_set_size - 重新调整事件循环的最大 fd 数量
+ * 
+ * 参数：eventLoop - 事件循环指针
+ *       setsize - 新的最大 fd 数量
+ * 返回：成功返回 AE_OK，失败返回 AE_ERR
+ * 
+ * 注意事项：
+ * - 不能缩小到已使用的 fd 以下
+ * - 重新分配 events 和 fired 数组
+ * - 新分配的槽位初始化为 AE_NONE
+ */
+int ae_resize_set_size(ae_event_loop_t *eventLoop, int setsize) {
     int i;
 
+    /* 如果大小不变，直接返回 */
     if (setsize == eventLoop->setsize) return AE_OK;
+    
+    /* 如果请求的大小小于最大已使用 fd，返回错误 */
     if (eventLoop->maxfd >= setsize) return AE_ERR;
-    if (ae_api_resize(eventLoop,setsize) == -1) return AE_ERR;
+    
+    /* 调整后端大小 (epoll/kqueue 等) */
+    if (ae_api_resize(eventLoop, setsize) == -1) return AE_ERR;
 
-    eventLoop->events = zrealloc(eventLoop->events,sizeof(ae_file_event_t)*setsize);
-    eventLoop->fired = zrealloc(eventLoop->fired,sizeof(ae_fired_event_t)*setsize);
+    /* 重新分配事件数组 */
+    eventLoop->events = zrealloc(eventLoop->events, sizeof(ae_file_event_t)*setsize);
+    eventLoop->fired = zrealloc(eventLoop->fired, sizeof(ae_fired_event_t)*setsize);
     eventLoop->setsize = setsize;
 
-    /* Make sure that if we created new slots, they are initialized with
-     * an AE_NONE mask. */
-    for (i = eventLoop->maxfd+1; i < setsize; i++)
+    /* 初始化新分配的槽位为 AE_NONE */
+    for (i = eventLoop->maxfd + 1; i < setsize; i++)
         eventLoop->events[i].mask = AE_NONE;
+    
     return AE_OK;
 }
 
-void ae_event_loop_delete(ae_event_loop_t *eventLoop) {//删除事件循环
+/*
+ * ae_event_loop_delete - 销毁事件循环
+ * 
+ * 参数：eventLoop - 待销毁的事件循环指针
+ * 
+ * 销毁过程：
+ * 1. 调用后端销毁 (ae_api_delete)
+ * 2. 释放 events 和 fired 数组
+ * 3. 释放所有时间事件
+ * 4. 释放睡眠回调列表
+ * 5. 释放事件循环结构本身
+ */
+/*
+ * ae_event_loop_delete - 销毁事件循环
+ */
+void ae_event_loop_delete(ae_event_loop_t *eventLoop) {
+    /* 调用后端销毁 */
     ae_api_delete(eventLoop);
+    
+    /* 释放事件数组 */
     zfree(eventLoop->events);
     zfree(eventLoop->fired);
 
-    /* Free the time events list. */
+    /* 释放时间事件链表 */
     ae_time_event_t *next_te, *te = eventLoop->timeEventHead;
     while (te) {
         next_te = te->next;
         zfree(te);
         te = next_te;
     }
+    
+    /* 释放睡眠前回调列表 */
     if (eventLoop->beforesleeps != NULL) {
+        /*
+         * list_delete - 删除整个链表
+         */
         list_delete(eventLoop->beforesleeps);
         eventLoop->beforesleeps = NULL;
     }
+    
+    /* 释放睡眠后回调列表 */
     if (eventLoop->aftersleeps != NULL) {
+        /*
+         * list_delete - 删除整个链表
+         */
         list_delete(eventLoop->aftersleeps);
         eventLoop->aftersleeps = NULL;
     }
+    
+    /* 释放事件循环结构 */
     zfree(eventLoop);
 }
 
-void ae_stop(ae_event_loop_t *eventLoop) { //停止事件循环，配合ae_main使用
+/*
+ * ae_stop - 停止事件循环
+ * 
+ * 参数：eventLoop - 事件循环指针
+ * 
+ * 作用：设置 stop 标志，使 ae_main 循环退出
+ * 通常用于信号处理或外部条件触发退出
+ */
+void ae_stop(ae_event_loop_t *eventLoop) {
     eventLoop->stop = 1;
 }
 
-/**
- *  回调函数记录在外面的event数组里，标记着mask 读写事件
- *  添加event事件给对应的模型
- *  
+/*
+ * ae_file_event_new - 注册文件事件
  */
-int ae_file_event_new(ae_event_loop_t *eventLoop, int fd, int mask, //创建一个文件事件
-        ae_file_proc_func *proc, void *clientData)  //创建一个文件事件的回调函数
+int ae_file_event_new(ae_event_loop_t *eventLoop, int fd, int mask,
+        ae_file_proc_func *proc, void *clientData)
 {
-    //如果fd大于事件循环的设置大小，则返回错误
     if (fd >= eventLoop->setsize) {
         errno = ERANGE;
         return AE_ERR;
     }
     ae_file_event_t *fe = &eventLoop->events[fd];
 
-    if (ae_api_add_event(eventLoop, fd, mask) == -1) //添加一个文件事件 
+    if (ae_api_add_event(eventLoop, fd, mask) == -1)
         return AE_ERR;
-    
     fe->mask |= mask;
     if (mask & AE_READABLE) fe->rfileProc = proc;
     if (mask & AE_WRITABLE) fe->wfileProc = proc;
@@ -333,6 +452,9 @@ void ae_do_before_sleep(ae_event_loop_t *eventLoop) {
     if ( list_length(eventLoop->beforesleeps) > 0) {
         list_node_t* ln;
         list_iterator_t li;
+        /*
+         * list_rewind - 迭代器从头开始
+         */
         list_rewind(eventLoop->beforesleeps, &li);
         while((ln = list_next(&li))) {
             latte_func_task_t *t = list_node_value(ln);
@@ -347,6 +469,9 @@ void ae_do_after_sleep(ae_event_loop_t *eventLoop) {
     if ( list_length(eventLoop->beforesleeps) > 0) {
         list_node_t* ln;
         list_iterator_t li;
+        /*
+         * list_rewind - 迭代器从头开始
+         */
         list_rewind(eventLoop->beforesleeps, &li);
         while((ln = list_next(&li))) {
             latte_func_task_t *t = list_node_value(ln);
@@ -513,6 +638,9 @@ int ae_wait(int fd, int mask, long long milliseconds) {
     }
 }
 
+/*
+ * ae_main - 事件循环主函数
+ */
 void ae_main(ae_event_loop_t *eventLoop) {
     eventLoop->stop = 0;
     while (!eventLoop->stop) {
@@ -536,10 +664,16 @@ void ae_set_after_sleep_proc(ae_event_loop_t *eventLoop, ae_before_sleep_proc_fu
 
 
 void ae_add_before_sleep_task(ae_event_loop_t* eventLoop, latte_func_task_t* task) {
+    /*
+     * list_add_node_tail - 在尾部添加节点
+     */
     eventLoop->beforesleeps =  list_add_node_tail(eventLoop->beforesleeps, task);
 }
 
 void ae_add_after_sleep_task(ae_event_loop_t* eventLoop, latte_func_task_t* task) {
+    /*
+     * list_add_node_tail - 在尾部添加节点
+     */
     eventLoop->aftersleeps =  list_add_node_tail(eventLoop->aftersleeps, task);
 }
 

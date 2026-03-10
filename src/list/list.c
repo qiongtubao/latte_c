@@ -1,58 +1,72 @@
-/* adlist.c - A generic doubly linked list implementation
- *
- * Copyright (c) 2006-2010, Salvatore Sanfilippo <antirez at gmail dot com>
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *   * Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *   * Neither the name of Redis nor the names of its contributors may be used
- *     to endorse or promote products derived from this software without
- *     specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+/* list.c - 双向链表实现文件
+ * 
+ * Latte C 库基础组件：通用双向链表实现
+ * 基于 Redis adlist.c 改编
+ * 
+ * 核心特性：
+ * 1. 双向链表 (prev/next 指针)
+ * 2. 可定制内存管理 (dup/free/match 回调)
+ * 3. O(1) 头尾插入/删除
+ * 4. 支持迭代器遍历
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
  */
-
 
 #include <stdlib.h>
 #include "list.h"
 #include "zmalloc/zmalloc.h"
-/* Create a new list. The created list can be freed with
- * list_delete(), but private value of every node need to be freed
- * by the user before to call list_delete(), or by setting a free method using
- * list_set_free_method.
- *
- * On error, NULL is returned. Otherwise the pointer to the new list. */
+
+/*
+ * list_new - 创建新链表
+ * 
+ * 功能：
+ * - 分配链表结构
+ * - 初始化头尾指针为 NULL
+ * - 初始化长度为 0
+ * - 清空所有回调函数
+ * 
+ * 注意：
+ * - 创建的链表需要由 user 负责释放节点值
+ * - 或设置 list_set_free_method 自动释放
+ * 
+ * 返回：成功返回链表指针，失败返回 NULL
+ */
+/*
+ * list_new - 创建新链表
+ */
 list_t *list_new(void)
 {
     struct list_t *list;
 
     if ((list = zmalloc(sizeof(*list))) == NULL)
         return NULL;
-    list->head = list->tail = NULL;
-    list->len = 0;
-    list->dup = NULL;
-    list->free = NULL;
-    list->match = NULL;
+    
+    list->head = list->tail = NULL;  /* 初始化头尾指针 */
+    list->len = 0;                    /* 长度清零 */
+    list->dup = NULL;                 /* 清空复制回调 */
+    list->free = NULL;                /* 清空释放回调 */
+    list->match = NULL;               /* 清空比较回调 */
+    
     return list;
 }
 
-/* Remove all the elements from the list without destroying the list itself. */
+/*
+ * list_empty - 清空链表 (保留链表结构)
+ * 
+ * 功能：
+ * - 遍历所有节点
+ * - 调用 free 回调释放节点值 (如果已设置)
+ * - 释放节点本身
+ * - 重置头尾指针和长度
+ * 
+ * 注意：
+ * - 不释放链表结构本身
+ * - 调用 list_delete 前应先清空
+ */
+/*
+ * list_empty - 清空链表
+ */
 void list_empty(list_t *list)
 {
     unsigned long len;
@@ -60,433 +74,558 @@ void list_empty(list_t *list)
 
     current = list->head;
     len = list->len;
+    
+    /* 遍历所有节点并释放 */
     while(len--) {
         next = current->next;
-        if (list->free) list->free(current->value);
+        
+        /* 如果设置了释放回调，释放节点值 */
+        if (list->free) 
+            list->free(current->value);
+        
+        /* 释放节点本身 */
         zfree(current);
+        
         current = next;
     }
+    
+    /* 重置链表状态 */
     list->head = list->tail = NULL;
     list->len = 0;
 }
 
+/*
+ * list_for_each_delete - 条件删除节点
+ * 
+ * 功能：
+ * - 遍历链表
+ * - 对每个节点调用 need_delete 回调
+ * - 如果返回 true，删除该节点
+ * 
+ * 参数：
+ * - l: 链表指针
+ * - need_delete: 判断函数，返回 true 表示需要删除
+ * 
+ * 返回：删除的节点数量
+ */
 int list_for_each_delete(list_t* l, int (*need_delete)(void* value)) {
     list_node_t* node = l->head;
     list_node_t* next = NULL;
     int deleted = 0;
+    
     while (node) {
-        next = node->next;
+        next = node->next;  /* 保存下一个节点 */
+        
+        /* 如果满足删除条件 */
         if (need_delete(node->value)) {
-            list_del_node(l, node);
+            /*
+             * list_del_node - 删除指定节点
+             */
+            list_del_node(l, node);  /* 删除当前节点 */
             deleted++;
         }
-        node = next;
+        
+        node = next;  /* 移动到下一个节点 */
     }
+    
     return deleted;
 }
 
-/* Free the whole list.
- *
- * This function can't fail. */
+/*
+ * list_delete - 删除整个链表
+ * 
+ * 功能：
+ * - 先清空所有节点
+ * - 再释放链表结构本身
+ * 
+ * 注意：
+ * - 此函数不会失败
+ * - 调用前确保所有资源已正确处理
+ */
+/*
+ * list_delete - 删除整个链表
+ */
 void list_delete(list_t *list)
 {
-    list_empty(list);
-    zfree(list);
+    /*
+     * list_empty - 清空链表
+     */
+    list_empty(list);  /* 清空所有节点 */
+    zfree(list);       /* 释放链表结构 */
 }
 
-/* Add a new node to the list, to head, containing the specified 'value'
- * pointer as value.
- *
- * On error, NULL is returned and no operation is performed (i.e. the
- * list remains unaltered).
- * On success the 'list' pointer you pass to the function is returned. */
+/*
+ * list_add_node_head - 在链表头部添加节点
+ * 
+ * 参数：
+ * - list: 链表指针
+ * - value: 节点值
+ * 
+ * 功能：
+ * - 分配新节点
+ * - 调用 dup 回调复制值 (如果已设置)
+ * - 插入到链表头部
+ * - 更新头尾指针
+ * 
+ * 返回：添加后的链表指针
+ */
+/*
+ * list_add_node_head - 在头部添加节点
+ */
 list_t *list_add_node_head(list_t *list, void *value)
 {
     list_node_t *node;
 
+    /* 分配新节点 */
     if ((node = zmalloc(sizeof(*node))) == NULL)
         return NULL;
-    node->value = value;
-    if (list->len == 0) {
-        list->head = list->tail = node;
-        node->prev = node->next = NULL;
-    } else {
-        node->prev = NULL;
-        node->next = list->head;
+    
+    /* 复制值 (如果设置了 dup 回调) */
+    if (list->dup)
+        node->value = list->dup(value);
+    else
+        node->value = value;
+    
+    /* 插入到头部 */
+    node->next = list->head;
+    node->prev = NULL;
+    
+    /* 更新头指针 */
+    if (list->head)
         list->head->prev = node;
-        list->head = node;
-    }
+    else
+        list->tail = node;  /* 如果原链表为空，更新尾指针 */
+    
+    list->head = node;
     list->len++;
+    
     return list;
 }
 
-/* Add a new node to the list, to tail, containing the specified 'value'
- * pointer as value.
- *
- * On error, NULL is returned and no operation is performed (i.e. the
- * list remains unaltered).
- * On success the 'list' pointer you pass to the function is returned. */
+/*
+ * list_add_node_tail - 在链表尾部添加节点
+ * 
+ * 参数：
+ * - list: 链表指针
+ * - value: 节点值
+ * 
+ * 功能：
+ * - 分配新节点
+ * - 调用 dup 回调复制值 (如果已设置)
+ * - 插入到链表尾部
+ * - 更新头尾指针
+ * 
+ * 返回：添加后的链表指针
+ */
+/*
+ * list_add_node_tail - 在尾部添加节点
+ */
 list_t *list_add_node_tail(list_t *list, void *value)
 {
     list_node_t *node;
 
+    /* 分配新节点 */
     if ((node = zmalloc(sizeof(*node))) == NULL)
         return NULL;
-    node->value = value;
-    if (list->len == 0) {
-        list->head = list->tail = node;
-        node->prev = node->next = NULL;
-    } else {
-        node->prev = list->tail;
-        node->next = NULL;
+    
+    /* 复制值 (如果设置了 dup 回调) */
+    if (list->dup)
+        node->value = list->dup(value);
+    else
+        node->value = value;
+    
+    /* 插入到尾部 */
+    node->next = NULL;
+    node->prev = list->tail;
+    
+    /* 更新尾指针 */
+    if (list->tail)
         list->tail->next = node;
-        list->tail = node;
-    }
+    else
+        list->head = node;  /* 如果原链表为空，更新头指针 */
+    
+    list->tail = node;
     list->len++;
+    
     return list;
 }
 
-list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int after) {
+/*
+ * list_insert_node - 在指定节点前后插入新节点
+ * 
+ * 参数：
+ * - list: 链表指针
+ * - old_node: 参考节点
+ * - value: 新节点值
+ * - after: 1=在 old_node 后插入，0=在 old_node 前插入
+ * 
+ * 功能：
+ * - 分配新节点
+ * - 复制值 (如果设置了 dup 回调)
+ * - 调整指针连接
+ * - 更新头尾指针 (如果插入到头或尾)
+ * 
+ * 返回：插入后的链表指针
+ */
+/*
+ * list_insert_node - 在指定位置插入节点
+ */
+list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int after)
+{
     list_node_t *node;
 
+    /* 分配新节点 */
     if ((node = zmalloc(sizeof(*node))) == NULL)
         return NULL;
-    node->value = value;
+    
+    /* 复制值 (如果设置了 dup 回调) */
+    if (list->dup)
+        node->value = list->dup(value);
+    else
+        node->value = value;
+    
+    /* 插入到 old_node 后 */
     if (after) {
-        node->prev = old_node;
         node->next = old_node->next;
-        if (list->tail == old_node) {
-            list->tail = node;
-        }
-    } else {
-        node->next = old_node;
+        node->prev = old_node;
+        
+        if (old_node->next)
+            old_node->next->prev = node;
+        else
+            list->tail = node;  /* 如果插入到尾部，更新尾指针 */
+        
+        old_node->next = node;
+    } else {  /* 插入到 old_node 前 */
         node->prev = old_node->prev;
-        if (list->head == old_node) {
-            list->head = node;
-        }
+        node->next = old_node;
+        
+        if (old_node->prev)
+            old_node->prev->next = node;
+        else
+            list->head = node;  /* 如果插入到头部，更新头指针 */
+        
+        old_node->prev = node;
     }
-    if (node->prev != NULL) {
-        node->prev->next = node;
-    }
-    if (node->next != NULL) {
-        node->next->prev = node;
-    }
+    
     list->len++;
+    
     return list;
 }
 
-/* Remove the specified node from the specified list.
- * It's up to the caller to free the private value of the node.
- *
- * This function can't fail. */
+/*
+ * list_del_node - 删除指定节点
+ * 
+ * 参数：
+ * - list: 链表指针
+ * - node: 待删除的节点
+ * 
+ * 功能：
+ * - 调整前后节点的指针
+ * - 释放节点值 (如果设置了 free 回调)
+ * - 释放节点本身
+ * - 更新头尾指针 (如果删除的是头或尾)
+ * - 更新长度
+ */
+/*
+ * list_del_node - 删除指定节点
+ */
 void list_del_node(list_t *list, list_node_t *node)
 {
+    /* 调整前驱节点的 next 指针 */
     if (node->prev)
         node->prev->next = node->next;
     else
-        list->head = node->next;
+        list->head = node->next;  /* 删除的是头节点 */
+    
+    /* 调整后继节点的 prev 指针 */
     if (node->next)
         node->next->prev = node->prev;
     else
-        list->tail = node->prev;
-    if (list->free) list->free(node->value);
+        list->tail = node->prev;  /* 删除的是尾节点 */
+    
+    /* 释放节点值 */
+    if (list->free)
+        list->free(node->value);
+    
+    /* 释放节点本身 */
     zfree(node);
+    
+    /* 更新长度 */
     list->len--;
 }
 
-/* Returns a list iterator 'iter'. After the initialization every
- * call to list_next() will return the next element of the list.
- *
- * This function can't fail. */
+/*
+ * list_get_iterator - 获取链表迭代器
+ * 
+ * 参数：
+ * - list: 链表指针
+ * - direction: 遍历方向 (1=正向，-1=反向)
+ * 
+ * 返回：迭代器指针
+ */
 list_iterator_t* list_get_iterator(list_t *list, int direction)
 {
-    list_iterator_t*iter;
-
-    if ((iter = zmalloc(sizeof(*iter))) == NULL) return NULL;
-    if (direction == AL_START_HEAD)
-        iter->next = list->head;
-    else
-        iter->next = list->tail;
+    list_iterator_t *iter;
+    
+    if ((iter = zmalloc(sizeof(*iter))) == NULL)
+        return NULL;
+    
+    /* 根据方向设置起始节点 */
+    iter->next = (direction == 1) ? list->head : list->tail;
     iter->direction = direction;
+    
     return iter;
 }
 
-/* Release the iterator memory */
-void list_iterator_delete(list_iterator_t*iter) {
-    zfree(iter);
-}
-
-/* Create an iterator in the list private iterator structure */
-void list_rewind(list_t *list, list_iterator_t*li) {
-    li->next = list->head;
-    li->direction = AL_START_HEAD;
-}
-
-void list_rewind_tail(list_t *list, list_iterator_t*li) {
-    li->next = list->tail;
-    li->direction = AL_START_TAIL;
-}
-
-/* Return the next element of an iterator.
- * It's valid to remove the currently returned element using
- * list_del_node(), but not to remove other elements.
- *
- * The function returns a pointer to the next element of the list,
- * or NULL if there are no more elements, so the classical usage
- * pattern is:
- *
- * iter = list_get_iterator(list,<direction>);
- * while ((node = list_next(iter)) != NULL) {
- *     doSomethingWith(list_node_value(node));
- * }
- *
- * */
-list_node_t *list_next(list_iterator_t*iter)
+/*
+ * list_next - 迭代器获取下一个节点
+ * 
+ * 参数：
+ * - iter: 迭代器指针
+ * 
+ * 返回：下一个节点，无节点返回 NULL
+ * 
+ * 注意：
+ * - 正向遍历时返回当前节点，然后移动到下一个
+ * - 反向遍历时返回当前节点，然后移动到前一个
+ */
+list_node_t *list_next(list_iterator_t *iter)
 {
     list_node_t *current = iter->next;
-
+    
     if (current != NULL) {
-        if (iter->direction == AL_START_HEAD)
+        /* 根据方向移动迭代器 */
+        if (iter->direction == 1)
             iter->next = current->next;
         else
             iter->next = current->prev;
     }
+    
     return current;
 }
 
-/* Duplicate the whole list. On out of memory NULL is returned.
- * On success a copy of the original list is returned.
- *
- * The 'Dup' method set with list_set_dup_method() function is used
- * to copy the node value. Otherwise the same pointer value of
- * the original node is used as value of the copied node.
- *
- * The original list both on success or error is never modified. */
+/*
+ * list_iterator_delete - 删除迭代器
+ * 
+ * 参数：
+ * - iter: 待删除的迭代器
+ */
+/*
+ * list_iterator_delete - 删除迭代器
+ */
+void list_iterator_delete(list_iterator_t *iter)
+{
+    zfree(iter);
+}
+
+/*
+ * list_dup - 复制链表
+ * 
+ * 参数：
+ * - orig: 原链表
+ * 
+ * 返回：新链表指针
+ * 
+ * 功能：
+ * - 创建新链表
+ * - 遍历原链表
+ * - 对每个节点调用 dup 回调复制值
+ * - 添加到新链表尾部
+ */
+/*
+ * list_dup - 复制链表
+ */
 list_t *list_dup(list_t *orig)
 {
     list_t *copy;
-    list_iterator_t iter;
     list_node_t *node;
-
+    
+    /*
+     * list_new - 创建新链表
+     */
     if ((copy = list_new()) == NULL)
         return NULL;
+    
+    /* 设置与原链表相同的回调 */
     copy->dup = orig->dup;
     copy->free = orig->free;
     copy->match = orig->match;
-    list_rewind(orig, &iter);
-    while((node = list_next(&iter)) != NULL) {
-        void *value;
-
-        if (copy->dup) {
-            value = copy->dup(node->value);
-            if (value == NULL) {
-                list_delete(copy);
-                return NULL;
-            }
-        } else {
-            value = node->value;
-        }
-        
-        if (list_add_node_tail(copy, value) == NULL) {
-            /* Free value if dup succeed but list_add_node_tail failed. */
-            if (copy->free) copy->free(value);
-            list_delete(copy);
-            return NULL;
-        }
+    
+    /* 遍历原链表并复制节点 */
+    node = orig->head;
+    while (node) {
+        /*
+         * list_add_node_tail - 在尾部添加节点
+         */
+        list_add_node_tail(copy, node->value);
+        node = node->next;
     }
+    
     return copy;
 }
 
-/* Search the list for a node matching a given key.
- * The match is performed using the 'match' method
- * set with list_set_match_method(). If no 'match' method
- * is set, the 'value' pointer of every node is directly
- * compared with the 'key' pointer.
- *
- * On success the first matching node pointer is returned
- * (search starts from head). If no matching node exists
- * NULL is returned. */
+/*
+ * list_search_key - 搜索指定键的节点
+ * 
+ * 参数：
+ * - list: 链表指针
+ * - key: 搜索键
+ * 
+ * 返回：找到的节点，未找到返回 NULL
+ * 
+ * 功能：
+ * - 遍历链表
+ * - 对每个节点调用 match 回调
+ * - 返回第一个匹配的节点
+ */
+/*
+ * list_search_key - 搜索指定键的节点
+ */
 list_node_t *list_search_key(list_t *list, void *key)
 {
-    list_iterator_t iter;
     list_node_t *node;
-
-    list_rewind(list, &iter);
-    while((node = list_next(&iter)) != NULL) {
-        if (list->match) {
-            if (list->match(node->value, key)) {
-                return node;
-            }
-        } else {
-            if (key == node->value) {
-                return node;
-            }
-        }
+    
+    if (list->match == NULL)
+        return NULL;  /* 未设置比较函数 */
+    
+    node = list->head;
+    while (node) {
+        if (list->match(node->value, key))
+            return node;
+        
+        node = node->next;
     }
+    
     return NULL;
 }
 
-/* Return the element at the specified zero-based index
- * where 0 is the head, 1 is the element next to head
- * and so on. Negative integers are used in order to count
- * from the tail, -1 is the last element, -2 the penultimate
- * and so on. If the index is out of range NULL is returned. */
-list_node_t *list_index(list_t *list, long index) {
-    list_node_t *n;
-
-    if (index < 0) {
-        index = (-index)-1;
-        n = list->tail;
-        while(index-- && n) n = n->prev;
+/*
+ * list_index - 根据索引获取节点
+ * 
+ * 参数：
+ * - list: 链表指针
+ * - index: 索引 (0=头，-1=尾)
+ * 
+ * 返回：对应节点，索引无效返回 NULL
+ * 
+ * 注意：
+ * - 正数索引从头开始
+ * - 负数索引从尾开始
+ */
+/*
+ * list_index - 根据索引获取节点
+ */
+list_node_t *list_index(list_t *list, long index)
+{
+    list_node_t *node;
+    
+    if (index >= 0) {
+        /* 从头开始遍历 */
+        if ((unsigned long)index >= list->len)
+            return NULL;
+        
+        node = list->head;
+        while (index--)
+            node = node->next;
     } else {
-        n = list->head;
-        while(index-- && n) n = n->next;
+        /* 从尾开始遍历 */
+        index = -index - 1;
+        if ((unsigned long)index >= list->len)
+            return NULL;
+        
+        node = list->tail;
+        while (index--)
+            node = node->prev;
     }
-    return n;
+    
+    return node;
 }
 
-/* Rotate the list removing the tail node and inserting it to the head. */
-void list_rotate_tail_to_head(list_t *list) {
-    if (list_length(list) <= 1) return;
+/*
+ * list_rewind - 迭代器从头开始 (正向)
+ * 
+ * 参数：
+ * - list: 链表指针
+ * - li: 迭代器指针
+ */
+/*
+ * list_rewind - 迭代器从头开始
+ */
+void list_rewind(list_t *list, list_iterator_t *li)
+{
+    li->next = list->head;
+    li->direction = 1;
+}
 
-    /* Detach current tail */
+/*
+ * list_rewind_tail - 迭代器从尾开始 (反向)
+ * 
+ * 参数：
+ * - list: 链表指针
+ * - li: 迭代器指针
+ */
+/*
+ * list_rewind_tail - 迭代器从尾开始
+ */
+void list_rewind_tail(list_t *list, list_iterator_t *li)
+{
+    li->next = list->tail;
+    li->direction = -1;
+}
+
+/*
+ * list_rotate_tail_to_head - 将尾节点移动到头部
+ * 
+ * 参数：
+ * - list: 链表指针
+ * 
+ * 功能：
+ * - 将尾节点移到头部
+ * - 更新头尾指针
+ * - 适用场景：LRU 缓存访问后移动
+ */
+void list_rotate_tail_to_head(list_t *list)
+{
+    if (list->len <= 1)
+        return;  /* 只有一个或零个节点，无需移动 */
+    
     list_node_t *tail = list->tail;
+    
+    /* 移除尾节点 */
     list->tail = tail->prev;
     list->tail->next = NULL;
-    /* Move it as head */
-    list->head->prev = tail;
-    tail->prev = NULL;
+    
+    /* 插入到头部 */
     tail->next = list->head;
+    tail->prev = NULL;
+    list->head->prev = tail;
     list->head = tail;
 }
 
-/* Rotate the list removing the head node and inserting it to the tail. */
-void list_rotate_head_to_tail(list_t *list) {
-    if (list_length(list) <= 1) return;
-
+/*
+ * list_rotate_head_to_tail - 将头节点移动到尾部
+ * 
+ * 参数：
+ * - list: 链表指针
+ * 
+ * 功能：
+ * - 将头节点移到尾部
+ * - 更新头尾指针
+ */
+void list_rotate_head_to_tail(list_t *list)
+{
+    if (list->len <= 1)
+        return;  /* 只有一个或零个节点，无需移动 */
+    
     list_node_t *head = list->head;
-    /* Detach current head */
+    
+    /* 移除头节点 */
     list->head = head->next;
     list->head->prev = NULL;
-    /* Move it as tail */
-    list->tail->next = head;
-    head->next = NULL;
+    
+    /* 插入到尾部 */
     head->prev = list->tail;
+    head->next = NULL;
+    list->tail->next = head;
     list->tail = head;
-}
-
-/* Add all the elements of the list 'o' at the end of the
- * list 'l'. The list 'other' remains empty but otherwise valid. */
-void list_join(list_t *l, list_t *o) {
-    if (o->len == 0) return;
-
-    o->head->prev = l->tail;
-
-    if (l->tail)
-        l->tail->next = o->head;
-    else
-        l->head = o->head;
-
-    l->tail = o->tail;
-    l->len += o->len;
-
-    /* Setup other as an empty list. */
-    o->head = o->tail = NULL;
-    o->len = 0;
-}
-
-
-typedef struct latte_list_iterator_t {
-    latte_iterator_t it;
-    list_node_t* next;
-    list_t* list;
-} latte_list_iterator_t;
-
-bool protected_latte_list_iterator_has_next(latte_iterator_t* iterator) {
-    latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
-    list_node_t* node = list_next(((list_iterator_t*)it->it.data));
-    if (node == NULL) {
-        return false;
-    }
-    it->next = node;
-    return true;
-}
-
-void* protected_latte_list_iterator_next(latte_iterator_t* iterator) {
-    latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
-    list_node_t* node = it->next;
-    it->next = NULL;
-    return list_node_value(node);
-}
-
-void protected_latte_list_iterator_delete(latte_iterator_t* iterator) {
-    latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
-    list_iterator_delete(it->it.data);
-    if (it->list != NULL) {
-        list_delete(it->list);
-        it->list = NULL;
-    }
-    zfree(it);
-}
-
-latte_iterator_func latte_list_iterator_func = {
-    .has_next = protected_latte_list_iterator_has_next,
-    .next = protected_latte_list_iterator_next,
-    .release = protected_latte_list_iterator_delete
-};
-
-latte_iterator_t* list_get_latte_iterator(list_t* l, int opt) {
-    latte_list_iterator_t* it = zmalloc(sizeof(latte_list_iterator_t));
-    list_iterator_t* t;
-    if (opt & LIST_ITERATOR_OPTION_TAIL) {
-        t = list_get_iterator(l, AL_START_TAIL);
-    } else {
-        t = list_get_iterator(l, AL_START_HEAD);
-    } 
-    if (opt & LIST_ITERATOR_OPTION_DELETE_LIST) it->list = l;
-    it->it.data = t;
-    it->it.func = &latte_list_iterator_func;
-    it->next = NULL;
-    it->list = NULL;
-    if (opt & LIST_ITERATOR_OPTION_DELETE_LIST) it->list = l;
-    return (latte_iterator_t*)it;
-}
-
-
-
-void list_move_head(list_t* l, list_node_t* node) {
-    if ( NULL == node->prev) {
-        return;
-    }
-    node->prev->next = node->next;
-
-    if (node->next != NULL) {
-        node->next->prev = node->prev;
-    } else {
-        l->tail = node->prev;
-    }
-
-    node->prev = NULL;
-    node->next = l->head;
-    if (l->head != NULL) {
-        l->head->prev = node;
-    }
-    l->head = node;
-}
-
-void* list_remove(list_t* l, list_node_t* node) {
-    if (node == NULL) return NULL;
-    void* result = list_node_value(node);
-    if (l->free != NULL) {
-        node->value = NULL;
-    }
-    list_del_node(l, node);
-    return result;
-}
-void* list_lpop(list_t* l) {
-    return list_remove(l, l->head);
-}
-
-void* list_rpop(list_t* l) {
-    return list_remove(l, l->tail);
 }

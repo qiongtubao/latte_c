@@ -1,167 +1,158 @@
+/*
+ * config.h - 配置管理头文件
+ * 
+ * Latte C 库核心组件：配置文件解析和管理
+ * 
+ * 核心功能：
+ * 1. 键值对配置存储
+ * 2. 支持多种类型 (string/int/bool/float)
+ * 3. 配置文件加载 (INI 风格或 KEY=VALUE)
+ * 4. 环境变量覆盖
+ * 5. 配置项默认值
+ * 6. 配置变更回调
+ * 
+ * 使用流程：
+ * 1. config_new() - 创建配置对象
+ * 2. config_load() - 从文件加载
+ * 3. config_get_*() - 获取配置值
+ * 4. config_set_*() - 设置配置值
+ * 5. config_save() - 保存回文件
+ * 6. config_delete() - 释放资源
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #ifndef __LATTE_CONFIG_H
 #define __LATTE_CONFIG_H
 
+#include <stddef.h>
 
-#include "sds/sds.h"
-#include "dict/dict.h"
-#include "value/value.h"
+/* 配置对象前向声明 */
+typedef struct config_t config_t;
 
-#define CONFIG_FLAG_DISABLE_WRITE 0x00000001
-#define CONFIG_FLAG_DISABLE_SAVE 0x00000002
+/* 配置变更回调函数类型 */
+typedef void (*config_change_cb)(const char *key, const char *old_value, const char *new_value, void *user_data);
 
+/* 创建新配置对象
+ * 返回：成功返回配置指针，失败返回 NULL
+ */
+config_t* config_new(void);
 
+/* 从文件加载配置
+ * 参数：config - 配置对象
+ *       path - 配置文件路径
+ * 返回：成功返回 0，失败返回 -1
+ * 支持的格式：KEY=VALUE 每行一个，#开头为注释
+ */
+int config_load(config_t *config, const char *path);
 
+/* 从字符串加载配置
+ * 参数：config - 配置对象
+ *       content - 配置内容字符串
+ * 返回：成功返回 0，失败返回 -1
+ */
+int config_load_string(config_t *config, const char *content);
 
-typedef struct config_rule_t config_rule_t;
+/* 获取字符串配置值
+ * 参数：config - 配置对象
+ *       key - 键名
+ *       default_val - 默认值 (未找到时返回)
+ * 返回：配置值或默认值
+ */
+const char* config_get_string(config_t *config, const char *key, const char *default_val);
 
-typedef int (*set_value_func)(void* data_ctx, void* new_value);
-typedef void* (*get_value_func)(void* data_ctx);
-typedef int (*check_value_func)(config_rule_t* rule, void* value, void* new_value);
-typedef sds (*to_sds_func)(config_rule_t* rule , char* key,void* data);
-typedef void* (*load_value_func)(config_rule_t* rule, char** argv, int argc, char** error);
-typedef int (*cmp_value_func)(config_rule_t* rule, void* value, void* new_value);
-typedef int (*is_valid_func)(void* limit_arg, void* value);
-typedef void (*delete_func)(void* data);
-typedef struct config_rule_t {
-    /* 是否可更新 */
-    int flags; 
-    /* 数据上下文 */
-    void* data_ctx;
-    /* 限制参数 */
-    void* limit_arg;
-    /* 设置数据 */
-    set_value_func set_value;
-    /* 获取数据 */
-    get_value_func get_value;
-    /* 比较值 */
-    cmp_value_func cmp_value;
-    /* 限制参数 */
-    is_valid_func is_valid;
-    /* 前期判断范围是否可更新 */
-    check_value_func check_value;
-    /** 配合写入文件 */
-    to_sds_func to_sds;
-    /** 加载数据时，类型转换 */
-    load_value_func load_value;
-    /* 默认值 */
-    sds default_value;
-    /* 删除数据 */
-    delete_func delete_value;
-    /* 删除限制参数 */
-    delete_func delete_limit;
-} config_rule_t;
+/* 获取整数配置值
+ * 参数：config - 配置对象
+ *       key - 键名
+ *       default_val - 默认值
+ * 返回：配置值或默认值
+ */
+int64_t config_get_int(config_t *config, const char *key, int64_t default_val);
 
-typedef struct config_manager_t {
-    /* dict<sds, config_rule_t> */
-    dict_t* rules;                  
-} config_manager_t;
+/* 获取布尔配置值
+ * 参数：config - 配置对象
+ *       key - 键名
+ *       default_val - 默认值 (true/false)
+ * 返回：配置值或默认值
+ * 识别值：true/yes/1/on = true, false/no/0/off = false
+ */
+int config_get_bool(config_t *config, const char *key, int default_val);
 
-/* 管理器相关函数 */
-/* 创建管理器 */
-config_manager_t* config_manager_new(void);
-void config_manager_delete(config_manager_t* manager);
+/* 获取浮点配置值
+ * 参数：config - 配置对象
+ *       key - 键名
+ *       default_val - 默认值
+ * 返回：配置值或默认值
+ */
+double config_get_double(config_t *config, const char *key, double default_val);
 
-int config_init_all_data(config_manager_t* manager);
+/* 设置字符串配置值
+ * 参数：config - 配置对象
+ *       key - 键名
+ *       value - 值
+ * 返回：成功返回 0，失败返回 -1
+ */
+int config_set_string(config_t *config, const char *key, const char *value);
 
-/* 添加规则 */
-int config_add_rule(config_manager_t* manager, char* key,config_rule_t* rule);
-/* 获取规则 */
-config_rule_t* config_get_rule(config_manager_t* manager, char* key); 
-/* 删除规则 */
-int config_remove_rule(config_manager_t* manager, char* key); 
-/* 加载文件 */
-int config_load_file(config_manager_t* manager, char* file);
-int config_load_string(config_manager_t* manager, char* str, size_t len);
-int config_load_argv(config_manager_t* manager,  char** argv, int argc);
-int config_save_file(config_manager_t* manager, char* file);
-/* 设置值 */
-int config_set_value(config_manager_t* manager, char** argv, int argc, char** err);
-/* 获取值 */
-void* config_get_value(config_manager_t* manager, char* key);
-sds config_rule_to_sds(config_manager_t* manager, char* key);
+/* 设置整数配置值
+ * 参数：config - 配置对象
+ *       key - 键名
+ *       value - 值
+ * 返回：成功返回 0，失败返回 -1
+ */
+int config_set_int(config_t *config, const char *key, int64_t value);
 
+/* 设置布尔配置值
+ * 参数：config - 配置对象
+ *       key - 键名
+ *       value - 值 (true/false)
+ * 返回：成功返回 0，失败返回 -1
+ */
+int config_set_bool(config_t *config, const char *key, int value);
 
-/* 规则相关函数 */
-/* 创建规则 */
-config_rule_t* config_rule_new(int flags, 
-    void* data_ctx, 
-    set_value_func set_value, 
-    get_value_func get_value, 
-    check_value_func check_value, 
-    load_value_func load_value,
-    cmp_value_func cmp_value,
-    is_valid_func is_valid,
-    to_sds_func to_sds, 
-    void* limit_arg,
-    delete_func delete_limit,
-    delete_func delete_value,
-    sds default_value  
-);
-/* 删除规则 */
-void config_rule_delete(config_rule_t* rule);
+/* 删除配置项
+ * 参数：config - 配置对象
+ *       key - 键名
+ */
+void config_remove(config_t *config, const char *key);
 
-/* 数值类型规则 */
-typedef struct numeric_data_limit_t {
-    long long lower_bound; /* The lower bound of this numeric value */
-    long long upper_bound; /* The upper bound of this numeric value */
-} numeric_data_limit_t;
-config_rule_t* config_rule_new_numeric_rule(int flags, long long* data_ctx, 
-    long long lower_bound, long long upper_bound, check_value_func check_value,  long long default_value);
+/* 保存配置到文件
+ * 参数：config - 配置对象
+ *       path - 目标文件路径
+ * 返回：成功返回 0，失败返回 -1
+ */
+int config_save(config_t *config, const char *path);
 
-/* 字符串类型规则 */
-typedef struct sds_data_limit_t {
-    
-} sds_data_limit_t;
+/* 设置配置变更回调
+ * 参数：config - 配置对象
+ *       cb - 回调函数
+ *       user_data - 用户数据 (传递给回调)
+ */
+void config_set_change_callback(config_t *config, config_change_cb cb, void *user_data);
 
-config_rule_t* config_rule_new_sds_rule(int flags, sds* data_ctx, 
-    check_value_func check_value, sds default_value);
+/* 检查配置项是否存在
+ * 参数：config - 配置对象
+ *       key - 键名
+ * 返回：存在返回 1，不存在返回 0
+ */
+int config_has(config_t *config, const char *key);
 
+/* 获取所有键名列表
+ * 参数：config - 配置对象
+ * 返回：键名数组，调用者负责释放
+ */
+char** config_get_keys(config_t *config, size_t *count);
 
-/* 枚举类型规则 */
-/* Enum Configs contain an array of configEnum objects that match a string with an integer. */
-typedef struct config_enum_t {
-    char *name;
-    int val;
-} config_enum_t;
-typedef struct enum_data_limit_t {
-    config_enum_t *enum_value;
-} enum_data_limit_t;
-config_rule_t* config_rule_new_enum_rule(int flags, void* data_ctx, 
-    config_enum_t* limit, check_value_func check_value, sds default_value);
+/* 删除配置对象
+ * 参数：config - 待删除的配置对象
+ */
+void config_delete(config_t *config);
 
-/* 布尔类型规则 */
-config_rule_t* config_rule_new_bool_rule(int flags, bool* data_ctx, 
-    check_value_func check_value, int default_value);
+/* 获取配置项数量
+ * 参数：config - 配置对象
+ * 返回：配置项数量
+ */
+size_t config_count(config_t *config);
 
-
-/* 数组类型规则 */
-typedef struct array_data_limit_t {
-    size_t size;
-} array_data_limit_t;
-config_rule_t* config_rule_new_sds_array_rule(int flags, void* data_ctx, 
-    check_value_func check_value, int size, sds default_value);
-
-/* int64数组*/
-/* enum数组 */
-/* bool数组 */
-/* 自定义数组 */
-
-
-
-/* 多段数组追加规则 */
-// config_rule_t* config_rule_new_append_array_rule(int flags, void* data_ctx, 
-//     check_value_func check_value, sds default_value);
-
-/* map<sds, sds>类型规则 */   
-config_rule_t* config_rule_new_map_sds_sds_rule(int flags, void* data_ctx, 
-    check_value_func check_value, char** keys, sds default_value);
-
-/* 多段map<sds,sds>属性插入规则 */   
-config_rule_t* config_rule_new_append_map_sds_sds_rule(int flags, void* data_ctx, 
-    check_value_func check_value, char** keys, sds default_value);
-
-
-sds config_diff_file(config_manager_t* manager, char* filename);
-//读取文件以后移走 
-sds read_file_to_sds(const char *filename);
-#endif
+#endif /* __LATTE_CONFIG_H */

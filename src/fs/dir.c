@@ -1,3 +1,12 @@
+/*
+ * dir.c - fs 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include <stdio.h>
 #include <sys/stat.h> // 包含mkdir函数声明
 #include <errno.h>    // 包含errno和错误码

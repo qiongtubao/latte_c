@@ -1,3 +1,12 @@
+/*
+ * latte_rocksdb.h - rocksdb 模块头文件
+ * 
+ * Latte C 库组件
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #ifndef __LATTE_ROCKSDB_H__
 #define __LATTE_ROCKSDB_H__   
 
@@ -51,10 +60,10 @@ typedef struct latte_rocksdb_column_family_meta_t {
         sds _name = sds_new(name); \
         dict_entry_t* _entry = dict_find(rocksdb->column_families_metas, _name); \
         if (_entry) { \
-            latte_rocksdb_column_family_meta_t* _meta = dict_get_val(_entry); \
+            latte_rocksdb_column_family_meta_t* _meta = dict_get_entry_val(_entry); \
             rocksdb_options_set_##option(_meta->cf_opts, __VA_ARGS__); \
         } \
-        sds_free(_name); \
+        sds_delete(_name); \
     } while (0)
 
 

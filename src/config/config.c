@@ -1,3 +1,12 @@
+/*
+ * config.c - config 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "config.h"
 #include "zmalloc/zmalloc.h"
 #include "dict/dict.h"
@@ -24,11 +33,17 @@ dict_func_t rule_dict_type_func = {
 
 config_manager_t* config_manager_new(void) {
     config_manager_t* manager = zmalloc(sizeof(config_manager_t));
+    /*
+     * dict_new - 创建新哈希表
+     */
     manager->rules = dict_new(&rule_dict_type_func);
     return manager;
 }
 
 void config_manager_delete(config_manager_t* manager) {
+    /*
+     * dict_delete - 删除哈希表
+     */
     dict_delete(manager->rules);
     zfree(manager);
 }
@@ -82,6 +97,9 @@ end:
 }
 
 int config_add_rule(config_manager_t* manager, char* key, config_rule_t* rule) {
+    /*
+     * sds_new - 从 C 字符串创建新的 SDS 字符串
+     */
     return dict_add(manager->rules, sds_new(key), rule);
 }
 
@@ -137,6 +155,9 @@ sds read_file_to_sds(const char *filename) {
     bytes_read = fread(config, 1, file_size, fp);
     if (ferror(fp)) {
         LATTE_LIB_LOG(LOG_ERROR, "error: can't read config file '%s': %s", filename, strerror(errno));
+        /*
+         * sds_delete - 释放 SDS 字符串内存
+         */
         sds_delete(config);
         config = NULL;
         goto cleanup;
@@ -144,6 +165,9 @@ sds read_file_to_sds(const char *filename) {
 
     // 5. 调整 SDS 长度（实际读取的字节数）
     config[bytes_read] = '\0';  // SDS 要求以 \0 结尾
+    /*
+     * sds_set_len - 设置 SDS 字符串长度
+     */
     sds_set_len(config, bytes_read);
 
 cleanup:
@@ -160,7 +184,13 @@ int _config_load_file(config_manager_t* manager, dict_t* config_value, char* fil
             filename, strerror(errno));
         exit(1);
     }
+    /*
+     * sds_len - 获取 SDS 字符串长度
+     */
     int result = _config_load_string(manager, config_value, config, sds_len(config));
+    /*
+     * sds_delete - 释放 SDS 字符串内存
+     */
     sds_delete(config);
     return result;
 }
@@ -216,8 +246,14 @@ int _config_load_string(config_manager_t* manager, dict_t* config_value, char* s
             goto error;
         }
         if (config_value != NULL) {
+            /*
+             * dict_find - 查找键值
+             */
             dict_entry_t* entry = dict_find(config_value, argv[0]);
             if (entry == NULL) {
+                /*
+                 * dict_add - 添加键值对
+                 */
                 dict_add(config_value, sds_dup(argv[0]), value);
             } else {
                 if (!rule_obj->set_value(&dict_get_entry_val(entry), value)) {
@@ -263,17 +299,32 @@ int config_load_argv(config_manager_t* manager,  char** argv, int argc) {
         if (argv[i][0] == '-' && argv[i][1] == '-') {
             /** Option name **/
             if (sds_len(format_conf_sds)) format_conf_sds = sds_cat(format_conf_sds, "\n");
+            /*
+             * sds_cat - 连接 C 字符串到 SDS
+             */
             format_conf_sds = sds_cat(format_conf_sds, argv[i] + 2);
+            /*
+             * sds_cat - 连接 C 字符串到 SDS
+             */
             format_conf_sds = sds_cat(format_conf_sds, " ");
         } else {
             /* maybe value is some params */
             /* Option argument*/
             format_conf_sds = sds_catrepr(format_conf_sds, argv[i], strlen(argv[i]));
+            /*
+             * sds_cat - 连接 C 字符串到 SDS
+             */
             format_conf_sds = sds_cat(format_conf_sds, " ");
         }
         i++;
     }
+    /*
+     * sds_len - 获取 SDS 字符串长度
+     */
     int ret = config_load_string(manager, format_conf_sds, sds_len(format_conf_sds));
+    /*
+     * sds_delete - 释放 SDS 字符串内存
+     */
     sds_delete(format_conf_sds);
     return ret;
 }
@@ -290,7 +341,13 @@ sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict);
 int read_config_file_to_dict(config_manager_t* manager, dict_t* config_dict, char* filename) {
     latte_assert_with_info(config_dict != NULL, "config_dict is NULL");
     sds config = read_file_to_sds(filename);
+    /*
+     * sds_len - 获取 SDS 字符串长度
+     */
     int ret = _config_load_string(manager, config_dict, config, sds_len(config));
+    /*
+     * sds_delete - 释放 SDS 字符串内存
+     */
     sds_delete(config);
     return ret;
 }
@@ -306,6 +363,9 @@ dict_func_t sds_dict_type_func = {
 
 sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
     sds result = NULL;
+    /*
+     * dict_new - 创建新哈希表
+     */
     dict_t* change_dict = dict_new(&sds_dict_type_func);
     latte_iterator_t* iter = dict_get_latte_iterator(manager->rules);
     while (latte_iterator_has_next(iter)) {
@@ -313,6 +373,9 @@ sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
         sds key = latte_pair_key(pair);
         config_rule_t* rule = latte_pair_value(pair);
         
+        /*
+         * dict_find - 查找键值
+         */
         dict_entry_t* entry = dict_find(old_config_dict, key);
         if (rule->flags & CONFIG_FLAG_DISABLE_SAVE) {
             if (entry != NULL) {
@@ -325,7 +388,13 @@ sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
             if (rule->default_value == NULL && now_str == NULL) {
                 continue;
             }
+            /*
+             * sds_cmp - 比较两个 SDS 字符串
+             */
             if (sds_cmp(now_str, rule->default_value) == 0) {
+                /*
+                 * sds_delete - 释放 SDS 字符串内存
+                 */
                 sds_delete(now_str);
                 continue;
             }   
@@ -334,13 +403,28 @@ sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
             sds old_str= rule->to_sds(rule, key, old_value);  
             if (rule->delete_value != NULL) rule->delete_value(old_value);
             dict_set_val(old_config_dict, entry, NULL); 
+            /*
+             * sds_cmp - 比较两个 SDS 字符串
+             */
             if (sds_cmp(old_str, now_str) == 0) {
+                /*
+                 * sds_delete - 释放 SDS 字符串内存
+                 */
                 sds_delete(old_str);
+                /*
+                 * sds_delete - 释放 SDS 字符串内存
+                 */
                 sds_delete(now_str);
                 continue;
             }
+            /*
+             * sds_delete - 释放 SDS 字符串内存
+             */
             sds_delete(old_str);
         }
+        /*
+         * dict_add - 添加键值对
+         */
         dict_add(change_dict, sds_dup(key), now_str);  
         
     }
@@ -348,24 +432,42 @@ sds config_diff_string(config_manager_t* manager, dict_t* old_config_dict) {
     if (dict_size(change_dict) == 0) {
         goto end;
     }
+    /*
+     * sds_new - 从 C 字符串创建新的 SDS 字符串
+     */
     result = sds_new("\n# change config\n");
     iter = dict_get_latte_iterator(change_dict);
     while (latte_iterator_has_next(iter)) {
         latte_pair_t* pair = latte_iterator_next(iter);
         sds value = latte_pair_value(pair);
+        /*
+         * sds_cat - 连接 C 字符串到 SDS
+         */
         result = sds_cat(result, value);
+        /*
+         * sds_cat - 连接 C 字符串到 SDS
+         */
         result = sds_cat(result, "\n");
     }
     latte_iterator_delete(iter);
 end:
+    /*
+     * dict_delete - 删除哈希表
+     */
     dict_delete(change_dict);
     return result;
 }
 
 sds config_diff_file(config_manager_t* manager, char* filename) {
+    /*
+     * dict_new - 创建新哈希表
+     */
     dict_t* old_config_dict = dict_new(&config_dict_type_func);
     latte_assert_with_info(read_config_file_to_dict(manager, old_config_dict ,filename) == 1, "error: read config file to dict failed");
     sds result = config_diff_string(manager, old_config_dict);
+    /*
+     * dict_delete - 删除哈希表
+     */
     dict_delete(old_config_dict);
     return result;
 }
@@ -379,8 +481,14 @@ int config_save_file(config_manager_t* manager, char* filename) {
     if ((fp = fopen(filename, "a")) == NULL) {
         return 0;
     }
+    /*
+     * sds_len - 获取 SDS 字符串长度
+     */
     fwrite(config, 1, sds_len(config), fp);
     fclose(fp);
+    /*
+     * sds_delete - 释放 SDS 字符串内存
+     */
     sds_delete(config);
     return 1;
 }
@@ -465,7 +573,13 @@ int is_valid_int64_value(void* limit_arg, void* value) {
 sds to_sds_int64_value(config_rule_t* rule, char* key, void* data) {
     UNUSED(rule);
     sds value_str = ll2sds((long long)data);
+    /*
+     * sds_new - 从 C 字符串创建新的 SDS 字符串
+     */
     sds result = sds_cat_fmt(sds_new(key), " %s", value_str);
+    /*
+     * sds_delete - 释放 SDS 字符串内存
+     */
     sds_delete(value_str);
     return result;
 }
@@ -502,6 +616,9 @@ config_rule_t* config_rule_new_numeric_rule(int flags, long long* data_ctx,
 int set_sds_value(void* data_ctx, void* value) {
     sds* data = (sds*)data_ctx;
     if (*data != NULL) {
+        /*
+         * sds_delete - 释放 SDS 字符串内存
+         */
         sds_delete(*data);
     }
     *data = (sds)value;
@@ -524,6 +641,9 @@ void* load_sds_value(config_rule_t* rule,  char** argv, int argc, char** error) 
 
 int cmp_sds_value(config_rule_t* rule, void* a, void* b) {
     UNUSED(rule);
+    /*
+     * sds_cmp - 比较两个 SDS 字符串
+     */
     return sds_cmp((sds)a, (sds)b);
 }
 
@@ -539,10 +659,19 @@ sds to_sds_sds_value(config_rule_t* rule, char* key, void* data) {
     if (data == NULL) {
         return NULL;
     }
+    /*
+     * sds_new - 从 C 字符串创建新的 SDS 字符串
+     */
     return sds_cat_fmt(sds_new(key), " %s", (sds)data);
 }
 
+/*
+ * sds_delete - 释放 SDS 字符串内存
+ */
 void config_sds_delete(void* data) {
+    /*
+     * sds_delete - 释放 SDS 字符串内存
+     */
     sds_delete((sds)data);
 }
 
@@ -620,6 +749,9 @@ sds to_sds_enum_value(config_rule_t* rule, char* key, void* value) {
     int i = 0;
     while (limit->enum_value[i].name != NULL) {
         if (limit->enum_value[i].val == data) {
+            /*
+             * sds_new - 从 C 字符串创建新的 SDS 字符串
+             */
             return sds_cat_fmt(sds_new(key), " %s", limit->enum_value[i].name);
         }
         i++;
@@ -692,6 +824,9 @@ int is_valid_bool_value(void* limit_arg, void* value) {
 
 sds to_sds_bool_value(config_rule_t* rule, char* key, void* value) {
     UNUSED(rule);
+    /*
+     * sds_new - 从 C 字符串创建新的 SDS 字符串
+     */
     return sds_cat_fmt(sds_new(key), " %s", (bool)value ? "yes" : "no");
 }
 int cmp_bool_value(config_rule_t* rule, void* a, void* b) {
@@ -713,6 +848,9 @@ config_rule_t* config_rule_new_bool_rule(int flags, bool* data_ctx,
         NULL, 
         NULL,
         NULL,
+        /*
+         * sds_new - 从 C 字符串创建新的 SDS 字符串
+         */
         default_value ? sds_new("yes") : sds_new("no")
     );
     return rule;
@@ -722,6 +860,9 @@ config_rule_t* config_rule_new_bool_rule(int flags, bool* data_ctx,
 void sds_array_delete(void* data) {
     vector_t* array = (vector_t*)data;
     while (vector_size(array) > 0) {
+        /*
+         * sds_delete - 释放 SDS 字符串内存
+         */
         sds_delete(vector_pop(array));
     }
     vector_delete(array);
@@ -746,6 +887,9 @@ void* load_sds_array_value(config_rule_t* rule, char** argv, int argc, char** er
     
     vector_t* array = vector_new();
     for (int i = 0; i < argc; i++) {
+        /*
+         * sds_new - 从 C 字符串创建新的 SDS 字符串
+         */
         vector_push(array, sds_new(argv[i]));
     }
     return (void*)array;
@@ -759,6 +903,9 @@ int cmp_sds_array_value(config_rule_t* rule, void* a, void* b) {
         return 1;
     }
     for (size_t i = 0; i < vector_size(array_a); i++) {
+        /*
+         * sds_cmp - 比较两个 SDS 字符串
+         */
         if (sds_cmp(vector_get(array_a, i) , vector_get(array_b, i)) != 0) {
             return 1;
         }
@@ -777,10 +924,16 @@ int is_valid_sds_array_value(void* limit_arg, void* value) {
 
 sds to_sds_sds_array_value(config_rule_t* rule, char* key, void* data) {
     if (data == NULL) {
+        /*
+         * sds_new - 从 C 字符串创建新的 SDS 字符串
+         */
         return sds_new("");
     }
     UNUSED(rule);
     vector_t* array = (vector_t*)data;
+    /*
+     * sds_new - 从 C 字符串创建新的 SDS 字符串
+     */
     sds result = sds_new(key);
     for (size_t i = 0; i < vector_size(array); i++) {
         result = sds_cat_fmt(result, " %s", (sds)vector_get(array, i));
@@ -822,6 +975,9 @@ int set_map_sds_sds_value(void* data_ctx, void* value) {
     dict_t* map = (dict_t*)value;
     dict_t** old_map = (dict_t**)data_ctx;
     if (*old_map != NULL) {
+        /*
+         * dict_delete - 删除哈希表
+         */
         dict_delete(*old_map);
     }
     *old_map = map;
@@ -843,14 +999,35 @@ void* load_map_sds_sds_value(config_rule_t* rule, char** argv, int argc, char** 
         *error = "error: argc % 2 != 0";
         return NULL;
     }
+    /*
+     * dict_new - 创建新哈希表
+     */
     dict_t* map = dict_new(&map_sds_sds_dict_type_func);
     for (int i = 0; i < argc; i+=2) {
+        /*
+         * sds_new - 从 C 字符串创建新的 SDS 字符串
+         */
         sds key = sds_new(argv[i]);
+        /*
+         * sds_new - 从 C 字符串创建新的 SDS 字符串
+         */
         sds value = sds_new(argv[i+1]);
+        /*
+         * dict_add - 添加键值对
+         */
         if (dict_add(map, key, value)) {
             *error = "error: dict_add failed";
+            /*
+             * dict_delete - 删除哈希表
+             */
             dict_delete(map);
+            /*
+             * sds_delete - 释放 SDS 字符串内存
+             */
             sds_delete(key);
+            /*
+             * sds_delete - 释放 SDS 字符串内存
+             */
             sds_delete(value);
             return NULL;
         }
@@ -874,6 +1051,9 @@ int cmp_map_sds_sds_value(config_rule_t* rule, void* a, void* b) {
         if (b_value == NULL) {
             return 1;
         }
+        /*
+         * sds_cmp - 比较两个 SDS 字符串
+         */
         if (sds_cmp(value, b_value) != 0) {
             return 1;
         }
@@ -915,10 +1095,16 @@ int is_valid_map_sds_sds_value(void* limit_arg, void* value) {
 
 sds to_sds_map_sds_sds_value(config_rule_t* rule, char* key, void* data) {
     if (data == NULL) {
+        /*
+         * sds_new - 从 C 字符串创建新的 SDS 字符串
+         */
         return sds_new("");
     }
     UNUSED(rule);
     latte_iterator_t* iter = dict_get_latte_iterator(data);
+    /*
+     * sds_new - 从 C 字符串创建新的 SDS 字符串
+     */
     sds result = sds_new(key);
     while (latte_iterator_has_next(iter)) {
         latte_pair_t* pair = latte_iterator_next(iter);
@@ -937,6 +1123,9 @@ void map_sds_sds_limit_delete(void* limit_arg) {
 
 void config_sds_map_delete(void* data) {
     dict_t* map = (dict_t*)data;
+    /*
+     * dict_delete - 删除哈希表
+     */
     dict_delete(map);
 }
 
@@ -974,8 +1163,14 @@ int append_map_sds_sds_value(void* data_ctx, void* value) {
             latte_pair_t* pair = latte_iterator_next(iter);
             sds key = pair->key;
             sds value = pair->value;
+            /*
+             * dict_find - 查找键值
+             */
             dict_entry_t* entry = dict_find(old_map, key);
             if (entry == NULL) {
+                /*
+                 * dict_add - 添加键值对
+                 */
                 dict_add(old_map, sds_dup(key), sds_dup(value));
             } else {
                 latte_assert_with_info(old_map->type->valDestructor != NULL, "valDestructor is NULL");
@@ -984,6 +1179,9 @@ int append_map_sds_sds_value(void* data_ctx, void* value) {
             }
         }
         latte_iterator_delete(iter);
+        /*
+         * dict_delete - 删除哈希表
+         */
         dict_delete(map);
     }
     *(dict_t**)data_ctx = old_map;
@@ -1001,6 +1199,9 @@ int cmp_append_map_sds_sds_value(config_rule_t* rule, void* a, void* b) {
         sds key = pair->key;
         sds value_b = pair->value;
         sds value_a =  dict_fetch_value(map_a, key);
+        /*
+         * sds_cmp - 比较两个 SDS 字符串
+         */
         if (value_a == NULL || sds_cmp(value_b, value_a) != 0) {
             result = 1;
             break;  
@@ -1034,6 +1235,9 @@ config_rule_t* config_rule_new_append_map_sds_sds_rule(int flags, void* data_ctx
 /* 删除规则 */
 void config_rule_delete(config_rule_t* rule) {
     if (rule->delete_limit != NULL) rule->delete_limit(rule->limit_arg);
+    /*
+     * sds_delete - 释放 SDS 字符串内存
+     */
     if (rule->default_value != NULL) sds_delete(rule->default_value);
     zfree(rule);
 }

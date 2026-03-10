@@ -1,3 +1,12 @@
+/*
+ * rdb.h - rdb 模块头文件
+ * 
+ * Latte C 库组件
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #ifndef __LATTE_RDB_H
 #define __LATTE_RDB_H
 
@@ -5,7 +14,6 @@
 #include <stdint.h>
 #include "sds/sds.h"
 #include "object/object.h"
-#include "object/module.h"
 
 /* RDB version */
 #define RDB_VERSION 1

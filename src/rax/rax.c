@@ -1,3 +1,12 @@
+/*
+ * rax.c - rax 模块实现文件
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "rax.h"
 #include "zmalloc/zmalloc.h"
 #include <string.h>

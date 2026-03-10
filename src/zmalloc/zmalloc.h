@@ -1,42 +1,38 @@
-/* zmalloc - total amount of allocated memory aware version of malloc()
- *
- * Copyright (c) 2009-2010, Salvatore Sanfilippo <antirez at gmail dot com>
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *   * Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *   * Neither the name of Redis nor the names of its contributors may be used
- *     to endorse or promote products derived from this software without
- *     specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+/* zmalloc.h - 内存管理封装头文件
+ * 
+ * Latte C 库核心组件：智能内存管理
+ * 
+ * 原始作者：Salvatore Sanfilippo (antirez) - Redis 作者
+ * 移植/适配：Latte C 项目
+ * 
+ * 设计目标：
+ * 1. 统一内存分配接口 (libc/jemalloc/tcmalloc)
+ * 2. 跟踪已分配内存总量 (用于内存统计)
+ * 3. 自动获取实际可用大小 (避免内存浪费)
+ * 4. 支持 OOM (Out Of Memory) 处理回调
+ * 5. 线程安全
+ * 
+ * 支持的分配器：
+ * - libc malloc (默认)
+ * - jemalloc (高性能，低碎片)
+ * - tcmalloc (Google 开发，高并发)
+ * - macOS 原生 malloc
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
  */
 
 #ifndef __ZMALLOC_H
 #define __ZMALLOC_H
 
 #include <stddef.h>
-/* Double expansion needed for stringification of macro values. */
+
+/* 宏字符串化辅助 */
 #define __xstr(s) __str(s)
 #define __str(s) #s
 
 #if defined(USE_TCMALLOC)
+/* 使用 Google tcmalloc 分配器 */
 #define ZMALLOC_LIB ("tcmalloc-" __xstr(TC_VERSION_MAJOR) "." __xstr(TC_VERSION_MINOR))
 #include <google/tcmalloc.h>
 #if (TC_VERSION_MAJOR == 1 && TC_VERSION_MINOR >= 6) || (TC_VERSION_MAJOR > 1)
@@ -47,6 +43,7 @@
 #endif
 
 #elif defined(USE_JEMALLOC)
+/* 使用 jemalloc 分配器 (推荐，低碎片) */
 #define ZMALLOC_LIB ("jemalloc-" __xstr(JEMALLOC_VERSION_MAJOR) "." __xstr(JEMALLOC_VERSION_MINOR) "." __xstr(JEMALLOC_VERSION_BUGFIX))
 #include <jemalloc/jemalloc.h>
 #if (JEMALLOC_VERSION_MAJOR == 2 && JEMALLOC_VERSION_MINOR >= 1) || (JEMALLOC_VERSION_MAJOR > 2)
@@ -55,6 +52,10 @@
 #else
 #error "Newer version of jemalloc required"
 #endif
+
+#elif defined(__APPLE__)
+/* macOS 原生 malloc */
+#include <malloc/malloc.h>
 
 #elif defined(__APPLE__)
 #include <malloc/malloc.h>

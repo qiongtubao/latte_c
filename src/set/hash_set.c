@@ -1,3 +1,11 @@
+/* hash_set.c
+ * 
+ * Latte C 库组件实现
+ * 
+ * 作者：自动注释生成
+ * 日期：2026-03-08
+ */
+
 #include "hash_set.h"
 #include "zmalloc/zmalloc.h"
 #include "dict/dict_plugins.h"
