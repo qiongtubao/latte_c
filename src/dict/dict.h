@@ -126,23 +126,8 @@ struct dict_t {
 };
 
 /* 初始哈希表大小 */
-#define DICT_HT_INITIAL_EXP 2      /* 初始指数 (1<<2 = 4 个槽) */
-#define DICT_HT_INITIAL_SIZE (1<<(DICT_HT_INITIAL_EXP))  /* 初始大小 = 4 */
-
-    /* Keep small vars at end for optimal (minimal) struct padding */
-    int16_t pauserehash; /* If >0 rehashing is paused (<0 indicates coding error) */
-    signed char ht_size_exp[2]; /* exponent of size. (size = 1<<exp) */
-
-    void* metadata[]; //增加expire 针对单个subkey
-};
-
-
-
-
-
-/* This is the initial size of every hash table */
-#define DICT_HT_INITIAL_EXP      2
-#define DICT_HT_INITIAL_SIZE     (1<<(DICT_HT_INITIAL_EXP))
+#define DICT_HT_INITIAL_EXP 2
+#define DICT_HT_INITIAL_SIZE (1<<(DICT_HT_INITIAL_EXP))
 
 
 #define dict_free_val(d, entry) \

@@ -1,28 +1,12 @@
-/*
- * sds.h - 动态字符串 (SDS) 头文件
- * 
- * Latte C 库核心组件：高效安全的字符串管理
- * 
- * 设计特点：
- * 1. 多种头结构 (hdr5/8/16/32/64) 自适应，节省小字符串内存
- * 2. 内存预分配 + 惰性释放，减少频繁分配
- * 3. 二进制安全，可包含空字符
- * 4. 无符号长度，防止负数溢出
- * 5. 引用计数预留 (当前未实现)
- * 
- * 作者：自动注释生成
- * 日期：2026-03-08
- */
 
 #ifndef __LATTE_SDS_H
 #define __LATTE_SDS_H
-
+#define SDS_MAX_PREALLOC (1024*1024)
 #include <sys/types.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include "zmalloc/zmalloc.h"
 
-/* 内存分配宏 - 使用 zmalloc 统一内存管理 */
 #define s_malloc zmalloc
 #define s_realloc zrealloc
 #define s_realloc_usable zrealloc_usable
@@ -30,93 +14,52 @@
 #define s_malloc_usable zmalloc_usable
 #define s_trymalloc_usable ztrymalloc_usable
 
-/* SDS 字符串类型定义 */
 typedef char *sds;
 #define sds_t sds
-
-/* 特殊标记：不初始化内存 (性能优化) */
 extern const char *SDS_NOINIT;
 
-/*
- * SDS 头结构 - 根据字符串长度自动选择最紧凑的格式
- * 
- * 所有头结构都是 packed 属性，避免内存对齐浪费
- * flags 的低 3 位存储类型，高 5 位可用于其他用途
- */
-
-/* hdr5: 最多 31 字节字符串 (5 位长度 = 2^5-1)
- * 优点：最小开销 (仅 1 字节)
- * 适用：极短字符串 (长度<32)
- */
 struct __attribute__ ((__packed__)) sdshdr5 {
-    unsigned char flags; /* 低 3 位：类型标识，高 5 位：字符串长度 */
-    char buf[];          /* 字符串内容 (空终止) */
+    unsigned char flags; /* 3 lsb of type, and 5 msb of string length */
+    char buf[];
 };
 
-/* hdr8: 最多 255 字节字符串
- * 适用：短字符串 (32-255 字节)
- */
 struct __attribute__ ((__packed__)) sdshdr8 {
-    uint8_t len;         /* 已使用字节数 */
-    uint8_t alloc;       /* 总分配字节数 (不含头和解终止符) */
-    unsigned char flags; /* 低 3 位：类型标识 (SDS_TYPE_8=1) */
-    char buf[];          /* 字符串内容 */
+    uint8_t len; /* used */
+    uint8_t alloc; /* excluding the header and null terminator */
+    unsigned char flags; /* 3 lsb of type, 5 unused bits */
+    char buf[];
 };
-
-/* hdr16: 最多 65535 字节字符串
- * 适用：中等长度字符串 (256-64KB)
- */
 struct __attribute__ ((__packed__)) sdshdr16 {
-    uint16_t len;        /* 已使用字节数 */
-    uint16_t alloc;      /* 总分配字节数 */
-    unsigned char flags; /* 类型标识 */
-    char buf[];          /* 字符串内容 */
+    uint16_t len; /* used */
+    uint16_t alloc; /* excluding the header and null terminator */
+    unsigned char flags; /* 3 lsb of type, 5 unused bits */
+    char buf[];
 };
-
-/* hdr32: 最多 4GB 字符串
- * 适用：大字符串 (64KB-4GB)
- */
 struct __attribute__ ((__packed__)) sdshdr32 {
-    uint32_t len;        /* 已使用字节数 */
-    uint32_t alloc;      /* 总分配字节数 */
-    unsigned char flags; /* 类型标识 */
-    char buf[];          /* 字符串内容 */
+    uint32_t len; /* used */
+    uint32_t alloc; /* excluding the header and null terminator */
+    unsigned char flags; /* 3 lsb of type, 5 unused bits */
+    char buf[];
 };
-
-/* hdr64: 超大字符串
- * 适用：超大数据 (>4GB，理论支持)
- */
 struct __attribute__ ((__packed__)) sdshdr64 {
-    uint64_t len;        /* 已使用字节数 */
-    uint64_t alloc;      /* 总分配字节数 */
-    unsigned char flags; /* 类型标识 */
-    char buf[];          /* 字符串内容 */
+    uint64_t len; /* used */
+    uint64_t alloc; /* excluding the header and null terminator */
+    unsigned char flags; /* 3 lsb of type, 5 unused bits */
+    char buf[];
 };
 
-/* 类型常量 */
-#define SDS_TYPE_5  0   /* hdr5 类型 */
-#define SDS_TYPE_8  1   /* hdr8 类型 */
-#define SDS_TYPE_16 2   /* hdr16 类型 */
-#define SDS_TYPE_32 3   /* hdr32 类型 */
-#define SDS_TYPE_64 4   /* hdr64 类型 */
-
-#define SDS_TYPE_MASK 7    /* 类型掩码 (低 3 位) */
-#define SDS_TYPE_BITS 3    /* 类型占用的位数 */
-
-/* 最大预分配大小 (1MB) */
-#define SDS_MAX_PREALLOC (1024*1024)
-
-/* 宏工具：获取指定类型的头指针 */
+#define SDS_TYPE_5  0
+#define SDS_TYPE_8  1
+#define SDS_TYPE_16 2
+#define SDS_TYPE_32 3
+#define SDS_TYPE_64 4
+#define SDS_TYPE_MASK 7
+#define SDS_TYPE_BITS 3
 #define SDS_HDR_VAR(T,s) struct sdshdr##T *sh = (struct sdshdr##T*)((s)-(sizeof(struct sdshdr##T)));
 #define SDS_HDR(T,s) ((struct sdshdr##T *)((s)-(sizeof(struct sdshdr##T))))
 #define SDS_TYPE_5_LEN(f) ((f)>>SDS_TYPE_BITS)
 
-/*
- * 获取 SDS 字符串长度
- * 参数：s - SDS 字符串指针
- * 返回：字符串实际长度
- * 复杂度：O(1)
- */
+
 static inline size_t sds_len(const sds_t s) {
     unsigned char flags = s[-1];
     switch (flags & SDS_TYPE_MASK) {
@@ -134,12 +77,6 @@ static inline size_t sds_len(const sds_t s) {
     return 0;
 }
 
-/*
- * 设置 SDS 字符串长度
- * 参数：sds - SDS 字符串指针
- *       newlen - 新的长度值
- * 注意：不会改变实际内存，仅更新长度字段
- */
 static inline void sds_set_len(sds_t s, size_t newlen) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
@@ -161,6 +98,70 @@ static inline void sds_set_len(sds_t s, size_t newlen) {
         case SDS_TYPE_64:
             SDS_HDR(64,s)->len = newlen;
             break;
+    }
+}
+
+static inline void sds_set_alloc(sds_t s, size_t newlen) {
+    unsigned char flags = s[-1];
+    switch(flags&SDS_TYPE_MASK) {
+        case SDS_TYPE_5:
+            /* Nothing to do, this type has no total allocation info. */
+            break;
+        case SDS_TYPE_8:
+            SDS_HDR(8,s)->alloc = newlen;
+            break;
+        case SDS_TYPE_16:
+            SDS_HDR(16,s)->alloc = newlen;
+            break;
+        case SDS_TYPE_32:
+            SDS_HDR(32,s)->alloc = newlen;
+            break;
+        case SDS_TYPE_64:
+            SDS_HDR(64,s)->alloc = newlen;
+            break;
+    }
+}
+
+static inline size_t sds_avail(const sds_t s) {
+    unsigned char flags = s[-1];
+    switch(flags&SDS_TYPE_MASK) {
+        case SDS_TYPE_5: {
+            return 0;
+        }
+        case SDS_TYPE_8: {
+            SDS_HDR_VAR(8,s);
+            return sh->alloc - sh->len;
+        }
+        case SDS_TYPE_16: {
+            SDS_HDR_VAR(16,s);
+            return sh->alloc - sh->len;
+        }
+        case SDS_TYPE_32: {
+            SDS_HDR_VAR(32,s);
+            return sh->alloc - sh->len;
+        }
+        case SDS_TYPE_64: {
+            SDS_HDR_VAR(64,s);
+            return sh->alloc - sh->len;
+        }
+    }
+    return 0;
+}
+/* sds_alloc() = sds_avail() + sds_len() */
+static inline size_t sds_alloc(const sds_t s) {
+    unsigned char flags = s[-1];
+    switch(flags&SDS_TYPE_MASK) {
+        case SDS_TYPE_5:
+            return SDS_TYPE_5_LEN(flags);
+        case SDS_TYPE_8:
+            return SDS_HDR(8,s)->alloc;
+        case SDS_TYPE_16:
+            return SDS_HDR(16,s)->alloc;
+        case SDS_TYPE_32:
+            return SDS_HDR(32,s)->alloc;
+        case SDS_TYPE_64:
+            return SDS_HDR(64,s)->alloc;
+    }
     return 0;
 }
 

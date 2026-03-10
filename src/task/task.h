@@ -14,8 +14,7 @@
 #include "list/list.h"
 #include "ae/ae.h"
 
-typedef int task_fn(void* job);
-typedef void callback_fn(void* job);
+/* task_fn and callback_fn are defined in func_task/func_task.h via ae/ae.h */
 
 typedef struct latteThreadJob {
     int argv;
@@ -51,7 +50,7 @@ typedef struct taskThread {
     int maxJobs;
 } taskThread;
 
-taskThread* createTaskThread(int tnum, aeEventLoop* loop);
+taskThread* createTaskThread(int tnum, ae_event_loop_t* loop);
 void releaseTaskThread(taskThread* thread);
 void startTaskThread(taskThread* thread);
 void stopTaskThread(taskThread* thread);

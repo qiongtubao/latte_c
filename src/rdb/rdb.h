@@ -14,7 +14,6 @@
 #include <stdint.h>
 #include "sds/sds.h"
 #include "object/object.h"
-#include "object/module.h"
 
 /* RDB version */
 #define RDB_VERSION 1

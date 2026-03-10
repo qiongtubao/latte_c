@@ -60,10 +60,10 @@ typedef struct latte_rocksdb_column_family_meta_t {
         sds _name = sds_new(name); \
         dict_entry_t* _entry = dict_find(rocksdb->column_families_metas, _name); \
         if (_entry) { \
-            latte_rocksdb_column_family_meta_t* _meta = dict_get_val(_entry); \
+            latte_rocksdb_column_family_meta_t* _meta = dict_get_entry_val(_entry); \
             rocksdb_options_set_##option(_meta->cf_opts, __VA_ARGS__); \
         } \
-        sds_free(_name); \
+        sds_delete(_name); \
     } while (0)
 
 

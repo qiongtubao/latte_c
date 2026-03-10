@@ -268,9 +268,19 @@ void ae_stop(ae_event_loop_t *eventLoop) {
 }
 
 /*
- * 以下为事件添加/删除/处理等核心函数的实现
- * 由于代码较长，继续后续详细注释...
+ * ae_file_event_new - 注册文件事件
  */
+int ae_file_event_new(ae_event_loop_t *eventLoop, int fd, int mask,
+        ae_file_proc_func *proc, void *clientData)
+{
+    if (fd >= eventLoop->setsize) {
+        errno = ERANGE;
+        return AE_ERR;
+    }
+    ae_file_event_t *fe = &eventLoop->events[fd];
+
+    if (ae_api_add_event(eventLoop, fd, mask) == -1)
+        return AE_ERR;
     fe->mask |= mask;
     if (mask & AE_READABLE) fe->rfileProc = proc;
     if (mask & AE_WRITABLE) fe->wfileProc = proc;

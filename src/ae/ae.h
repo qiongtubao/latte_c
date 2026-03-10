@@ -137,14 +137,8 @@ typedef struct ae_event_loop_t {
     void *apidata;              /* 后端特定数据 (epoll/kqueue 等) */
     ae_before_sleep_proc_func *beforesleep;  /* 单例睡眠前回调 */
     list_t* beforesleeps;       /* 睡眠前回调列表 (多回调支持) */
-    ae_fired_event_t *fired; /* Fired events */
-    ae_time_event_t *timeEventHead;
-    int stop;
-    void *apidata; /* This is used for polling API specific data */
-    ae_before_sleep_proc_func *beforesleep;
-    list_t* beforesleeps;
-    ae_before_sleep_proc_func *aftersleep;
-    list_t* aftersleeps;
+    ae_before_sleep_proc_func *aftersleep;   /* 单例睡眠后回调 */
+    list_t* aftersleeps;        /* 睡眠后回调列表 (多回调支持) */
     int flags;
     void *privdata[2];
 } ae_event_loop_t;

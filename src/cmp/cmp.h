@@ -1,66 +1,27 @@
-/*
- * cmp.h - 比较函数集头文件
- * 
- * Latte C 库工具组件：通用比较函数集合
- * 
- * 核心功能：
- * 1. 类型化比较函数 (int/uint/string/pointer)
- * 2. 大小端相关比较
- * 3. 字符串比较 (区分/不区分大小写)
- * 4. 浮点数比较 (支持容差)
- * 
- * 应用场景：
- * - 哈希表的 keyCompare 回调
- * - 排序算法的比较器
- * - 缓存的键比较
- * 
- * 作者：自动注释生成
- * 日期：2026-03-08
- */
-
 #ifndef __LATTE_CMP_H
 #define __LATTE_CMP_H
-
-#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
-#include <float.h>
 
-/* 整数比较函数 */
-int cmp_int(void *a, void *b);
-int cmp_uint(void *a, void *b);
-int cmp_long(void *a, void *b);
-int cmp_ulong(void *a, void *b);
+typedef int cmp_func(void* a, void* b);
 
-/* 64 位整数比较 */
-int cmp_int64(void *a, void *b);
-int cmp_uint64(void *a, void *b);
+// str cmp
+int str_cmp(void* a, void* b);
+int private_str_cmp(char* a, char* b);
 
-/* 字符串比较 */
-int cmp_string(void *a, void *b);          /* 区分大小写 */
-int cmp_string_nocase(void *a, void *b);   /* 不区分大小写 */
+//int64_t cmp
+int int64_cmp(void* a, void* b);
+int private_int64_cmp(int64_t a, int64_t b);
 
-/* 指针比较 (直接比较地址) */
-int cmp_pointer(void *a, void *b);
+//uint64_cmp
+int uint64_cmp(void* a, void* b);
+int private_uint64_cmp(uint64_t a, uint64_t b);
 
-/* 浮点数比较 */
-int cmp_double(void *a, void *b);
-int cmp_float(void *a, void *b);
-
-/* 二进制数据比较 */
-int cmp_binary(void *a, void *b, size_t len);
-
-/* 字节序相关比较 */
-int cmp_uint16_be(void *a, void *b);  /* 大端序 */
-int cmp_uint32_be(void *a, void *b);
-int cmp_uint64_be(void *a, void *b);
-
-int cmp_uint16_le(void *a, void *b);  /* 小端序 */
-int cmp_uint32_le(void *a, void *b);
-int cmp_uint64_le(void *a, void *b);
-
-/* 比较函数返回约定 */
-#define CMP_LT (-1)  /* a < b */
-#define CMP_EQ 0      /* a == b */
-#define CMP_GT 1      /* a > b */
-
-#endif /* __LATTE_CMP_H */
+/**
+ * 由于long double字节数为16 无法转化成void*  
+ * 所以这里通用比较需要对比的是long double* 
+ * */
+int long_double_cmp(void* a, void* b);
+int private_long_double_cmp(long double a, long double b);
+#endif

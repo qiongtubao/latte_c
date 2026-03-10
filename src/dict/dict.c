@@ -128,7 +128,7 @@ static void _dict_reset(dict_t *d, int htidx) {
  * - 初始化 rehash 索引为 -1 (未进行 rehash)
  * - 清空暂停计数器
  */
-static int _dict_init(dict_t *d, dict_func_t *type) {
+int _dict_init(dict_t *d, dict_func_t *type) {
     _dict_reset(d, 0);
     _dict_reset(d, 1);
     d->type = type;

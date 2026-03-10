@@ -11,6 +11,19 @@
  */
 #include "object/object.h"
 #include "object/object_manager.h"
+#include "sds/sds.h"
+#include "zmalloc/zmalloc.h"
+
+latte_object_t *latte_object_new(unsigned type, void *ptr) {
+    latte_object_t *o = zmalloc(sizeof(latte_object_t));
+    if (!o)
+        return NULL;
+    o->type = type;
+    o->lru = 0;
+    o->refcount = 1;
+    o->ptr = ptr;
+    return o;
+}
 
 void latte_object_incr_ref_count(latte_object_t *o) {
     if (o)
@@ -23,6 +36,13 @@ void latte_object_decr_ref_count(latte_object_t *o) {
     if (o->refcount == 0)
         return;
     o->refcount--;
-    if (o->refcount == 0)
+    if (o->refcount == 0) {
+        if (o->type == OBJ_STRING) {
+            if (o->ptr)
+                sds_delete(o->ptr);
+            zfree(o);
+            return;
+        }
         object_manager_release_wrapped(o);
+    }
 }

@@ -203,3 +203,5 @@ void list_rotate_tail_to_head(list_t *list);
  */
 void list_rotate_head_to_tail(list_t *list);
 
+
+#endif /* __LATTE_LIST_H */

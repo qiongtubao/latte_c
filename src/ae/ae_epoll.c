@@ -231,6 +231,10 @@ static int ae_api_poll(ae_event_loop_t *eventLoop, struct timeval *tvp) {
             eventLoop->fired[j].mask = mask;
         }
     }
+    return numevents;
+}
+
+static char *ae_api_name(void) {
     return "epoll";
 }
 

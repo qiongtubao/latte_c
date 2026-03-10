@@ -13,7 +13,10 @@
 
 
 int test_raxNew() {
-
+    rax* tree = raxNew();
+    assert(tree != NULL);
+    raxFree(tree);
+    return 1;
 }
 
 int test_api(void) {
