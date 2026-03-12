@@ -32,6 +32,15 @@
 #include <stdlib.h>
 #include "list.h"
 #include "zmalloc/zmalloc.h"
+
+/**
+ * @brief 创建一个新的空链表。
+ * 创建的链表可以使用list_delete()释放，
+ * 但在此之前，除非使用list_set_free_method设置了自定义的释放函数，
+ * 否则用户必须手动释放每个节点的私有值。
+ *
+ * @return list_t* 成功返回新链表指针，失败返回NULL
+ */
 /* Create a new list. The created list can be freed with
  * list_delete(), but private value of every node need to be freed
  * by the user before to call list_delete(), or by setting a free method using
@@ -52,6 +61,10 @@ list_t *list_new(void)
     return list;
 }
 
+/**
+ * @brief 清空链表中的所有元素，但不销毁链表结构体本身。
+ * @param list 目标链表指针
+ */
 /* Remove all the elements from the list without destroying the list itself. */
 void list_empty(list_t *list)
 {
@@ -70,6 +83,12 @@ void list_empty(list_t *list)
     list->len = 0;
 }
 
+/**
+ * @brief 遍历链表并根据条件函数删除节点
+ * @param l 目标链表指针
+ * @param need_delete 条件判断函数指针，返回非0值表示需要删除
+ * @return int 返回成功删除的节点数量
+ */
 int list_for_each_delete(list_t* l, int (*need_delete)(void* value)) {
     list_node_t* node = l->head;
     list_node_t* next = NULL;
@@ -85,6 +104,10 @@ int list_for_each_delete(list_t* l, int (*need_delete)(void* value)) {
     return deleted;
 }
 
+/**
+ * @brief 释放整个链表（包括节点和链表结构体自身）。该函数不会失败。
+ * @param list 要释放的链表指针
+ */
 /* Free the whole list.
  *
  * This function can't fail. */
@@ -94,6 +117,13 @@ void list_delete(list_t *list)
     zfree(list);
 }
 
+/**
+ * @brief 在链表头部添加一个新节点，其中包含指定的'value'指针作为值。
+ *
+ * @param list 目标链表指针
+ * @param value 要添加的值指针
+ * @return list_t* 成功返回原始链表指针，失败返回NULL且链表不改变
+ */
 /* Add a new node to the list, to head, containing the specified 'value'
  * pointer as value.
  *
@@ -120,6 +150,13 @@ list_t *list_add_node_head(list_t *list, void *value)
     return list;
 }
 
+/**
+ * @brief 在链表尾部添加一个新节点，其中包含指定的'value'指针作为值。
+ *
+ * @param list 目标链表指针
+ * @param value 要添加的值指针
+ * @return list_t* 成功返回原始链表指针，失败返回NULL且链表不改变
+ */
 /* Add a new node to the list, to tail, containing the specified 'value'
  * pointer as value.
  *
@@ -146,6 +183,14 @@ list_t *list_add_node_tail(list_t *list, void *value)
     return list;
 }
 
+/**
+ * @brief 在指定的旧节点之前或之后插入一个新节点
+ * @param list 目标链表指针
+ * @param old_node 参考节点指针
+ * @param value 要插入的新节点的值指针
+ * @param after 如果非0，在old_node之后插入；如果为0，在old_node之前插入
+ * @return list_t* 返回目标链表指针，失败则返回NULL
+ */
 list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int after) {
     list_node_t *node;
 
@@ -175,6 +220,13 @@ list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int a
     return list;
 }
 
+/**
+ * @brief 从指定的链表中移除指定的节点。
+ * 调用者需要负责释放节点的私有值（除非链表配置了free函数）。
+ *
+ * @param list 目标链表指针
+ * @param node 要移除的节点指针
+ */
 /* Remove the specified node from the specified list.
  * It's up to the caller to free the private value of the node.
  *
@@ -194,6 +246,13 @@ void list_del_node(list_t *list, list_node_t *node)
     list->len--;
 }
 
+/**
+ * @brief 返回一个链表迭代器'iter'。初始化后，每次调用list_next()将返回链表的下一个元素。
+ *
+ * @param list 目标链表指针
+ * @param direction 迭代方向 (AL_START_HEAD 或 AL_START_TAIL)
+ * @return list_iterator_t* 返回创建的迭代器，失败返回NULL
+ */
 /* Returns a list iterator 'iter'. After the initialization every
  * call to list_next() will return the next element of the list.
  *
@@ -211,22 +270,43 @@ list_iterator_t* list_get_iterator(list_t *list, int direction)
     return iter;
 }
 
+/**
+ * @brief 释放迭代器占用的内存
+ * @param iter 要释放的迭代器
+ */
 /* Release the iterator memory */
 void list_iterator_delete(list_iterator_t*iter) {
     zfree(iter);
 }
 
+/**
+ * @brief 重置迭代器，使其从链表头部重新开始迭代
+ * @param list 目标链表
+ * @param li 要重置的迭代器
+ */
 /* Create an iterator in the list private iterator structure */
 void list_rewind(list_t *list, list_iterator_t*li) {
     li->next = list->head;
     li->direction = AL_START_HEAD;
 }
 
+/**
+ * @brief 重置迭代器，使其从链表尾部重新开始迭代
+ * @param list 目标链表
+ * @param li 要重置的迭代器
+ */
 void list_rewind_tail(list_t *list, list_iterator_t*li) {
     li->next = list->tail;
     li->direction = AL_START_TAIL;
 }
 
+/**
+ * @brief 返回迭代器的下一个元素。
+ * 在迭代期间可以使用list_del_node()删除当前返回的元素，但不能删除其他元素。
+ *
+ * @param iter 迭代器指针
+ * @return list_node_t* 返回下一个节点的指针，如果没有更多元素则返回NULL
+ */
 /* Return the next element of an iterator.
  * It's valid to remove the currently returned element using
  * list_del_node(), but not to remove other elements.
@@ -254,6 +334,13 @@ list_node_t *list_next(list_iterator_t*iter)
     return current;
 }
 
+/**
+ * @brief 复制整个链表。
+ * 如果设置了dup方法，将使用其拷贝节点值；否则直接复制指针。
+ *
+ * @param orig 原始链表指针
+ * @return list_t* 返回复制的新链表。如果内存不足或复制失败，则返回NULL。
+ */
 /* Duplicate the whole list. On out of memory NULL is returned.
  * On success a copy of the original list is returned.
  *
@@ -286,7 +373,7 @@ list_t *list_dup(list_t *orig)
         } else {
             value = node->value;
         }
-        
+
         if (list_add_node_tail(copy, value) == NULL) {
             /* Free value if dup succeed but list_add_node_tail failed. */
             if (copy->free) copy->free(value);
@@ -297,6 +384,14 @@ list_t *list_dup(list_t *orig)
     return copy;
 }
 
+/**
+ * @brief 在链表中搜索匹配指定键的节点。
+ * 如果设置了match方法，将使用该方法匹配；否则直接比较指针。
+ *
+ * @param list 目标链表指针
+ * @param key 要搜索的键值
+ * @return list_node_t* 返回第一个匹配的节点指针。如果没找到，则返回NULL。
+ */
 /* Search the list for a node matching a given key.
  * The match is performed using the 'match' method
  * set with list_set_match_method(). If no 'match' method
@@ -326,6 +421,12 @@ list_node_t *list_search_key(list_t *list, void *key)
     return NULL;
 }
 
+/**
+ * @brief 返回指定从零开始的索引处的元素
+ * @param list 目标链表指针
+ * @param index 0表示头部节点，1表示头部的下一个节点，以此类推。负数用于从尾部开始计数（-1是最后一个节点）。
+ * @return list_node_t* 返回指定索引的节点指针，如果索引越界返回NULL。
+ */
 /* Return the element at the specified zero-based index
  * where 0 is the head, 1 is the element next to head
  * and so on. Negative integers are used in order to count
@@ -345,6 +446,10 @@ list_node_t *list_index(list_t *list, long index) {
     return n;
 }
 
+/**
+ * @brief 旋转链表：移除尾部节点并将其插入到头部。
+ * @param list 目标链表指针
+ */
 /* Rotate the list removing the tail node and inserting it to the head. */
 void list_rotate_tail_to_head(list_t *list) {
     if (list_length(list) <= 1) return;
@@ -360,6 +465,10 @@ void list_rotate_tail_to_head(list_t *list) {
     list->head = tail;
 }
 
+/**
+ * @brief 旋转链表：移除头部节点并将其插入到尾部。
+ * @param list 目标链表指针
+ */
 /* Rotate the list removing the head node and inserting it to the tail. */
 void list_rotate_head_to_tail(list_t *list) {
     if (list_length(list) <= 1) return;
@@ -375,6 +484,13 @@ void list_rotate_head_to_tail(list_t *list) {
     list->tail = head;
 }
 
+/**
+ * @brief 将链表 'o' 中的所有元素添加到链表 'l' 的末尾。
+ * 链表 'o' 变为空链表，但仍然有效（可继续使用）。
+ *
+ * @param l 目标接收链表指针
+ * @param o 要被合并的源链表指针
+ */
 /* Add all the elements of the list 'o' at the end of the
  * list 'l'. The list 'other' remains empty but otherwise valid. */
 void list_join(list_t *l, list_t *o) {
@@ -395,13 +511,18 @@ void list_join(list_t *l, list_t *o) {
     o->len = 0;
 }
 
-
+/**
+ * @brief 封装了latte_iterator_t的链表迭代器专用结构体
+ */
 typedef struct latte_list_iterator_t {
     latte_iterator_t it;
     list_node_t* next;
     list_t* list;
 } latte_list_iterator_t;
 
+/**
+ * @brief 多态迭代器接口实现：判断是否有下一个元素
+ */
 bool protected_latte_list_iterator_has_next(latte_iterator_t* iterator) {
     latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_node_t* node = list_next(((list_iterator_t*)it->it.data));
@@ -412,6 +533,9 @@ bool protected_latte_list_iterator_has_next(latte_iterator_t* iterator) {
     return true;
 }
 
+/**
+ * @brief 多态迭代器接口实现：获取下一个元素的值
+ */
 void* protected_latte_list_iterator_next(latte_iterator_t* iterator) {
     latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_node_t* node = it->next;
@@ -419,6 +543,9 @@ void* protected_latte_list_iterator_next(latte_iterator_t* iterator) {
     return list_node_value(node);
 }
 
+/**
+ * @brief 多态迭代器接口实现：释放迭代器占用的内存
+ */
 void protected_latte_list_iterator_delete(latte_iterator_t* iterator) {
     latte_list_iterator_t* it = (latte_list_iterator_t*)iterator;
     list_iterator_delete(it->it.data);
@@ -429,12 +556,21 @@ void protected_latte_list_iterator_delete(latte_iterator_t* iterator) {
     zfree(it);
 }
 
+/**
+ * @brief 多态迭代器的函数指针表
+ */
 latte_iterator_func latte_list_iterator_func = {
     .has_next = protected_latte_list_iterator_has_next,
     .next = protected_latte_list_iterator_next,
     .release = protected_latte_list_iterator_delete
 };
 
+/**
+ * @brief 创建并返回一个链表的多态迭代器(latte_iterator_t)
+ * @param l 目标链表指针
+ * @param opt 控制选项 (如 LIST_ITERATOR_OPTION_TAIL, LIST_ITERATOR_OPTION_DELETE_LIST)
+ * @return latte_iterator_t* 多态迭代器指针
+ */
 latte_iterator_t* list_get_latte_iterator(list_t* l, int opt) {
     latte_list_iterator_t* it = zmalloc(sizeof(latte_list_iterator_t));
     list_iterator_t* t;
@@ -442,7 +578,7 @@ latte_iterator_t* list_get_latte_iterator(list_t* l, int opt) {
         t = list_get_iterator(l, AL_START_TAIL);
     } else {
         t = list_get_iterator(l, AL_START_HEAD);
-    } 
+    }
     if (opt & LIST_ITERATOR_OPTION_DELETE_LIST) it->list = l;
     it->it.data = t;
     it->it.func = &latte_list_iterator_func;
@@ -453,10 +589,15 @@ latte_iterator_t* list_get_latte_iterator(list_t* l, int opt) {
 }
 
 
-
+/**
+ * @brief 将给定的节点移动到链表的头部
+ * 该节点必须已经是链表中的一个节点。
+ * @param l 目标链表指针
+ * @param node 要移动到头部的节点指针
+ */
 void list_move_head(list_t* l, list_node_t* node) {
     if ( NULL == node->prev) {
-        return;
+        return; // 已经在头部
     }
     node->prev->next = node->next;
 
@@ -474,19 +615,38 @@ void list_move_head(list_t* l, list_node_t* node) {
     l->head = node;
 }
 
+/**
+ * @brief 从链表中移除指定的节点，并返回其保存的值。
+ * 此时如果链表有free方法，会被临时屏蔽以防止值被释放。
+ *
+ * @param l 目标链表指针
+ * @param node 要移除的节点指针
+ * @return void* 被移除节点的值
+ */
 void* list_remove(list_t* l, list_node_t* node) {
     if (node == NULL) return NULL;
     void* result = list_node_value(node);
     if (l->free != NULL) {
-        node->value = NULL;
+        node->value = NULL; // 防止 list_del_node 内部调用 free 释放该值
     }
     list_del_node(l, node);
     return result;
 }
+
+/**
+ * @brief 从链表头部弹出一个节点的值
+ * @param l 目标链表指针
+ * @return void* 头部节点的值，如果链表为空则返回NULL
+ */
 void* list_lpop(list_t* l) {
     return list_remove(l, l->head);
 }
 
+/**
+ * @brief 从链表尾部弹出一个节点的值
+ * @param l 目标链表指针
+ * @return void* 尾部节点的值，如果链表为空则返回NULL
+ */
 void* list_rpop(list_t* l) {
     return list_remove(l, l->tail);
 }

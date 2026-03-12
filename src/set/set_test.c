@@ -9,13 +9,24 @@
 #include "endianconv/endianconv.h"
 #include <sys/time.h>
 
+/**
+ * @brief 从节点获取sds键的回调函数类型
+ */
 typedef sds_t (* getKey)(void*);
+
+/**
+ * @brief 测试Set的基础功能（添加、删除、包含、迭代）
+ * @param s1 要测试的Set对象
+ * @param getNodeKey 获取节点键的回调函数
+ * @param order 是否要求迭代结果有序（1表示有序，0表示无序）
+ * @return int 测试通过返回1
+ */
 int test_set_base(set_t* s1, getKey getNodeKey, int order) {
     sds_t key = sds_new("key");
     sds_t key1 = sds_new("key1");
     sds_t key2 = sds_new("key2");
 
-    
+
     assert(set_contains(s1, key) == 0);
     assert(set_size(s1) == 0);
     assert(set_add(s1, key) == 1);
@@ -55,42 +66,64 @@ int test_set_base(set_t* s1, getKey getNodeKey, int order) {
     return 1;
 }
 
+/**
+ * @brief 从HashSet（字典）的节点中获取sds键
+ */
 sds_t get_hash_node_key(void* node) {
     latte_pair_t* n = (latte_pair_t*)node;
     return (sds_t)n->key;
 }
+
+/**
+ * @brief 测试基于哈希表实现的Set的API
+ */
 int test_hash_set_api() {
     set_t* s = hash_set_new(&sds_hash_set_dict_func);
     return test_set_base(s, get_hash_node_key, 0);
 }
 
+/**
+ * @brief 运行HashSet的所有测试
+ */
 int test_hash_set() {
     assert(test_hash_set_api() == 1);
     return 1;
 }
 
+/**
+ * @brief 从AVLSet的节点中获取sds键
+ */
 sds_t get_avl_node(void* n) {
     avl_node_t* node = (avl_node_t*)n;
     return node->key;
 }
 
+/**
+ * @brief 测试基于AVL树实现的Set的API
+ */
 int test_avl_set_set_api() {
     set_t* s1 = avl_set_new(&avl_set_sds_func);
     return test_set_base(s1, get_avl_node, 1);
 }
 
+/**
+ * @brief 运行AVLSet的所有测试
+ */
 int test_avl_set() {
     assert(test_avl_set_set_api() == 1);
-    
+
     return 1;
 }
 
+/**
+ * @brief 运行所有Set相关的测试
+ */
 int test_api(void) {
     {
         #ifdef LATTE_TEST
             // ..... private
         #endif
-        test_cond("about set function", 
+        test_cond("about set function",
             test_hash_set() == 1);
         test_cond("about avlSet function",
             test_avl_set() == 1);
@@ -99,6 +132,12 @@ int test_api(void) {
     return 1;
 }
 
+/**
+ * @brief 创建一个包含随机元素的整数集合
+ * @param bits 用于生成随机数的位掩码大小
+ * @param size 要插入的元素数量
+ * @return int_set_t* 创建好的整数集合
+ */
 static int_set_t *create_int_set(int bits, int size) {
     uint64_t mask = (1<<bits)-1;
     uint64_t value;
@@ -115,6 +154,10 @@ static int_set_t *create_int_set(int bits, int size) {
     return is;
 }
 
+/**
+ * @brief 检查整数集合的一致性（元素是否有序）
+ * @param is 要检查的整数集合
+ */
 static int checkConsistency(int_set_t *is) {
     for (uint32_t i = 0; i < (intrev32ifbe(is->length)-1); i++) {
         uint32_t encoding = intrev32ifbe(is->encoding);
@@ -130,6 +173,7 @@ static int checkConsistency(int_set_t *is) {
             assert(i64[i] < i64[i+1]);
         }
     }
+    return 1;
 }
 
 static void ok(void) {
@@ -143,6 +187,10 @@ static long long usec(void) {
 }
 
 #define UNUSED(x) (void)(x)
+
+/**
+ * @brief 整数集合(int_set)的综合测试函数
+ */
 int int_set_test(int argc, char** argv, int accurate) {
     uint8_t success;
     int i;
