@@ -1,3 +1,11 @@
+/**
+ * @file avl_tree.c
+ * @brief AVL平衡二叉树数据结构实现文件
+ * @details 实现了自平衡的AVL树，支持插入、删除、查找和迭代操作
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "avl_tree.h"
 #include "zmalloc/zmalloc.h"
 

@@ -23,6 +23,14 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  * ==========================================================================
  */
+
+/**
+ * @file setcpuaffinity.c
+ * @brief Linux/BSD CPU亲和性设置功能实现文件
+ * @details 提供跨平台的CPU亲和性设置功能，支持Linux/FreeBSD/NetBSD等系统
+ * @author zhenwei pi, latte_c
+ * @date 2026-03-12
+ */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif

@@ -1,3 +1,11 @@
+/**
+ * @file thread_consumer_job.c
+ * @brief 消费者线程任务管理实现文件
+ * @details 实现了基于环形缓冲区的任务队列和消费者线程池管理功能
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "thread_consumer_job.h"
 #include "zmalloc/zmalloc.h"
 #include "utils/utils.h"

@@ -1,4 +1,9 @@
 
+/**
+ * @file dict.c
+ * @brief 字典(哈希表)数据结构实现，支持动态扩容和增量重哈希
+ */
+
 #include "dict.h"
 #include "zmalloc/zmalloc.h"
 #include <assert.h>
@@ -24,10 +29,18 @@ static unsigned int dict_force_resize_ratio = 5;
 
 static uint8_t dict_hash_function_seed[16];
 
+/**
+ * @brief 设置哈希函数的种子值
+ * @param seed 指向16字节种子数据的指针
+ */
 void dict_set_hash_function_seed(uint8_t *seed) {
     memcpy(dict_hash_function_seed,seed,sizeof(dict_hash_function_seed));
 }
 
+/**
+ * @brief 获取哈希函数的种子值
+ * @return 指向16字节种子数据的指针
+ */
 uint8_t *dict_get_hash_function_seed(void) {
     return dict_hash_function_seed;
 }
@@ -38,10 +51,22 @@ uint8_t *dict_get_hash_function_seed(void) {
 uint64_t siphash(const uint8_t *in, const size_t inlen, const uint8_t *k);
 uint64_t siphash_nocase(const uint8_t *in, const size_t inlen, const uint8_t *k);
 
+/**
+ * @brief 生成键的哈希值
+ * @param key 指向键数据的指针
+ * @param len 键数据的长度
+ * @return 64位哈希值
+ */
 uint64_t dict_gen_hash_function(const void *key, size_t len) {
     return siphash(key,len,dict_hash_function_seed);
 }
 
+/**
+ * @brief 生成不区分大小写的哈希值
+ * @param buf 指向字符串数据的指针
+ * @param len 字符串长度
+ * @return 64位哈希值
+ */
 uint64_t dict_gen_case_hash_function(const unsigned char *buf, size_t len) {
     return siphash_nocase(buf,len,dict_hash_function_seed);
 }
@@ -51,6 +76,11 @@ uint64_t dict_gen_case_hash_function(const unsigned char *buf, size_t len) {
 
 
 /* Reset hash table parameters already initialized with _dict_init()*/
+/**
+ * @brief 重置哈希表参数
+ * @param d 字典指针
+ * @param htidx 哈希表索引(0或1)
+ */
 static void _dict_reset(dict_t*d, int htidx)
 {
     d->ht_table[htidx] = NULL;
@@ -60,12 +90,18 @@ static void _dict_reset(dict_t*d, int htidx)
 
 
 /* Initialize the hash table */
+/**
+ * @brief 初始化哈希表
+ * @param d 字典指针
+ * @param type 字典类型函数表
+ * @return 成功返回DICT_OK
+ */
 int _dict_init(dict_t*d, dict_func_t*type)
 {
     _dict_reset(d, 0);
     _dict_reset(d, 1);
     d->type = type;
-    d->rehashidx = -1;
+    d->rehashidx = -1;  // -1表示当前没有进行重哈希
     d->pauserehash = 0;
     return DICT_OK;
 }
@@ -74,6 +110,11 @@ int _dict_init(dict_t*d, dict_func_t*type)
 
 
 /* Create a new hash table */
+/**
+ * @brief 创建新的字典
+ * @param type 字典类型函数表
+ * @return 新创建的字典指针
+ */
 dict_t*dict_new(dict_func_t*type)
 {
     dict_t*d = zmalloc(sizeof(*d));
@@ -87,40 +128,55 @@ dict_t*dict_new(dict_func_t*type)
 
 
 /* Destroy an entire dictionary */
+/**
+ * @brief 清空字典的指定哈希表
+ * @param d 字典指针
+ * @param htidx 哈希表索引(0或1)
+ * @param callback 清理过程中的回调函数，可为NULL
+ * @return 成功返回DICT_OK
+ */
 int _dict_clear(dict_t*d, int htidx, void(callback)(dict_t*)) {
     unsigned long i;
 
-    /* Free all the elements */
+    /* Free all the elements */ // 释放所有元素
     for (i = 0; i < DICTHT_SIZE(d->ht_size_exp[htidx]) && d->ht_used[htidx] > 0; i++) {
         dict_entry_t*he, *nextHe;
 
-        if (callback && (i & 65535) == 0) callback(d);
+        if (callback && (i & 65535) == 0) callback(d);  // 每65536次调用一次回调
 
         if ((he = d->ht_table[htidx][i]) == NULL) continue;
         while(he) {
             nextHe = he->next;
-            dict_free_key(d, he);
-            dict_free_val(d, he);
+            dict_free_key(d, he);  // 释放键
+            dict_free_val(d, he);  // 释放值
             zfree(he);
             d->ht_used[htidx]--;
             he = nextHe;
         }
     }
-    /* Free the table and the allocated cache structure */
+    /* Free the table and the allocated cache structure */ // 释放哈希表数组
     zfree(d->ht_table[htidx]);
-    /* Re-initialize the table */
+    /* Re-initialize the table */ // 重新初始化表
     _dict_reset(d, htidx);
     return DICT_OK; /* never fails */
 }
 
 
 /* Clear & Release the hash table */
+/**
+ * @brief 删除字典并释放内存
+ * @param d 字典指针
+ */
 void dict_delete(dict_t*d)
 {
     dict_destroy(d);
     zfree(d);
 }
 
+/**
+ * @brief 销毁字典内容但不释放字典结构本身
+ * @param d 字典指针
+ */
 void dict_destroy(dict_t*d) {
     _dict_clear(d,0,NULL);
     _dict_clear(d,1,NULL);
@@ -416,36 +472,56 @@ static long _dict_key_index(dict_t*d, const void *key, uint64_t hash, dict_entry
 }
 
 
+/**
+ * @brief 在字典中查找指定键
+ * @param d 字典指针
+ * @param key 要查找的键
+ * @return 找到返回字典项指针，未找到返回NULL
+ */
 dict_entry_t*dict_find(dict_t*d, const void *key)
 {
     dict_entry_t*he;
     uint64_t h, idx, table;
 
-    if (dict_size(d) == 0) return NULL; /* dict_tis empty */
-    if (dict_is_rehashing(d)) _dict_rehash_step(d);
-    h = dict_hash_key(d, key);
+    if (dict_size(d) == 0) return NULL; /* dict_tis empty */ // 字典为空
+    if (dict_is_rehashing(d)) _dict_rehash_step(d);  // 如果正在重哈希，执行一步
+    h = dict_hash_key(d, key);  // 计算键的哈希值
     for (table = 0; table <= 1; table++) {
-        idx = h & DICTHT_SIZE_MASK(d->ht_size_exp[table]);
+        idx = h & DICTHT_SIZE_MASK(d->ht_size_exp[table]);  // 计算在哈希表中的索引
         he = d->ht_table[table][idx];
         while(he) {
-            if (key==he->key || dict_compare_keys(d, key, he->key))
+            if (key==he->key || dict_compare_keys(d, key, he->key))  // 比较键
                 return he;
             he = he->next;
         }
-        if (!dict_is_rehashing(d)) return NULL;
+        if (!dict_is_rehashing(d)) return NULL;  // 如果不在重哈希，只需要检查一个表
     }
     return NULL;
 }
 
+/**
+ * @brief 添加键值对并返回字典项指针
+ * @param d 字典指针
+ * @param key 键
+ * @param val 值
+ * @return 成功返回字典项指针，失败返回NULL
+ */
 dict_entry_t* dict_add_get(dict_t* d, void* key, void* val) {
     dict_entry_t*entry = dict_add_raw(d,key,NULL);
     if (NULL == entry) {
         return NULL;
     }
-    dict_set_val(d, entry, val);
+    dict_set_val(d, entry, val);  // 设置值
     return entry;
 }
 
+/**
+ * @brief 向字典添加键值对
+ * @param d 字典指针
+ * @param key 键
+ * @param val 值
+ * @return 成功返回DICT_OK，失败返回DICT_ERR
+ */
 int dict_add(dict_t*d, void *key, void *val) {
     dict_entry_t* entry =  dict_add_get(d, key, val);
     if (!entry) return DICT_ERR;
@@ -642,15 +718,27 @@ static dict_entry_t*dict_generic_delete(dict_t*d, const void *key, int nofree) {
 }
 /* Remove an element, returning DICT_OK on success or DICT_ERR if the
  * element was not found. */
+/**
+ * @brief 删除字典中的指定键
+ * @param ht 字典指针
+ * @param key 要删除的键
+ * @return 成功删除返回DICT_OK，未找到返回DICT_ERR
+ */
 int dict_delete_key(dict_t*ht, const void *key) {
     return dict_generic_delete(ht,key,0) ? DICT_OK : DICT_ERR;
 }
 
+/**
+ * @brief 获取指定键对应的值
+ * @param d 字典指针
+ * @param key 键
+ * @return 找到返回值的指针，未找到返回NULL
+ */
 void* dict_fetch_value(dict_t *d, const void *key) {
     dict_entry_t* he;
 
     he = dict_find(d, key);
-    return he ? dict_get_entry_val(he) : NULL;
+    return he ? dict_get_entry_val(he) : NULL;  // 返回字典项的值
 }
 
 #define dict_iterator_dict_ptr(iter)  ((dict_t*)iter->sup.sup.data) 

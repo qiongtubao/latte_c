@@ -1,3 +1,11 @@
+/**
+ * @file thread_pool.c
+ * @brief 线程池管理实现文件
+ * @details 实现了线程池的创建、管理和动态调整功能
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "thread_pool.h"
 
 #include "utils/utils.h"

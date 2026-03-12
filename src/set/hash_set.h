@@ -1,4 +1,9 @@
-
+/**
+ * @file hash_set.h
+ * @brief 基于哈希字典实现的 HashSet 接口
+ *        复用 dict_t 作为底层存储，通过 set_t 抽象接口对外暴露集合操作。
+ *        支持自定义哈希/比较函数，内置 sds 键类型的函数表实例。
+ */
 #ifndef __LATTE_HASH_SET_H
 #define __LATTE_HASH_SET_H
 

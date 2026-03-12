@@ -1,11 +1,24 @@
 /**
+ * @file odb.c
+ * @brief 对象数据库实现模块
+ *        提供oio的buffer/file后端，以及字符串/二进制/数字的序列化功能
+ */
+/**
  * odb 实现：oio 的 buffer/file 后端，以及字符串/二进制/数字的序列化。
  */
 #include "odb/odb.h"
 #include "zmalloc/zmalloc.h"
 #include <string.h>
 
-/* ---------- Buffer 后端 ---------- */
+/* ---------- Buffer 后端实现 ---------- */
+
+/**
+ * @brief Buffer后端的读取函数
+ * @param o oio对象指针
+ * @param buf 读取缓冲区
+ * @param len 要读取的字节数
+ * @return size_t 实际读取的字节数
+ */
 static size_t oio_buffer_read(oio *o, void *buf, size_t len) {
     size_t avail = sds_len(o->io.buffer.ptr) - (size_t)o->io.buffer.pos;
     if (avail < len)
@@ -16,6 +29,13 @@ static size_t oio_buffer_read(oio *o, void *buf, size_t len) {
     return len;
 }
 
+/**
+ * @brief Buffer后端的写入函数
+ * @param o oio对象指针
+ * @param buf 写入数据缓冲区
+ * @param len 要写入的字节数
+ * @return size_t 实际写入的字节数
+ */
 static size_t oio_buffer_write(oio *o, const void *buf, size_t len) {
     o->io.buffer.ptr = sds_cat_len(o->io.buffer.ptr, buf, len);
     if (!o->io.buffer.ptr)
@@ -25,15 +45,29 @@ static size_t oio_buffer_write(oio *o, const void *buf, size_t len) {
     return len;
 }
 
+/**
+ * @brief Buffer后端的位置获取函数
+ * @param o oio对象指针
+ * @return off_t 当前位置偏移量
+ */
 static off_t oio_buffer_tell(oio *o) {
     return o->io.buffer.pos;
 }
 
+/**
+ * @brief Buffer后端的刷新函数（空实现）
+ * @param o oio对象指针
+ * @return int 始终返回1表示成功
+ */
 static int oio_buffer_flush(oio *o) {
     (void)o;
     return 1;
 }
 
+/**
+ * @brief 创建一个基于内存缓冲区的oio对象
+ * @return oio* 新创建的oio对象指针，失败返回NULL
+ */
 oio *odb_oio_create_buffer(void) {
     oio *o = (oio *)zmalloc(sizeof(oio));
     if (!o) return NULL;

@@ -305,32 +305,165 @@ typedef struct raxIterator {
     raxNodeCallback node_cb; /* Optional node callback. Normally set to NULL. */
 } raxIterator;
 
-/* A special pointer returned for not found items. */
+/** @brief 查找失败时的特殊返回值（表示 key 不存在） */
 extern void *raxNotFound;
 
-/* Exported API. */
+/* ---- 基数树公开 API ---- */
+
+/**
+ * @brief 创建新的基数树
+ * @return 新建的 rax 指针；内存不足返回 NULL
+ */
 rax *raxNew(void);
+
+/**
+ * @brief 插入 key-value 对（若 key 已存在则覆盖旧值）
+ * @param rax  目标基数树
+ * @param s    key 字节序列
+ * @param len  key 长度（字节）
+ * @param data 关联数据指针
+ * @param old  输出：若 key 已存在，返回旧 data 指针（可为 NULL）
+ * @return 新插入返回 1；key 已存在并覆盖返回 0；内存不足返回 -1
+ */
 int raxInsert(rax *rax, unsigned char *s, size_t len, void *data, void **old);
+
+/**
+ * @brief 仅在 key 不存在时插入（Try Insert）
+ * @param rax  目标基数树
+ * @param s    key 字节序列
+ * @param len  key 长度（字节）
+ * @param data 关联数据指针
+ * @param old  输出：若 key 已存在，返回已有 data 指针（可为 NULL）
+ * @return 成功插入返回 1；key 已存在返回 0；内存不足返回 -1
+ */
 int raxTryInsert(rax *rax, unsigned char *s, size_t len, void *data, void **old);
+
+/**
+ * @brief 从基数树中删除指定 key
+ * @param rax  目标基数树
+ * @param s    key 字节序列
+ * @param len  key 长度（字节）
+ * @param old  输出：返回被删除的 data 指针（可为 NULL）
+ * @return 成功删除返回 1；key 不存在返回 0
+ */
 int raxRemove(rax *rax, unsigned char *s, size_t len, void **old);
+
+/**
+ * @brief 查找指定 key 对应的 value
+ * @param rax   目标基数树
+ * @param s     key 字节序列
+ * @param len   key 长度（字节）
+ * @param value 输出：找到时返回关联数据指针
+ * @return 找到返回 1，value 写入 *value；未找到返回 0
+ */
 int raxFind(rax *rax, unsigned char *s, size_t len, void **value);
+
+/**
+ * @brief 销毁基数树及所有节点（不释放 data 指针）
+ * @param rax 要释放的基数树
+ */
 void raxFree(rax *rax);
+
+/**
+ * @brief 销毁基数树，并对每个 data 调用 free_callback 释放
+ * @param rax           要释放的基数树
+ * @param free_callback 对每个关联 data 调用的释放回调（NULL 则不调用）
+ */
 void raxFreeWithCallback(rax *rax, void (*free_callback)(void*));
+
+/**
+ * @brief 初始化基数树迭代器（须调用 raxStop 释放）
+ * @param it 迭代器指针（调用方分配）
+ * @param rt 要迭代的基数树
+ */
 void raxStart(raxIterator *it, rax *rt);
+
+/**
+ * @brief 将迭代器定位到满足 op 条件的 key 处
+ * @param it  迭代器指针
+ * @param op  比较操作符字符串（"="、">"、">="、"<"、"<="、"^"、"$"）
+ * @param ele 参考 key 字节序列
+ * @param len 参考 key 长度（字节）
+ * @return 成功返回 1；key 不存在或 OOM 返回 0
+ */
 int raxSeek(raxIterator *it, const char *op, unsigned char *ele, size_t len);
+
+/**
+ * @brief 迭代器前进到下一个 key
+ * @param it 迭代器指针
+ * @return 成功返回 1；已到末尾返回 0（设置 RAX_ITER_EOF 标志）
+ */
 int raxNext(raxIterator *it);
+
+/**
+ * @brief 迭代器后退到上一个 key
+ * @param it 迭代器指针
+ * @return 成功返回 1；已到起始返回 0（设置 RAX_ITER_EOF 标志）
+ */
 int raxPrev(raxIterator *it);
+
+/**
+ * @brief 迭代器随机游走指定步数
+ * @param it    迭代器指针
+ * @param steps 游走步数（0 表示游走到随机叶子节点）
+ * @return 成功返回 1；OOM 返回 0
+ */
 int raxRandomWalk(raxIterator *it, size_t steps);
+
+/**
+ * @brief 比较迭代器当前 key 与给定 key 的大小关系
+ * @param iter    迭代器指针
+ * @param op      比较操作符（"="、">"、">="、"<"、"<="）
+ * @param key     参考 key 字节序列
+ * @param key_len 参考 key 长度（字节）
+ * @return 满足 op 关系返回 1；否则返回 0
+ */
 int raxCompare(raxIterator *iter, const char *op, unsigned char *key, size_t key_len);
+
+/**
+ * @brief 停止迭代器并释放相关资源
+ * @param it 迭代器指针
+ */
 void raxStop(raxIterator *it);
+
+/**
+ * @brief 判断迭代器是否已到达末尾（EOF）
+ * @param it 迭代器指针
+ * @return 已到末尾返回 1；否则返回 0
+ */
 int raxEOF(raxIterator *it);
+
+/**
+ * @brief 调试用：以可读格式打印基数树结构到 stdout
+ * @param rax 要打印的基数树
+ */
 void raxShow(rax *rax);
+
+/**
+ * @brief 获取基数树中的 key 总数
+ * @param rax 目标基数树
+ * @return key 总数
+ */
 uint64_t raxSize(rax *rax);
+
+/**
+ * @brief 遍历 raxNode 子树（调试/压力测试用），返回访问的节点数
+ * @param n 起始节点
+ * @return 访问的总节点数
+ */
 unsigned long raxTouch(raxNode *n);
+
+/**
+ * @brief 开启或关闭调试消息输出
+ * @param onoff 非 0 开启；0 关闭
+ */
 void raxSetDebugMsg(int onoff);
 
-/* Internal API. May be used by the node callback in order to access rax nodes
- * in a low level way, so this function is exported as well. */
+/**
+ * @brief 为基数树节点设置关联 data（低层内部接口，node_cb 中可使用）
+ * @param n    目标节点
+ * @param data 要关联的数据指针
+ */
 void raxSetData(raxNode *n, void *data);
 
 #endif

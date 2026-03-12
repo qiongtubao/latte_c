@@ -1,3 +1,11 @@
+/**
+ * @file int_set.c
+ * @brief 整数集合数据结构实现文件
+ * @details 实现了高效的整数集合，支持自动编码升级和内存优化
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "int_set.h"
 #include "endianconv/endianconv.h"
 #include "zmalloc/zmalloc.h"

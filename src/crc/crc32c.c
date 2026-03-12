@@ -1,3 +1,10 @@
+/**
+ * @file crc32c.c
+ * @brief CRC32C (Castagnoli) 循环冗余校验算法实现
+ *        CRC32C 使用 Castagnoli 多项式，常用于数据完整性校验
+ *        提供查表法实现以提高计算性能
+ */
+
 #include "crc.h"
 #include <stdbool.h>
 #include <stdlib.h>
@@ -5,7 +12,11 @@
 #include <stdint.h>
 #include "sds/sds_plugins.h"
 
-
+/**
+ * @brief CRC32C 预计算查找表
+ *        基于 Castagnoli 多项式 0x1EDC6F41 预先计算的 CRC32 值
+ *        用于快速计算 CRC32C 校验码
+ */
 const uint32_t kByteExtensionTable[256] = {
     0x00000000, 0xf26b8303, 0xe13b70f7, 0x1350f3f4, 0xc79a971f, 0x35f1141c,
     0x26a1e7e8, 0xd4ca64eb, 0x8ad958cf, 0x78b2dbcc, 0x6be22838, 0x9989ab3b,
@@ -232,10 +243,24 @@ const uint32_t kStrideExtensionTable3[256] = {
     0x9c221d09, 0x6e2e10f7, 0x7dd67004, 0x8fda7dfa};
 
 
+/**
+ * @brief 读取小端序32位无符号整数
+ *        从缓冲区按小端字节序读取32位整数
+ * @param buffer 数据缓冲区指针
+ * @return 读取的32位无符号整数
+ */
 uint32_t ReadUint32LE(const uint8_t* buffer) {
   return decode_fixed32((const char*)(buffer));
 }
 
+/**
+ * @brief 硬件加速CRC32C计算
+ *        使用外部CRC32C库进行硬件加速计算
+ * @param crc 初始CRC值
+ * @param buf 数据缓冲区
+ * @param size 数据长度
+ * @return 计算得到的CRC32C值
+ */
 uint32_t acceleratedCRC32C(uint32_t crc, char* buf, int size) {
     #if HAVE_CRC32C
         return ::crc32c::Extend(crc, reinterpret_cast<const uint8_t*>(buf), size);
@@ -248,7 +273,11 @@ uint32_t acceleratedCRC32C(uint32_t crc, char* buf, int size) {
     #endif  // HAVE_CRC32C
 }
 
-//是否能加速  比如使用外部crc32c 
+/**
+ * @brief 检查是否支持CRC32C硬件加速
+ *        通过测试已知输入输出来验证加速函数是否可用
+ * @return true 支持硬件加速；false 不支持
+ */
 bool canAccelerateCRC32C() {
     // port::AcceleretedCRC32C returns zero when unable to accelerate.
   static const char kTestCRCBuffer[] = "TestCRCBuffer";
@@ -258,6 +287,13 @@ bool canAccelerateCRC32C() {
   return acceleratedCRC32C(0, kTestCRCBuffer, kBufSize) == kTestCRCValue;
 }
 
+/**
+ * @brief 将指针向上对齐到N字节边界
+ *        用于内存对齐优化，提高访问效率
+ * @param pointer 要对齐的指针
+ * @param N 对齐字节数（必须是2的幂）
+ * @return 对齐后的指针
+ */
 const uint8_t* RoundUp(const uint8_t* pointer, int N) {
   return (uint8_t*)(
       ((uintptr_t)(pointer) + (N - 1)) &
@@ -265,6 +301,15 @@ const uint8_t* RoundUp(const uint8_t* pointer, int N) {
 }
 static const uint32_t kCRC32Xor = (0xffffffffU);
 
+/**
+ * @brief CRC32C扩展计算函数
+ *        在现有CRC值基础上继续计算新数据的CRC32C
+ *        使用查表法和多路并行优化，支持硬件加速
+ * @param crc 初始CRC值
+ * @param data 要计算的数据
+ * @param len 数据长度
+ * @return 计算得到的CRC32C值
+ */
 uint32_t crc32c_extend(uint32_t crc, const char* data, int len) {
     static bool accelerate = NULL;
     if (accelerate == NULL) {
@@ -370,6 +415,13 @@ uint32_t crc32c_extend(uint32_t crc, const char* data, int len) {
 
 }
 
+/**
+ * @brief 计算数据的CRC32C校验值
+ *        从零开始计算数据的CRC32C校验和
+ * @param buf 数据缓冲区
+ * @param len 数据长度
+ * @return CRC32C校验值
+ */
 uint32_t crc32c(const char* buf, int len) {
     return crc32c_extend(0, buf, len);
 }
@@ -387,10 +439,24 @@ static const uint32_t kMaskDelta = 0xa282ead8ul;
       后处理（Postprocessing）
       在CRC校验值的计算完成后，发送方还会使用掩码对计算得到的CRC值进行修改。这一步骤同样是为了避免CRC值与数据中的内容产生冲突。在接收方，同样的掩码会被用来恢复原始的CRC值，以便进行正确的校验。
  */
+/**
+ * @brief CRC32C值掩码处理
+ *        对CRC32C值进行掩码变换，避免与数据内容冲突
+ *        通过位旋转和常数加法实现数据预处理
+ * @param crc 原始CRC32C值
+ * @return 掩码处理后的CRC值
+ */
 uint32_t crc32c_mask(uint32_t crc) {
     return ((crc >> 15) | (crc << 17)) + kMaskDelta;
 }
 
+/**
+ * @brief CRC32C掩码恢复
+ *        将掩码处理过的CRC值恢复为原始CRC值
+ *        与crc32c_mask函数相对应的逆向操作
+ * @param masked_crc 掩码处理后的CRC值
+ * @return 恢复的原始CRC32C值
+ */
 uint32_t crc32c_unmask(uint32_t masked_crc) {
   uint32_t rot = masked_crc - kMaskDelta;
   return ((rot >> 17) | (rot << 15));
@@ -660,6 +726,13 @@ unsigned int crc_table[] = {0x00000000,
     0x5A05DF1B,
     0x2D02EF8D};
 
+/**
+ * @brief 计算JAMCRC（CRC32的变体）校验值
+ *        使用标准CRC32查表算法计算校验和，与miniob兼容
+ * @param buffer 数据缓冲区
+ * @param size 数据长度
+ * @return JAMCRC校验值
+ */
 uint32_t crc32jamcrc(const char *buffer, int size)
 {
   unsigned int crc = 0xffffffff;

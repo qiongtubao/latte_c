@@ -1,3 +1,11 @@
+/**
+ * @file avl_set.c
+ * @brief 基于AVL树实现的Set集合数据结构文件
+ * @details 实现了基于AVL平衡二叉树的集合操作，提供高效的增删查功能
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "avl_set.h"
 #include "sds/sds.h"
 

@@ -23,6 +23,14 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  * ==========================================================================
  */
+
+/**
+ * @file set_cpu_affinity.c
+ * @brief 线程池专用CPU亲和性设置功能实现文件
+ * @details 为线程池提供跨平台的CPU亲和性设置功能，支持Linux/FreeBSD/NetBSD等系统
+ * @author zhenwei pi, latte_c
+ * @date 2026-03-12
+ */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif

@@ -1,3 +1,9 @@
+/**
+ * @file avl_set.h
+ * @brief 基于 AVL 树实现的 Set 接口
+ *        使用 avl_tree_t 作为底层存储，通过 set_t 抽象接口对外暴露集合操作。
+ *        支持自定义比较函数，内置 sds 键类型的函数表实例。
+ */
 #ifndef __LATTE_AVL_SET_H
 #define __LATTE_AVL_SET_H
 #include "stdlib.h"

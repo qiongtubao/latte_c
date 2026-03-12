@@ -1,3 +1,8 @@
+/**
+ * @file listpack.c
+ * @brief 列表包（Listpack）数据结构实现
+ *        一种紧凑的列表数据结构，支持高效的插入、删除和遍历操作
+ */
 //
 // Created by dong on 23-5-22.
 //
@@ -130,7 +135,11 @@ static inline void lpAssertValidEntry(unsigned char* lp, size_t lpbytes, unsigne
     (p)[5] = ((v)>>8)&0xff; \
 } while(0)
 
-
+/**
+ * @brief 获取当前编码元素的大小（包括编码字节、长度字节和数据本身）
+ * @param p 指向listpack元素的指针
+ * @return 返回编码元素的总大小，编码错误返回0
+ */
 /* Return the encoded length of the listpack element pointed by 'p'.
  * This includes the encoding byte, length bytes, and the element data itself.
  * If the element encoding is wrong then 0 is returned.
@@ -152,6 +161,12 @@ static inline uint32_t lpCurrentEncodedSizeUnsafe(unsigned char *p) {
     return 0;
 }
 
+/**
+ * @brief 编码反向长度字段
+ * @param buf 目标缓冲区，如果为NULL则仅返回所需字节数
+ * @param l 要编码的长度值
+ * @return 返回编码所需的字节数（1-5字节）
+ */
 /* Store a reverse-encoded variable length field, representing the length
  * of the previous element of size 'l', in the target buffer 'buf'.
  * The function returns the number of bytes used to encode it, from
@@ -194,6 +209,11 @@ static inline unsigned long lpEncodeBacklen(unsigned char *buf, uint64_t l) {
     }
 }
 
+/**
+ * @brief 跳过当前元素，返回下一个元素的指针
+ * @param p 指向当前元素的指针
+ * @return 返回下一个元素的指针
+ */
 /* Skip the current entry returning the next. It is invalid to call this
  * function if the current element is the EOF element at the end of the
  * listpack, however, while this function is used to implement lpNext(),
@@ -205,6 +225,11 @@ unsigned char *lpSkip(unsigned char *p) {
     return p;
 }
 
+/**
+ * @brief 创建新的空listpack
+ * @param capacity 预分配的容量大小
+ * @return 返回新创建的listpack指针，失败返回NULL
+ */
 unsigned char *lp_new(size_t capacity) {
     unsigned char *lp = lp_malloc(capacity > LP_HDR_SIZE+1 ? capacity : LP_HDR_SIZE+1);
     if (lp == NULL) return NULL;
@@ -214,17 +239,30 @@ unsigned char *lp_new(size_t capacity) {
     return lp;
 }
 
+/**
+ * @brief 释放listpack内存
+ * @param lp 要释放的listpack指针
+ */
 /* Free the specified listpack. */
 void lpFree(unsigned char *lp) {
     lp_free(lp);
 }
 
+/**
+ * @brief 返回listpack占用的总字节数
+ * @param lp listpack指针
+ * @return 返回总字节数
+ */
 /* Return the total number of bytes the listpack is composed of. */
 size_t lp_bytes(unsigned char *lp) {
     return lpGetTotalBytes(lp);
 }
 
-
+/**
+ * @brief 获取listpack的第一个元素
+ * @param lp listpack指针
+ * @return 返回第一个元素的指针，空listpack返回NULL
+ */
 /* Return a pointer to the first element of the listpack, or NULL if the
  * listpack has no elements. */
 unsigned char *lpFirst(unsigned char *lp) {
@@ -243,6 +281,14 @@ unsigned char *lpFirst(unsigned char *lp) {
 
 /* Bytes needed for long -> str + '\0' */
 #define LONG_STR_SIZE      21
+
+/**
+ * @brief 将字符串转换为有符号64位整数
+ * @param s 输入字符串
+ * @param slen 字符串长度
+ * @param value 输出的整数值指针
+ * @return 成功返回1，失败返回0
+ */
 /* Convert a string into a signed 64 bit integer.
  * The function returns 1 if the string could be parsed into a (non-overflowing)
  * signed 64 bit int, 0 otherwise. The 'value' will be set to the parsed value
@@ -328,6 +374,12 @@ int lpStringToInt64(const char *s, unsigned long slen, int64_t *value) {
     return 1;
 }
 
+/**
+ * @brief 将整数编码为内部表示格式
+ * @param v 要编码的整数值
+ * @param intenc 输出的编码缓冲区
+ * @param enclen 输出的编码长度
+ */
 /* Stores the integer encoded representation of 'v' in the 'intenc' buffer. */
 static inline void lpEncodeIntegerGetType(int64_t v, unsigned char *intenc, uint64_t *enclen) {
     if (v >= 0 && v <= 127) {
@@ -380,6 +432,14 @@ static inline void lpEncodeIntegerGetType(int64_t v, unsigned char *intenc, uint
     }
 }
 
+/**
+ * @brief 判断元素应该编码为整数还是字符串
+ * @param ele 元素数据指针
+ * @param size 元素大小
+ * @param intenc 整数编码缓冲区
+ * @param enclen 编码长度输出
+ * @return 返回LP_ENCODING_INT或LP_ENCODING_STRING
+ */
 /* Given an element 'ele' of size 'size', determine if the element can be
  * represented inside the listpack encoded as integer, and returns
  * LP_ENCODING_INT if so. Otherwise returns LP_ENCODING_STR if no integer
@@ -404,7 +464,12 @@ static inline int lpEncodeGetType(unsigned char *ele, uint32_t size, unsigned ch
     }
 }
 
-
+/**
+ * @brief 编码字符串元素到缓冲区
+ * @param buf 目标缓冲区
+ * @param s 字符串数据
+ * @param len 字符串长度
+ */
 /* Encode the string element pointed by 's' of size 'len' in the target
  * buffer 's'. The function should be called with 'buf' having always enough
  * space for encoding the string. This is done by calling lpEncodeGetType()
@@ -427,6 +492,17 @@ static inline void lpEncodeString(unsigned char *buf, unsigned char *s, uint32_t
     }
 }
 
+/**
+ * @brief 在listpack中插入、删除或替换元素
+ * @param lp listpack指针
+ * @param elestr 字符串元素指针
+ * @param eleint 整数元素指针
+ * @param size 元素大小
+ * @param p 操作位置指针
+ * @param where 操作类型（LP_BEFORE, LP_AFTER, LP_REPLACE）
+ * @param newp 新元素位置输出指针
+ * @return 返回新的listpack指针，失败返回NULL
+ */
 /* Insert, delete or replace the specified string element 'elestr' of length
  * 'size' or integer element 'eleint' at the specified position 'p', with 'p'
  * being a listpack element pointer obtained with lpFirst(), lpLast(), lpNext(),
@@ -604,6 +680,13 @@ unsigned char *lpInsert(unsigned char *lp, unsigned char *elestr, unsigned char 
     return lp;
 }
 
+/**
+ * @brief 在listpack末尾追加元素
+ * @param lp listpack指针
+ * @param ele 要追加的元素
+ * @param size 元素大小
+ * @return 返回新的listpack指针，失败返回NULL
+ */
 /* Append the specified element 'ele' of length 'size' at the end of the
  * listpack. It is implemented in terms of lpInsert(), so the return value is
  * the same as lpInsert(). */
@@ -613,7 +696,13 @@ unsigned char *lp_append(unsigned char *lp, unsigned char *ele, uint32_t size) {
     return lpInsert(lp,ele,NULL,size,eofptr,LP_BEFORE,NULL);
 }
 
-
+/**
+ * @brief 在listpack头部插入元素
+ * @param lp listpack指针
+ * @param s 要插入的元素
+ * @param slen 元素长度
+ * @return 返回新的listpack指针，失败返回NULL
+ */
 /* Append the specified element 's' of length 'slen' at the head of the listpack. */
 unsigned char *lp_prepend(unsigned char *lp, unsigned char *s, uint32_t slen) {
     unsigned char *p = lpFirst(lp);
@@ -621,6 +710,11 @@ unsigned char *lp_prepend(unsigned char *lp, unsigned char *s, uint32_t slen) {
     return lpInsert(lp, s, NULL, slen, p, LP_BEFORE, NULL);
 }
 
+/**
+ * @brief 获取编码长度所需的字节数
+ * @param p 指向元素的指针
+ * @return 返回编码所需字节数，编码错误返回0
+ */
 /* Return bytes needed to encode the length of the listpack element pointed by 'p'.
  * This includes just the encoding byte, and the bytes needed to encode the length
  * of the element (excluding the element data itself)
@@ -639,6 +733,12 @@ static inline uint32_t lpCurrentEncodedSizeBytes(unsigned char *p) {
     return 0;
 }
 
+/**
+ * @brief 获取下一个元素
+ * @param lp listpack指针
+ * @param p 当前元素指针
+ * @return 返回下一个元素指针，已到达末尾返回NULL
+ */
 /* If 'p' points to an element of the listpack, calling lpNext() will return
  * the pointer to the next element (the one on the right), or NULL if 'p'
  * already pointed to the last element of the listpack. */
@@ -650,6 +750,11 @@ unsigned char *lpNext(unsigned char *lp, unsigned char *p) {
     return p;
 }
 
+/**
+ * @brief 获取listpack中元素的数量
+ * @param lp listpack指针
+ * @return 返回元素数量
+ */
 /* Return the number of elements inside the listpack. This function attempts
  * to use the cached value when within range, otherwise a full scan is
  * needed. As a side effect of calling this function, the listpack header
@@ -674,7 +779,14 @@ unsigned long lpLength(unsigned char *lp) {
     return count;
 }
 
-
+/**
+ * @brief 获取listpack元素的值
+ * @param p 指向元素的指针
+ * @param count 输出的计数值或字符串长度
+ * @param intbuf 整数缓冲区
+ * @param entry_size 输出的元素总大小
+ * @return 返回字符串指针或intbuf，整数类型返回NULL
+ */
 /* Return the listpack element pointed by 'p'.
  *
  * The function changes behavior depending on the passed 'intbuf' value.
@@ -813,10 +925,21 @@ static inline unsigned char *lp_get_with_size(unsigned char *p, int64_t *count, 
     }
 }
 
+/**
+ * @brief 获取listpack元素的值（简化版本）
+ * @param p 指向元素的指针
+ * @param count 输出的计数值或字符串长度
+ * @param intbuf 整数缓冲区
+ * @return 返回字符串指针或intbuf，整数类型返回NULL
+ */
 unsigned char *lp_get(unsigned char *p, int64_t *count, unsigned char *intbuf) {
     return lp_get_with_size(p, count, intbuf, NULL);
 }
 
+/**
+ * @brief 打印listpack的调试信息
+ * @param lp listpack指针
+ */
 /* Print info of listpack which is used in debugCommand */
 void lp_repr(unsigned char *lp) {
     unsigned char *p, *vstr;
@@ -868,6 +991,11 @@ void lp_repr(unsigned char *lp) {
     printf("{end}\n\n");
 }
 
+/**
+ * @brief 解码反向长度字段
+ * @param p 指向反向长度数据的指针
+ * @return 返回解码的长度值，编码无效返回UINT64_MAX
+ */
 /* Decode the backlen and returns it. If the encoding looks invalid (more than
  * 5 bytes are used), UINT64_MAX is returned to report the problem. */
 static inline uint64_t lpDecodeBacklen(unsigned char *p) {
@@ -883,6 +1011,13 @@ static inline uint64_t lpDecodeBacklen(unsigned char *p) {
     return val;
 }
 
+/**
+ * @brief 验证单个listpack条目的完整性并移动到下一个条目
+ * @param lp listpack指针
+ * @param pp 当前记录指针的引用，退出时会被更新
+ * @param lpbytes listpack总字节数
+ * @return 有效返回1，无效返回0
+ */
 /* Validate the integrity of a single listpack entry and move to the next one.
  * The input argument 'pp' is a reference to the current record and is advanced on exit.
  * Returns 1 if valid, 0 if invalid. */
@@ -934,6 +1069,12 @@ int lpValidateNext(unsigned char *lp, unsigned char **pp, size_t lpbytes) {
 #undef OUT_OF_RANGE
 }
 
+/**
+ * @brief 验证条目不超出listpack分配范围
+ * @param lp listpack指针
+ * @param lpbytes listpack字节数
+ * @param p 条目指针
+ */
 /* Validate that the entry doesn't reach outside the listpack allocation. */
 static inline void lpAssertValidEntry(unsigned char* lp, size_t lpbytes, unsigned char *p) {
     assert(lpValidateNext(lp, &p, lpbytes));

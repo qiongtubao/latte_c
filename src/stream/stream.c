@@ -1,4 +1,11 @@
 
+/**
+ * @file stream.c
+ * @brief Stream流数据结构实现文件
+ * @details 实现了消息流数据结构，支持消费者组和消息确认机制
+ * @author latte_c
+ * @date 2026-03-12
+ */
 
 #include "stream.h"
 #include "zmalloc/zmalloc.h"

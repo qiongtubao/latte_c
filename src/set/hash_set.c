@@ -1,3 +1,11 @@
+/**
+ * @file hash_set.c
+ * @brief 基于哈希表实现的Set集合数据结构文件
+ * @details 实现了基于哈希表的集合操作，提供高效的增删查功能
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "hash_set.h"
 #include "zmalloc/zmalloc.h"
 #include "dict/dict_plugins.h"

@@ -1,3 +1,11 @@
+/**
+ * @file cron.c
+ * @brief 定时任务管理器实现文件
+ * @details 实现了定时任务的创建、管理和执行功能
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "cron.h"
 #include "zmalloc/zmalloc.h"
 

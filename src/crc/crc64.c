@@ -4,6 +4,14 @@
 
 
 
+/**
+ * @file crc64.c
+ * @brief 高性能64位CRC校验算法实现
+ *        提供快速的64位循环冗余校验功能，支持多种优化策略
+ *        包含CRC合并、查表加速、向量化计算等高级特性
+ *        支持大端和小端字节序，可配置双/三路并行处理
+ */
+
 /* Copyright (C) 2013 Mark Adler
  * Copyright (C) 2019-2024 Josiah Carlson
  * Portions originally from: crc64.c Version 1.4  16 Dec 2013  Mark Adler
@@ -44,6 +52,12 @@
 
 /* This cuts 40% of the time vs bit-by-bit. */
 
+/**
+ * @brief 使用开关语句优化的GF2矩阵向量乘法
+ * @param mat 矩阵指针，包含预计算的矩阵行数据
+ * @param vec 向量值，用于与矩阵相乘
+ * @return 矩阵向量乘法的结果
+ */
 uint64_t gf2_matrix_times_switch(uint64_t *mat, uint64_t vec) {
 	/*
 	 * Without using any vector math, this handles 4 bits at a time,
@@ -55,7 +69,7 @@ uint64_t gf2_matrix_times_switch(uint64_t *mat, uint64_t vec) {
 
 	sum = 0;
 	while (vec) {
-		/* reversing the case order is ~10% slower on Xeon E5-2670 */
+		/* 反转case顺序在Xeon E5-2670上会慢约10% */
 		switch (vec & 15) {
 		case 15:
 			sum ^= *mat ^ *(mat+1) ^ *(mat+2) ^ *(mat+3);
@@ -105,8 +119,8 @@ uint64_t gf2_matrix_times_switch(uint64_t *mat, uint64_t vec) {
 		default:
 			break;
 		}
-		vec >>= 4;
-		mat += 4;
+		vec >>= 4;  // 向右移动4位，处理下一个4位块
+		mat += 4;   // 矩阵指针移动到下一组4行
 	}
 	return sum;
 }
@@ -120,6 +134,12 @@ uint64_t gf2_matrix_times_switch(uint64_t *mat, uint64_t vec) {
 	from repeating the same information over and over.
 */
 
+/**
+ * @brief 使用向量优化的GF2矩阵向量乘法（双路处理）
+ * @param mat 矩阵指针，包含预计算的矩阵行数据
+ * @param vec 向量值，用于与矩阵相乘
+ * @return 矩阵向量乘法的结果
+ */
 uint64_t gf2_matrix_times_vec2(uint64_t *mat, uint64_t vec) {
 	/*
 	 * Uses xmm registers on x86, works basically everywhere fast, doing
@@ -130,7 +150,7 @@ uint64_t gf2_matrix_times_vec2(uint64_t *mat, uint64_t vec) {
 	 */
 	v2uq sum = {0, 0},
 		*mv2 = (v2uq*)mat;
-	/* this table allows us to eliminate conditions during gf2_matrix_times_vec2() */
+	/* 这个表允许我们在gf2_matrix_times_vec2()中消除条件判断 */
 	static v2uq masks2[4] = {
 		{0,0},
 		{-1,0},
@@ -138,8 +158,8 @@ uint64_t gf2_matrix_times_vec2(uint64_t *mat, uint64_t vec) {
 		{-1,-1},
 	};
 
-	/* Almost as beautiful as gf2_matrix_times_vec, but only half as many
-	 * bits per step, so we need 2 per chunk4 operation. Faster in my tests. */
+	/* 与gf2_matrix_times_vec几乎一样优美，但每步只处理一半的位数，
+	 * 所以我们需要每个chunk4操作2次。在我的测试中更快。 */
 
 #define DO_CHUNK4() \
 		sum ^= (*mv2++) & masks2[vec & 3]; \
@@ -169,6 +189,12 @@ uint64_t gf2_matrix_times_vec2(uint64_t *mat, uint64_t vec) {
 #define CRC_MULTIPLY gf2_matrix_times_vec2
 #endif
 
+/**
+ * @brief 计算GF2矩阵的平方
+ * @param square 输出矩阵，存储计算结果
+ * @param mat 输入矩阵
+ * @param dim 矩阵维度
+ */
 static void gf2_matrix_square(uint64_t *square, uint64_t *mat, uint8_t dim) {
 	unsigned n;
 
@@ -189,6 +215,11 @@ static uint64_t combine_cache[64][64];
  * we are currently targeting one: Jones CRC64.
  */
 
+/**
+ * @brief 初始化CRC合并缓存表
+ * @param poly CRC多项式
+ * @param dim 矩阵维度
+ */
 void init_combine_cache(uint64_t poly, uint8_t dim) {
 	unsigned n, cache_num = 0;
 	combine_cache[1][0] = poly;
@@ -203,8 +234,7 @@ void init_combine_cache(uint64_t poly, uint8_t dim) {
 	gf2_matrix_square(combine_cache[0], combine_cache[1], dim);
 	gf2_matrix_square(combine_cache[1], combine_cache[0], dim);
 
-	/* do/while to overwrite the first two layers, they are not used, but are
-	 * re-generated in the last two layers for the Redis polynomial */
+	/* do/while循环用于覆盖前两层，它们不被使用，但在最后两层中为Redis多项式重新生成 */
 	do {
 		gf2_matrix_square(combine_cache[cache_num], combine_cache[cache_num + prev], dim);
 		prev = -1;
@@ -222,8 +252,17 @@ void init_combine_cache(uint64_t poly, uint8_t dim) {
  * next call as a work-around, but ... maybe just parameterize the cached
  * models at that point like Mark Adler does in modern crcany/crc.c .
  */
+/**
+ * @brief 合并两个连续块的CRC-64值
+ * @param crc1 第一个块的CRC-64值
+ * @param crc2 第二个块的CRC-64值
+ * @param len2 第二个块的长度
+ * @param poly CRC多项式
+ * @param dim 矩阵维度
+ * @return 合并后的CRC-64值
+ */
 uint64_t crc64_combine(uint64_t crc1, uint64_t crc2, uintmax_t len2, uint64_t poly, uint8_t dim) {
-	/* degenerate case */
+	/* 退化情况：第二个块长度为0 */
 	if (len2 == 0)
 		return crc1;
 
@@ -232,19 +271,18 @@ uint64_t crc64_combine(uint64_t crc1, uint64_t crc2, uintmax_t len2, uint64_t po
 		init_combine_cache(poly, dim);
 	}
 
-	/* apply len2 zeros to crc1 (first square will put the operator for one
-	   zero byte, eight zero bits, in even) */
+	/* 对crc1应用len2个零字节（第一次平方将在even中放置一个零字节、八个零位的操作符） */
 	do
 	{
-		/* apply zeros operator for this bit of len2 */
+		/* 对len2的当前位应用零操作符 */
 		if (len2 & 1)
 			crc1 = CRC_MULTIPLY(combine_cache[cache_num], crc1);
 		len2 >>= 1;
 		cache_num = (cache_num + 1) & 63;
-		/* if no more bits set, then done */
+		/* 如果没有更多位设置，则完成 */
 	} while (len2 != 0);
 
-	/* return combined crc */
+	/* 返回合并后的crc */
 	crc1 ^= crc2;
 	return crc1;
 }
@@ -254,17 +292,22 @@ uint64_t crc64_combine(uint64_t crc1, uint64_t crc2, uintmax_t len2, uint64_t po
 #define CRC64_LEN_MASK UINT64_C(0x7ffffffffffffff8)
 #define CRC64_REVERSED_POLY UINT64_C(0x95ac9329ac4bc9b5)
 
-/* Fill in a CRC constants table. */
+/* 填充CRC常数表 */
+/**
+ * @brief 为小端序架构初始化CRC64快速查找表
+ * @param crcfn CRC计算函数指针
+ * @param table 8x256的CRC查找表
+ */
 void crcspeed64little_init(crcfn64 crcfn, uint64_t table[8][256]) {
     uint64_t crc;
 
-    /* generate CRCs for all single byte sequences */
+    /* 为所有单字节序列生成CRC */
     for (int n = 0; n < 256; n++) {
         unsigned char v = n;
         table[0][n] = crcfn(0, &v, 1);
     }
 
-    /* generate nested CRC table for future slice-by-8/16/24+ lookup */
+    /* 为未来的slice-by-8/16/24+查找生成嵌套CRC表 */
     for (int n = 0; n < 256; n++) {
         crc = table[0][n];
         for (int k = 1; k < 8; k++) {
@@ -273,13 +316,18 @@ void crcspeed64little_init(crcfn64 crcfn, uint64_t table[8][256]) {
         }
     }
 #if USE_STATIC_COMBINE_CACHE
-    /* initialize combine cache for CRC stapling for slice-by 16/24+ */
+    /* 为slice-by-16/24+的CRC拼接初始化合并缓存 */
     init_combine_cache(CRC64_REVERSED_POLY, 64);
 #endif
 }
 
 
-/* Reverse the bytes in a 64-bit word. */
+/* 反转64位字中的字节顺序 */
+/**
+ * @brief 反转64位字中的字节顺序
+ * @param a 要反转的64位值
+ * @return 字节序反转后的64位值
+ */
 static inline uint64_t rev8(uint64_t a) {
 #if defined(__GNUC__) || defined(__clang__)
     return __builtin_bswap64(a);
@@ -294,10 +342,14 @@ static inline uint64_t rev8(uint64_t a) {
 #endif
 }
 
-/* This function is called once to initialize the CRC table for use on a
-   big-endian architecture. */
+/* 此函数被调用一次，用于初始化在大端序架构上使用的CRC表 */
+/**
+ * @brief 为大端序架构初始化CRC64快速查找表
+ * @param fn CRC计算函数指针
+ * @param big_table 8x256的大端序CRC查找表
+ */
 void crcspeed64big_init(crcfn64 fn, uint64_t big_table[8][256]) {
-    /* Create the little endian table then reverse all the entries. */
+    /* 创建小端序表然后反转所有条目 */
     crcspeed64little_init(fn, big_table);
     for (int k = 0; k < 8; k++) {
         for (int n = 0; n < 256; n++) {
@@ -352,15 +404,23 @@ static size_t CRC64_DUAL_CUTOFF = (1024);
 #endif
 
 
+/**
+ * @brief 设置CRC64并行处理的阈值
+ * @param dual_cutoff 双路处理的最小字节数阈值
+ * @param tri_cutoff 三路处理的最小字节数阈值
+ */
 void set_crc64_cutoffs(size_t dual_cutoff, size_t tri_cutoff) {
     CRC64_DUAL_CUTOFF = dual_cutoff;
     CRC64_TRI_CUTOFF = tri_cutoff;
 }
 
-/* Calculate a non-inverted CRC multiple bytes at a time on a little-endian
- * architecture. If you need inverted CRC, invert *before* calling and invert
- * *after* calling.
- * 64 bit crc = process 8/16/24 bytes at once;
+/**
+ * @brief 在小端序架构上一次处理多个字节计算非反转CRC
+ * @param little_table 预计算的CRC查找表
+ * @param crc1 初始CRC值
+ * @param buf 输入数据缓冲区
+ * @param len 数据长度
+ * @return 计算得到的CRC64值
  */
 uint64_t crcspeed64little(uint64_t little_table[8][256], uint64_t crc1,
                           void *buf, size_t len) {
@@ -370,20 +430,18 @@ uint64_t crcspeed64little(uint64_t little_table[8][256], uint64_t crc1,
         goto final;
     }
 
-    /* process individual bytes until we reach an 8-byte aligned pointer */
+    /* 处理单个字节直到我们达到8字节对齐指针 */
     while (len && ((uintptr_t)next1 & 7) != 0) {
         crc1 = little_table[0][(crc1 ^ *next1++) & 0xff] ^ (crc1 >> 8);
         len--;
     }
 
     if (len >  CRC64_TRI_CUTOFF) {
-        /* 24 bytes per loop, doing 3 parallel 8 byte chunks at a time */
+        /* 每循环24字节，同时处理3个并行的8字节块 */
         unsigned char *next2, *next3;
         uint64_t olen, crc2=0, crc3=0;
         CRC64_SPLIT(3);
-        /* len is now the length of the first segment, the 3rd segment possibly
-         * having extra bytes to clean up at the end
-         */
+        /* len现在是第一段的长度，第3段可能有额外的字节需要在最后清理 */
         next3 = next2 + len;
         while (len >= 8) {
             len -= 8;
@@ -395,18 +453,16 @@ uint64_t crcspeed64little(uint64_t little_table[8][256], uint64_t crc1,
             DO_8_2(crc3);
         }
 
-        /* merge the 3 crcs */
+        /* 合并3个crc值 */
         MERGE_CRC(crc2);
         MERGE_CRC(crc3);
         MERGE_END(next3, 3);
     } else if (len > CRC64_DUAL_CUTOFF) {
-        /* 16 bytes per loop, doing 2 parallel 8 byte chunks at a time */
+        /* 每循环16字节，同时处理2个并行的8字节块 */
         unsigned char *next2;
         uint64_t olen, crc2=0;
         CRC64_SPLIT(2);
-        /* len is now the length of the first segment, the 2nd segment possibly
-         * having extra bytes to clean up at the end
-         */
+        /* len现在是第一段的长度，第2段可能有额外的字节需要在最后清理 */
         while (len >= 8) {
             len -= 8;
             DO_8_1(crc1, next1);
@@ -415,21 +471,20 @@ uint64_t crcspeed64little(uint64_t little_table[8][256], uint64_t crc1,
             DO_8_2(crc2);
         }
 
-        /* merge the 2 crcs */
+        /* 合并2个crc值 */
         MERGE_CRC(crc2);
         MERGE_END(next2, 2);
     }
-    /* We fall through here to handle our <CRC64_DUAL_CUTOFF inputs, and for any trailing
-     * bytes that wasn't evenly divisble by 16 or 24 above. */
+    /* 我们在这里处理<CRC64_DUAL_CUTOFF的输入，以及上面不能被16或24整除的尾随字节 */
 
-    /* fast processing, 8 bytes (aligned!) per loop */
+    /* 快速处理，每次循环8字节（对齐！） */
     while (len >= 8) {
         len -= 8;
         DO_8_1(crc1, next1);
         DO_8_2(crc1);
     }
 final:
-    /* process remaining bytes (can't be larger than 8) */
+    /* 处理剩余字节（不能大于8） */
     while (len) {
         crc1 = little_table[0][(crc1 ^ *next1++) & 0xff] ^ (crc1 >> 8);
         len--;
@@ -449,8 +504,13 @@ final:
 
 
 
-/* Calculate a non-inverted CRC eight bytes at a time on a big-endian
- * architecture.
+/**
+ * @brief 在大端序架构上一次计算8字节的非反转CRC
+ * @param big_table 预计算的大端序CRC查找表
+ * @param crc 初始CRC值
+ * @param buf 输入数据缓冲区
+ * @param len 数据长度
+ * @return 计算得到的CRC64值
  */
 uint64_t crcspeed64big(uint64_t big_table[8][256], uint64_t crc, void *buf,
                        size_t len) {
@@ -462,9 +522,8 @@ uint64_t crcspeed64big(uint64_t big_table[8][256], uint64_t crc, void *buf,
         len--;
     }
 
-    /* note: alignment + 2/3-way processing can probably be handled here nearly
-       the same as above, using our updated DO_8_2 macro. Not included in these
-       changes, as other authors, I don't have big-endian to test with. */
+    /* 注意：对齐 + 2/3路处理在这里可以用我们更新的DO_8_2宏以几乎相同的方式处理。
+       由于没有大端序系统可供测试，所以没有包含在这些更改中。 */
 
     while (len >= 8) {
         crc ^= *(uint64_t *)next;
@@ -488,7 +547,12 @@ uint64_t crcspeed64big(uint64_t big_table[8][256], uint64_t crc, void *buf,
     return rev8(crc);
 }
 
-/* Initialize CRC lookup table in architecture-dependent manner. */
+/* 以架构相关的方式初始化CRC查找表 */
+/**
+ * @brief 根据架构字节序初始化CRC查找表
+ * @param fn CRC计算函数指针
+ * @param table 8x256的CRC查找表
+ */
 void crcspeed64native_init(crcfn64 fn, uint64_t table[8][256]) {
     uint64_t n = 1;
 
@@ -497,10 +561,14 @@ void crcspeed64native_init(crcfn64 fn, uint64_t table[8][256]) {
 }
 
 
-/* Return the CRC of buf[0..len-1] with initial crc, processing eight bytes
-   at a time using passed-in lookup table.
-   This selects one of two routines depending on the endianness of
-   the architecture. */
+/**
+ * @brief 根据架构字节序计算buf[0..len-1]的CRC值
+ * @param table 预计算的CRC查找表
+ * @param crc 初始CRC值
+ * @param buf 输入数据缓冲区
+ * @param len 数据长度
+ * @return 计算得到的CRC64值
+ */
 uint64_t crcspeed64native(uint64_t table[8][256], uint64_t crc, void *buf,
                           size_t len) {
     uint64_t n = 1;

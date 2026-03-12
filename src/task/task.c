@@ -1,4 +1,12 @@
 
+/**
+ * @file task.c
+ * @brief 任务管理和线程池实现文件
+ * @details 实现了任务创建、线程池管理、任务分发和执行功能
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "task.h"
 #include "zmalloc/zmalloc.h"
 #include <pthread.h>

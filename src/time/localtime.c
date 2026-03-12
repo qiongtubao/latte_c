@@ -1,3 +1,11 @@
+/**
+ * @file localtime.c
+ * @brief 本地时间处理功能实现文件
+ * @details 实现了时区转换、时间获取和夏令时处理等功能
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "localtime.h"
 #include <limits.h>
 #include <time.h>

@@ -1,3 +1,13 @@
+/**
+ * @file anet.c
+ * @brief 网络工具库实现
+ *        提供 TCP/UDP 网络编程的便捷接口，包括：
+ *        - 套接字创建、绑定、连接
+ *        - 阻塞/非阻塞模式设置
+ *        - TCP keep-alive 配置
+ *        - 地址解析和格式化
+ */
+
 #include "utils/fmacros.h"
 
 #include <sys/types.h>
@@ -18,6 +28,13 @@
 
 #include "anet.h"
 
+/**
+ * @brief 设置错误信息
+ *        格式化错误消息并存储到错误缓冲区
+ * @param err 错误信息缓冲区
+ * @param fmt 格式化字符串
+ * @param ... 可变参数列表
+ */
 static void anetSetError(char *err, const char *fmt, ...)
 {
     va_list ap;
@@ -28,26 +45,32 @@ static void anetSetError(char *err, const char *fmt, ...)
     va_end(ap);
 }
 
+/**
+ * @brief 设置套接字的阻塞/非阻塞模式
+ *        通过 fcntl 系统调用设置 O_NONBLOCK 标志
+ * @param err       错误信息缓冲区
+ * @param fd        套接字文件描述符
+ * @param non_block 非零表示设置为非阻塞，零表示设置为阻塞
+ * @return ANET_OK 成功；ANET_ERR 失败
+ */
 int anetSetBlock(char *err, int fd, int non_block) {
     int flags;
 
-    /* Set the socket blocking (if non_block is zero) or non-blocking.
-     * Note that fcntl(2) for F_GETFL and F_SETFL can't be
-     * interrupted by a signal. */
+    /* 设置套接字为阻塞（non_block 为 0）或非阻塞模式
+     * 注意：fcntl(2) 的 F_GETFL 和 F_SETFL 不会被信号中断 */
     if ((flags = fcntl(fd, F_GETFL)) == -1) {
         anetSetError(err, "fcntl(F_GETFL): %s", strerror(errno));
         return ANET_ERR;
     }
 
-    /* Check if this flag has been set or unset, if so, 
-     * then there is no need to call fcntl to set/unset it again. */
+    /* 检查标志是否已设置，如果是则无需再次调用 fcntl */
     if (!!(flags & O_NONBLOCK) == !!non_block)
         return ANET_OK;
 
     if (non_block)
-        flags |= O_NONBLOCK;
+        flags |= O_NONBLOCK;   /* 设置非阻塞 */
     else
-        flags &= ~O_NONBLOCK;
+        flags &= ~O_NONBLOCK;  /* 清除非阻塞 */
 
     if (fcntl(fd, F_SETFL, flags) == -1) {
         anetSetError(err, "fcntl(F_SETFL,O_NONBLOCK): %s", strerror(errno));
@@ -56,30 +79,48 @@ int anetSetBlock(char *err, int fd, int non_block) {
     return ANET_OK;
 }
 
+/**
+ * @brief 设置套接字为非阻塞模式
+ * @param err 错误信息缓冲区
+ * @param fd  套接字文件描述符
+ * @return ANET_OK 成功；ANET_ERR 失败
+ */
 int anetNonBlock(char *err, int fd) {
     return anetSetBlock(err,fd,1);
 }
 
+/**
+ * @brief 设置套接字为阻塞模式
+ * @param err 错误信息缓冲区
+ * @param fd  套接字文件描述符
+ * @return ANET_OK 成功；ANET_ERR 失败
+ */
 int anetBlock(char *err, int fd) {
     return anetSetBlock(err,fd,0);
 }
 
-/* Enable the FD_CLOEXEC on the given fd to avoid fd leaks. 
- * This function should be invoked for fd's on specific places 
- * where fork + execve system calls are called. */
+/**
+ * @brief 启用文件描述符的 FD_CLOEXEC 标志以避免文件描述符泄漏
+ *        该函数应在调用 fork + execve 系统调用的特定位置为 fd 调用
+ * @param fd 文件描述符
+ * @return 成功返回非负值；失败返回 -1
+ */
 int anetCloexec(int fd) {
     int r;
     int flags;
 
+    /* 获取当前文件描述符标志，处理 EINTR 中断 */
     do {
         r = fcntl(fd, F_GETFD);
     } while (r == -1 && errno == EINTR);
 
+    /* 如果已经设置了 FD_CLOEXEC 或获取失败，直接返回 */
     if (r == -1 || (r & FD_CLOEXEC))
         return r;
 
     flags = r | FD_CLOEXEC;
 
+    /* 设置 FD_CLOEXEC 标志，处理 EINTR 中断 */
     do {
         r = fcntl(fd, F_SETFD, flags);
     } while (r == -1 && errno == EINTR);
@@ -87,13 +128,20 @@ int anetCloexec(int fd) {
     return r;
 }
 
-/* Set TCP keep alive option to detect dead peers. The interval option
- * is only used for Linux as we are using Linux-specific APIs to set
- * the probe send time, interval, and count. */
+/**
+ * @brief 设置 TCP keep alive 选项以检测死连接
+ *        interval 参数仅用于 Linux，因为我们使用 Linux 特有的 API
+ *        来设置探测发送时间、间隔和次数
+ * @param err      错误信息缓冲区
+ * @param fd       套接字文件描述符
+ * @param interval keep alive 间隔时间（秒）
+ * @return ANET_OK 成功；ANET_ERR 失败
+ */
 int anetKeepAlive(char *err, int fd, int interval)
 {
     int val = 1;
 
+    /* 启用 SO_KEEPALIVE 套接字选项 */
     if (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) == -1)
     {
         anetSetError(err, "setsockopt SO_KEEPALIVE: %s", strerror(errno));

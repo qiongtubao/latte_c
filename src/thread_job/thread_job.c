@@ -1,3 +1,11 @@
+/**
+ * @file thread_job.c
+ * @brief 线程任务数据结构实现文件
+ * @details 实现了任务对象的创建、初始化和执行功能
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "thread_job.h"
 
 /**

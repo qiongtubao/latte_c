@@ -1,3 +1,9 @@
+/**
+ * @file latte_rocksdb.c
+ * @brief RocksDB 封装实现
+ *        提供对 RocksDB C API 的高层封装，支持列族（Column Family）管理、
+ *        读写、Flush、Compaction 以及数据库生命周期管理。
+ */
 #include "latte_rocksdb.h"
 #include <stdarg.h>
 
@@ -7,6 +13,7 @@
 #include "iterator/iterator.h"
 #include "utils/utils.h"
 
+/** @brief 列族元数据字典的函数表：使用 char* 键的哈希和比较函数 */
 struct dict_func_t latte_rocksdb_meta_dict_type = {
     dict_char_hash,                    /* hash function */
     NULL,                           /* key dup */
@@ -17,6 +24,11 @@ struct dict_func_t latte_rocksdb_meta_dict_type = {
     NULL                            /* allow to expand */
 };
 
+/**
+ * @brief 创建 latte_rocksdb_t 实例并初始化各选项（不打开数据库）
+ * @param dir_path 数据库存储目录路径（sds 字符串）
+ * @return 新建的 latte_rocksdb_t 指针
+ */
 latte_rocksdb_t* latte_rocksdb_create(sds dir_path) {
     latte_rocksdb_t* rocksdb = zmalloc(sizeof(latte_rocksdb_t));
     rocksdb->db = NULL;
@@ -30,6 +42,12 @@ latte_rocksdb_t* latte_rocksdb_create(sds dir_path) {
     return rocksdb;
 }
 
+/**
+ * @brief 向 rocksdb 实例注册一个新列族（仅创建元数据，不立即打开）
+ * @param rocksdb latte_rocksdb_t 实例
+ * @param name    列族名称（C 字符串）
+ * @return 新建的列族元数据指针
+ */
 latte_rocksdb_column_family_meta_t* latte_rocksdb_add_column_family(latte_rocksdb_t* rocksdb,
         char* name) {
     sds meta_name = sds_new(name);
@@ -50,6 +68,11 @@ latte_rocksdb_column_family_meta_t* latte_rocksdb_add_column_family(latte_rocksd
 
 
 
+/**
+ * @brief 打开 RocksDB 数据库，同时加载所有已注册的列族
+ * @param rocksdb latte_rocksdb_t 实例（须已调用 latte_rocksdb_add_column_family）
+ * @return NULL 成功；失败返回错误指针
+ */
 latte_error_t* latte_rocksdb_open(latte_rocksdb_t* rocksdb) {
 
     int size = dict_size(rocksdb->column_families_metas);
@@ -96,6 +119,13 @@ latte_error_t* latte_rocksdb_open(latte_rocksdb_t* rocksdb) {
     return &Ok;
 }
 
+/**
+ * @brief 向指定列族批量写入键值对（可变参数，以 NULL key 结束）
+ * @param rocksdb latte_rocksdb_t 实例
+ * @param cf_name 目标列族名称
+ * @param ...     key(const char*), key_len(size_t), value(const char*), value_len(size_t), ..., NULL
+ * @return NULL 成功；失败返回错误指针
+ */
 latte_error_t* latte_rocksdb_write_cf(latte_rocksdb_t* rocksdb, const char* cf_name, ...) {
     dict_entry_t* entry = dict_find(rocksdb->column_families_metas, cf_name);
     if (entry == NULL) {
@@ -134,6 +164,16 @@ latte_error_t* latte_rocksdb_write_cf(latte_rocksdb_t* rocksdb, const char* cf_n
     return &Ok;
 }
 
+/**
+ * @brief 从指定列族读取单个 key 的值
+ * @param rocksdb       latte_rocksdb_t 实例
+ * @param cf_name       列族名称
+ * @param key           键指针
+ * @param key_len       键长度
+ * @param out_value     输出：值指针（调用方负责 rocksdb_free）
+ * @param out_value_len 输出：值长度
+ * @return NULL 成功；失败返回错误指针
+ */
 latte_error_t* latte_rocksdb_get_cf(latte_rocksdb_t* rocksdb, const char* cf_name,
     const char* key, size_t key_len, char** out_value, size_t* out_value_len) {
     if (out_value) *out_value = NULL;
@@ -160,6 +200,12 @@ latte_error_t* latte_rocksdb_get_cf(latte_rocksdb_t* rocksdb, const char* cf_nam
     return &Ok;
 }
 
+/**
+ * @brief 对指定列族执行 Flush，将 MemTable 数据落盘为 SST 文件
+ * @param rocksdb latte_rocksdb_t 实例
+ * @param cf_name 目标列族名称
+ * @return NULL 成功；失败返回错误指针
+ */
 latte_error_t* latte_rocksdb_flush(latte_rocksdb_t* rocksdb, const char* cf_name) {
     // 查找指定的 column family
     dict_entry_t* entry = dict_find(rocksdb->column_families_metas, cf_name);
@@ -213,6 +259,17 @@ latte_error_t* latte_rocksdb_flush(latte_rocksdb_t* rocksdb, const char* cf_name
  *
  * 返回值：成功返回 &Ok；列族不存在时返回错误
  */
+/**
+ * @brief 对指定列族执行范围/全量 Compaction
+ *        合并 SST 文件，回收已删除数据空间，提升读性能。
+ * @param rocksdb       latte_rocksdb_t 实例
+ * @param cf_name       列族名称
+ * @param start_key     压缩起始 key（NULL 表示从最小 key）
+ * @param start_key_len 起始 key 长度
+ * @param limit_key     压缩结束 key（NULL 表示到最大 key）
+ * @param limit_key_len 结束 key 长度
+ * @return NULL 成功；列族未找到返回错误
+ */
 latte_error_t* latte_rocksdb_compact_cf(latte_rocksdb_t* rocksdb, const char* cf_name,
     const char* start_key, size_t start_key_len,
     const char* limit_key, size_t limit_key_len) {
@@ -243,6 +300,11 @@ latte_error_t* latte_rocksdb_compact_cf(latte_rocksdb_t* rocksdb, const char* cf
  * - 传入 NULL 时直接返回，不做任何操作
  * - 若 db 未曾 open，db->db 为 NULL，仅释放 create 阶段分配的资源
  * - 调用后 db 指针不可再使用（不可重复 close）
+ */
+/**
+ * @brief 关闭 RocksDB 并释放所有相关资源
+ *        释放顺序：列族 handle → db → 列族 opts/name/meta → dict → db_opts/read/write_opts → db_path → 自身
+ * @param db latte_rocksdb_t 实例（NULL 时安全返回）
  */
 void latte_rocksdb_close(latte_rocksdb_t* db) {
     if (db == NULL) {

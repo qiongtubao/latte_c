@@ -1,3 +1,9 @@
+/**
+ * @file tree.h
+ * @brief 通用树接口定义
+ *        定义树节点（tree_node_t）和树操作虚函数表（tree_t），
+ *        具体实现由 AVL 树、B+ 树、红黑树等子模块提供。
+ */
 #ifndef __LATTE_TREE_H
 #define __LATTE_TREE_H
 

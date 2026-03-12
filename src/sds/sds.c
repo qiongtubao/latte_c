@@ -1,4 +1,12 @@
 
+/**
+ * @file sds.c
+ * @brief SDS（Simple Dynamic Strings）动态字符串实现文件
+ * @details 实现了高效的动态字符串数据结构，支持多种长度类型和内存优化
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

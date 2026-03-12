@@ -1,3 +1,8 @@
+/**
+ * @file siphash.c
+ * @brief SipHash哈希算法实现，提供快速且安全的哈希计算功能
+ */
+
 /*
    SipHash reference C implementation
 
@@ -47,11 +52,16 @@
 
 /* Fast tolower() alike function that does not care about locale
  * but just returns a-z instead of A-Z. */
+/**
+ * @brief 快速大小写转换函数，将A-Z转换为a-z
+ * @param c 输入字符
+ * @return 转换后的小写字符
+ */
 int siptlw(int c) {
     if (c >= 'A' && c <= 'Z') {
-        return c+('a'-'A');
+        return c+('a'-'A');  // 转换为小写
     } else {
-        return c;
+        return c;  // 其他字符保持不变
     }
 }
 
@@ -113,36 +123,43 @@ int siptlw(int c) {
         v2 = ROTL(v2, 32);                                                     \
     } while (0)
 
+/**
+ * @brief SipHash哈希算法实现
+ * @param in 输入数据指针
+ * @param inlen 输入数据长度
+ * @param k 16字节密钥指针
+ * @return 64位哈希值
+ */
 uint64_t siphash(const uint8_t *in, const size_t inlen, const uint8_t *k) {
 #ifndef UNALIGNED_LE_CPU
     uint64_t hash;
     uint8_t *out = (uint8_t*) &hash;
 #endif
-    uint64_t v0 = 0x736f6d6570736575ULL;
+    uint64_t v0 = 0x736f6d6570736575ULL;  // 初始化向量
     uint64_t v1 = 0x646f72616e646f6dULL;
     uint64_t v2 = 0x6c7967656e657261ULL;
     uint64_t v3 = 0x7465646279746573ULL;
-    uint64_t k0 = U8TO64_LE(k);
-    uint64_t k1 = U8TO64_LE(k + 8);
+    uint64_t k0 = U8TO64_LE(k);          // 从密钥提取k0
+    uint64_t k1 = U8TO64_LE(k + 8);      // 从密钥提取k1
     uint64_t m;
     const uint8_t *end = in + inlen - (inlen % sizeof(uint64_t));
-    const int left = inlen & 7;
-    uint64_t b = ((uint64_t)inlen) << 56;
+    const int left = inlen & 7;          // 剩余字节数
+    uint64_t b = ((uint64_t)inlen) << 56; // 长度编码到最高字节
     v3 ^= k1;
     v2 ^= k0;
     v1 ^= k1;
     v0 ^= k0;
 
     for (; in != end; in += 8) {
-        m = U8TO64_LE(in);
+        m = U8TO64_LE(in);  // 读取8字节数据
         v3 ^= m;
 
-        SIPROUND;
+        SIPROUND;  // 执行SipHash轮函数
 
         v0 ^= m;
     }
 
-    switch (left) {
+    switch (left) {  // 处理剩余不足8字节的数据
     case 7: b |= ((uint64_t)in[6]) << 48; /* fall-thru */
     case 6: b |= ((uint64_t)in[5]) << 40; /* fall-thru */
     case 5: b |= ((uint64_t)in[4]) << 32; /* fall-thru */
@@ -155,7 +172,7 @@ uint64_t siphash(const uint8_t *in, const size_t inlen, const uint8_t *k) {
 
     v3 ^= b;
 
-    SIPROUND;
+    SIPROUND;  // 最终轮函数
 
     v0 ^= b;
     v2 ^= 0xff;
@@ -163,7 +180,7 @@ uint64_t siphash(const uint8_t *in, const size_t inlen, const uint8_t *k) {
     SIPROUND;
     SIPROUND;
 
-    b = v0 ^ v1 ^ v2 ^ v3;
+    b = v0 ^ v1 ^ v2 ^ v3;  // 计算最终哈希值
 #ifndef UNALIGNED_LE_CPU
     U64TO8_LE(out, b);
     return hash;
@@ -172,6 +189,13 @@ uint64_t siphash(const uint8_t *in, const size_t inlen, const uint8_t *k) {
 #endif
 }
 
+/**
+ * @brief SipHash不区分大小写哈希算法实现
+ * @param in 输入数据指针
+ * @param inlen 输入数据长度
+ * @param k 16字节密钥指针
+ * @return 64位哈希值
+ */
 uint64_t siphash_nocase(const uint8_t *in, const size_t inlen, const uint8_t *k)
 {
 #ifndef UNALIGNED_LE_CPU

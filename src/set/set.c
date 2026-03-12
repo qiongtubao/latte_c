@@ -1,3 +1,11 @@
+/**
+ * @file set.c
+ * @brief 抽象Set集合数据结构实现文件
+ * @details 提供了Set集合的多态接口，支持不同底层实现（AVL树、哈希表等）
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "set.h"
 
 /**

@@ -1,3 +1,14 @@
+/**
+ * @file ae_iouring.c
+ * @brief Linux io_uring 多路复用后端实现
+ *        io_uring 是 Linux 5.1+ 的高性能异步 I/O 接口
+ *        提供比 epoll 更好的性能，支持真正的异步 I/O 操作
+ *
+ * 注意事项：
+ * 1. 支持的情况下，通过 io_uring 完成表示读事件已触发且完成，会多一次数据拷贝
+ * 2. 增加了一层 read 方法，需要使用自定义的 event_fd 来处理
+ */
+
 #include <sys/epoll.h>
 #include "ae.h"
 #include <liburing.h>
@@ -5,38 +16,52 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-/*
-    缺点
-    1. 如果支持的话 是通过io_uring完成来表示读事件的也就触发事件时已经完成了 会多一次拷贝
-    2. 多加一层 read方法  需要使用我们自己的event_fd来处理
-*/
+/**
+ * @brief io_uring 请求类型枚举
+ */
 typedef enum req_type {
-    NONE,
-    ADD_EPOLLIN,
-    ADD_EPOLLOUT,
-    REMOVE_EPOLLIN,
-    REMOVE_EPOLLOUT,
+    NONE,                /**< 无操作 */
+    ADD_EPOLLIN,         /**< 添加读事件监听 */
+    ADD_EPOLLOUT,        /**< 添加写事件监听 */
+    REMOVE_EPOLLIN,      /**< 移除读事件监听 */
+    REMOVE_EPOLLOUT,     /**< 移除写事件监听 */
 } req_type;
+
+/**
+ * @brief io_uring 请求结构
+ */
 typedef struct io_uring_req {
-    int fd;
-    req_type type;
-    char* buffer;
-    size_t buffer_size;
-    size_t offset;
+    int fd;                     /**< 文件描述符 */
+    req_type type;              /**< 请求类型 */
+    char* buffer;               /**< 缓冲区指针 */
+    size_t buffer_size;         /**< 缓冲区大小 */
+    size_t offset;              /**< 偏移量 */
 } io_uring_req;
 
+/**
+ * @brief io_uring fd 信息结构
+ */
 typedef struct ae_iouring_info {
-    int fd;
-    int status;                     //0 未使用 1 正在监控可读 2 正在监控可写
-    io_uring_req* read_req;
-    io_uring_req* write_req;
+    int fd;                     /**< 文件描述符 */
+    int status;                 /**< 状态：0=未使用，1=监控可读，2=监控可写 */
+    io_uring_req* read_req;     /**< 读请求指针 */
+    io_uring_req* write_req;    /**< 写请求指针 */
 } ae_iouring_info;
 
+/**
+ * @brief io_uring 后端状态结构
+ */
 typedef struct ae_api_state_t {
-    struct io_uring ring;
-    ae_iouring_info* info;
+    struct io_uring ring;       /**< io_uring 实例 */
+    ae_iouring_info* info;      /**< fd 信息数组 */
 } ae_api_state_t;
 
+/**
+ * @brief 创建新的 io_uring 请求
+ * @param type 请求类型
+ * @param fd   文件描述符
+ * @return 新建的请求指针；失败返回 NULL
+ */
 io_uring_req* io_uring_req_new(req_type type, int fd) {
     io_uring_req* req = zmalloc(sizeof(io_uring_req));
     if (req == NULL) {
@@ -49,27 +74,41 @@ io_uring_req* io_uring_req_new(req_type type, int fd) {
     req->offset = 0;
     return req;
 }
+
+/**
+ * @brief 删除 io_uring 请求，释放缓冲区和结构体内存
+ * @param req 要删除的请求指针
+ */
 void io_uring_req_delete(io_uring_req* req) {
     if (req->buffer != NULL) {
         sds_delete(req->buffer);
     }
     zfree(req);
 }
+/**
+ * @brief 创建 io_uring 后端
+ *        初始化 io_uring 队列，分配 fd 信息数组
+ * @param eventLoop 目标事件循环
+ * @return 0 成功；-1 失败
+ */
 static int ae_api_create(ae_event_loop_t *eventLoop) {
     LATTE_LIB_LOG(LOG_DEBUG, "[ae_api_create] ae use iouring");
     ae_api_state_t *state = zmalloc(sizeof(ae_api_state_t));
     if (!state) {
         return -1;
     }
+    /* 初始化 io_uring，队列深度 1024，使用 SQPOLL 模式 */
     if (io_uring_queue_init(1024, &state->ring, IORING_SETUP_SQPOLL) < 0) {
         zfree(state);
         return -1;
     }
+    /* 分配 fd 信息数组 */
     state->info = zmalloc(eventLoop->setsize * sizeof(ae_iouring_info));
     if (!state->info) {
         zfree(state);
         return -1;
     }
+    /* 初始化所有 fd 槽位为未使用状态 */
     for (int i = 0; i < eventLoop->setsize; i++) {
         state->info[i].status = 0;
         state->info[i].read_req = NULL;

@@ -1,3 +1,8 @@
+/**
+ * @file ziplist.c
+ * @brief 压缩列表实现模块
+ *        紧凑的双向列表数据结构，针对内存使用进行优化
+ */
 #include "ziplist.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,50 +12,43 @@
 #include <string.h>
 #include <assert.h>
 
-/* The size of a ziplist header: two 32 bit integers for the total
- * bytes count and last item offset. One 16 bit integer for the number
- * of items field. */
+/* ziplist头部大小：两个32位整数表示总字节数和最后一项偏移量，一个16位整数表示项目数字段 */
 #define ZIPLIST_HEADER_SIZE     (sizeof(uint32_t)*2+sizeof(uint16_t))
-/* Size of the "end of ziplist" entry. Just one byte. */
+/* ziplist结束标记的大小，只有一个字节 */
 #define ZIPLIST_END_SIZE        (sizeof(uint8_t))
 
-/* Return total bytes a ziplist is composed of. */
+/* 返回ziplist的总字节数 */
 #define ZIPLIST_BYTES(zl)       (*((uint32_t*)(zl)))
 
-/* Return the offset of the last item inside the ziplist. */
+/* 返回ziplist内最后一项的偏移量 */
 #define ZIPLIST_TAIL_OFFSET(zl) (*((uint32_t*)((zl)+sizeof(uint32_t))))
 
-/* Return the length of a ziplist, or UINT16_MAX if the length cannot be
- * determined without scanning the whole ziplist. */
+/* 返回ziplist的长度，如果无法在不扫描整个ziplist的情况下确定长度，则返回UINT16_MAX */
 #define ZIPLIST_LENGTH(zl)      (*((uint16_t*)((zl)+sizeof(uint32_t)*2)))
 
-#define ZIP_END 255         /* Special "end of ziplist" entry. */
-#define ZIP_BIG_PREVLEN 254 /* ZIP_BIG_PREVLEN - 1 is the max number of bytes of
-                               the previous entry, for the "prevlen" field prefixing
-                               each entry, to be represented with just a single byte.
-                               Otherwise it is represented as FE AA BB CC DD, where
-                               AA BB CC DD are a 4 bytes unsigned integer
-                               representing the previous entry len. */
+#define ZIP_END 255         /* 特殊的"ziplist结束"标记 */
+#define ZIP_BIG_PREVLEN 254 /* ZIP_BIG_PREVLEN - 1 是前一项的最大字节数，
+                               用于在每项前缀的"prevlen"字段中，仅用一个字节表示。
+                               否则表示为 FE AA BB CC DD，其中 AA BB CC DD 是
+                               表示前一项长度的4字节无符号整数 */
 
-
+/**
+ * @brief ziplist条目结构体
+ */
 typedef struct zlentry_t {
-    unsigned int prevrawlensize; /* Bytes used to encode the previous entry len*/
-    unsigned int prevrawlen;     /* Previous entry len. */
-    unsigned int lensize;        /* Bytes used to encode this entry type/len.
-                                    For example strings have a 1, 2 or 5 bytes
-                                    header. Integers always use a single byte.*/
-    unsigned int len;            /* Bytes used to represent the actual entry.
-                                    For strings this is just the string length
-                                    while for integers it is 1, 2, 3, 4, 8 or
-                                    0 (for 4 bit immediate) depending on the
-                                    number range. */
-    unsigned int headersize;     /* prevrawlensize + lensize. */
-    unsigned char encoding;      /* Set to ZIP_STR_* or ZIP_INT_* depending on
-                                    the entry encoding. However for 4 bits
-                                    immediate integers this can assume a range
-                                    of values and must be range-checked. */
-    unsigned char *p;            /* Pointer to the very start of the entry, that
-                                    is, this points to prev-entry-len field. */
+    unsigned int prevrawlensize; /**< 用于编码前一项长度的字节数 */
+    unsigned int prevrawlen;     /**< 前一项的长度 */
+    unsigned int lensize;        /**< 用于编码此项类型/长度的字节数。
+                                    例如字符串有1、2或5字节的头部。整数总是使用单字节 */
+    unsigned int len;            /**< 用于表示实际项的字节数。
+                                    对于字符串，这只是字符串长度，
+                                    而对于整数，它是1、2、3、4、8或0（用于4位立即数），
+                                    取决于数字范围 */
+    unsigned int headersize;     /**< prevrawlensize + lensize */
+    unsigned char encoding;      /**< 根据项编码设置为 ZIP_STR_* 或 ZIP_INT_*。
+                                    但是对于4位立即整数，这可以假定一个值范围，
+                                    必须进行范围检查 */
+    unsigned char *p;            /**< 指向项的最开始的指针，即指向prev-entry-len字段 */
 } zlentry_t;
 
 /* Return the number of bytes used to encode the length of the previous
@@ -82,13 +80,17 @@ typedef struct zlentry_t {
     }                                                                          \
 } while(0)
 
+/**
+ * @brief 创建一个新的空ziplist
+ * @return unsigned char* 新创建的ziplist指针
+ */
 unsigned char *zip_list_new(void) {
     unsigned int bytes = ZIPLIST_HEADER_SIZE + ZIPLIST_END_SIZE;
     unsigned char *zl = zmalloc(bytes);
-    ZIPLIST_BYTES(zl) = intrev32ifbe(bytes);
-    ZIPLIST_TAIL_OFFSET(zl) = intrev32ifbe(ZIPLIST_HEADER_SIZE);
-    ZIPLIST_LENGTH(zl) = 0;
-    zl[bytes-1] = ZIP_END;
+    ZIPLIST_BYTES(zl) = intrev32ifbe(bytes); /**< 设置总字节数 */
+    ZIPLIST_TAIL_OFFSET(zl) = intrev32ifbe(ZIPLIST_HEADER_SIZE); /**< 设置尾部偏移量 */
+    ZIPLIST_LENGTH(zl) = 0; /**< 初始长度为0 */
+    zl[bytes-1] = ZIP_END; /**< 设置结束标记 */
     return zl;
 }
 

@@ -1,4 +1,11 @@
 
+/**
+ * @file skiplist.c
+ * @brief 跳跃表数据结构实现文件
+ * @details 实现了高效的跳跃表，提供有序集合的快速增删查操作
+ * @author latte_c
+ * @date 2026-03-12
+ */
 
 #include "skiplist.h"
 #include <stdlib.h>

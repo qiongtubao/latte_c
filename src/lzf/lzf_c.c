@@ -1,3 +1,8 @@
+/**
+ * @file lzf_c.c
+ * @brief LZF压缩算法实现
+ *        快速无损数据压缩库，使用哈希表进行字符串匹配
+ */
 //
 // Created by dong on 23-5-22.
 //
@@ -100,14 +105,22 @@
 #endif
 
 /*
- * compressed format
+ * 压缩格式说明：
  *
- * 000LLLLL <L+1>    ; literal, L+1=1..33 octets
- * LLLooooo oooooooo ; backref L+1=1..7 octets, o+1=1..4096 offset
- * 111ooooo LLLLLLLL oooooooo ; backref L+8 octets, o+1=1..4096 offset
+ * 000LLLLL <L+1>    ; 字面量，L+1=1..33 字节
+ * LLLooooo oooooooo ; 回引用 L+1=1..7 字节，o+1=1..4096 偏移
+ * 111ooooo LLLLLLLL oooooooo ; 回引用 L+8 字节，o+1=1..4096 偏移
  *
  */
 NO_SANITIZE("alignment")
+/**
+ * @brief LZF压缩函数
+ * @param in_data 输入数据指针
+ * @param in_len 输入数据长度
+ * @param out_data 输出缓冲区指针
+ * @param out_len 输出缓冲区大小
+ * @return size_t 压缩后的实际字节数，失败返回0
+ */
 size_t
 lzf_compress (const void *const in_data, size_t in_len,
               void *out_data, size_t out_len

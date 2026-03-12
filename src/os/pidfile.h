@@ -1,3 +1,9 @@
+/**
+ * @file pidfile.h
+ * @brief PID 文件管理接口
+ *        提供写入、删除和查询当前进程 PID 文件的功能，
+ *        用于守护进程管理（启动检测、停止信号等）。
+ */
 #ifndef LATTE_C_PIDFILE_H
 #define LATTE_C_PIDFILE_H
 #include "sds/sds.h"

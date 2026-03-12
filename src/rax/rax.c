@@ -1,3 +1,11 @@
+/**
+ * @file rax.c
+ * @brief Radix Tree（基数树）数据结构实现文件
+ * @details 实现了高效的基数树，用于快速字符串匹配和存储
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "rax.h"
 #include "zmalloc/zmalloc.h"
 #include <string.h>

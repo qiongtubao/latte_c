@@ -1,3 +1,11 @@
+/**
+ * @file thread_single_object.c
+ * @brief 线程局部单例对象管理实现文件
+ * @details 实现了线程本地存储的单例对象管理，支持对象注册、获取和自动销毁
+ * @author latte_c
+ * @date 2026-03-12
+ */
+
 #include "thread_single_object.h"
 #include "dict/dict_plugins.h"
 #include "debug/latte_debug.h"

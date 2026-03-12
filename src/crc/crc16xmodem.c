@@ -1,5 +1,11 @@
-#include "crc.h"
+/**
+ * @file crc16xmodem.c
+ * @brief CRC16-XMODEM 循环冗余校验算法实现
+ *        实现XMODEM协议使用的16位CRC校验算法
+ *        也被称为CRC-16/ACORN或ZMODEM CRC
+ */
 
+#include "crc.h"
 
 /* CRC16 implementation according to CCITT standards.
  *
@@ -14,6 +20,12 @@
  * Reflect Output CRC         : False
  * Xor constant to output CRC : 0000
  * Output for "123456789"     : 31C3
+ */
+
+/**
+ * @brief CRC16-XMODEM查找表
+ *        预计算的16位CRC值表，用于快速计算CRC
+ *        基于多项式 0x1021 (x^16 + x^12 + x^5 + 1)
  */
 static const uint16_t crc16tab[256]= {
     0x0000,0x1021,0x2042,0x3063,0x4084,0x50a5,0x60c6,0x70e7,
@@ -50,11 +62,33 @@ static const uint16_t crc16tab[256]= {
     0x6e17,0x7e36,0x4e55,0x5e74,0x2e93,0x3eb2,0x0ed1,0x1ef0
 };
 
-//CRC-16/XMODEM
+/**
+ * @brief 计算CRC16-XMODEM校验值
+ *        使用查表法快速计算16位CRC校验值
+ *
+ * 算法参数：
+ * - 宽度：16位
+ * - 多项式：0x1021 (x^16 + x^12 + x^5 + 1)
+ * - 初始值：0x0000
+ * - 输入反射：False
+ * - 输出反射：False
+ * - 输出异或：0x0000
+ * - 测试向量"123456789"的结果：0x31C3
+ *
+ * @param buf 输入数据缓冲区
+ * @param len 数据长度
+ * @return 16位CRC校验值
+ */
 uint16_t crc16xmodem(const char *buf, int len) {
     int counter;
-    uint16_t crc = 0;
-    for (counter = 0; counter < len; counter++)
-            crc = (crc<<8) ^ crc16tab[((crc>>8) ^ *buf++)&0x00FF];
+    uint16_t crc = 0;  // 初始CRC值为0
+
+    // 逐字节处理输入数据
+    for (counter = 0; counter < len; counter++) {
+        // 使用查表法计算CRC：
+        // 1. 将当前CRC的高8位与当前字节异或作为表索引
+        // 2. 查表获取对应值，与CRC左移8位的结果异或
+        crc = (crc<<8) ^ crc16tab[((crc>>8) ^ *buf++)&0x00FF];
+    }
     return crc;
 }
