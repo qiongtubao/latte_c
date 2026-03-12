@@ -1,4 +1,9 @@
-
+/**
+ * @file hash_set.h
+ * @brief 基于哈希字典实现的 HashSet 接口
+ *        复用 dict_t 作为底层存储，通过 set_t 抽象接口对外暴露集合操作。
+ *        支持自定义哈希/比较函数，内置 sds 键类型的函数表实例。
+ */
 #ifndef __LATTE_HASH_SET_H
 #define __LATTE_HASH_SET_H
 
@@ -6,8 +11,15 @@
 #include <dict/dict_plugins.h>
 #include "set.h"
 
+/**
+ * @brief 使用字典来实现HashSet
+ */
 typedef struct dict_t hash_set_t;
-typedef struct dict_func_t hash_set_func_t; 
+
+/**
+ * @brief HashSet的函数表，实际是复用字典的函数表
+ */
+typedef struct dict_func_t hash_set_func_t;
 extern hash_set_func_t sds_hash_set_type;
 
 // hash_set_t* private_hash_set_new(hash_set_func_t* dt);
@@ -25,6 +37,15 @@ extern hash_set_func_t sds_hash_set_type;
 
 
 //set api
+/**
+ * @brief 创建一个新的基于哈希表实现的Set
+ * @param type 哈希表的具体类型操作函数表
+ * @return set_t* 返回抽象的Set对象
+ */
 set_t* hash_set_new(hash_set_func_t* type);
-extern  hash_set_func_t sds_hash_set_dict_func;
+
+/**
+ * @brief 键为sds字符串的HashSet字典操作函数表实例
+ */
+extern hash_set_func_t sds_hash_set_dict_func;
 #endif

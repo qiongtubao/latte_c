@@ -1,3 +1,10 @@
+/**
+ * @file lzf.h
+ * @brief LZF 极速无损压缩/解压算法接口
+ *        LZF 是一种基于字典的流式压缩算法，速度极快，压缩率适中
+ *        版本：1.5（API version 0x0105）
+ *        算法被认为无专利限制，可自由使用
+ */
 //
 // Created by dong on 23-5-22.
 //
@@ -13,56 +20,60 @@
 **
 ***********************************************************************/
 #include <stdio.h>
+
+/** @brief LZF API 版本号：1.5 */
 #define LZF_VERSION 0x0105 /* 1.5, API version */
 
-/*
- * Compress in_len bytes stored at the memory block starting at
- * in_data and write the result to out_data, up to a maximum length
- * of out_len bytes.
+/**
+ * @brief 压缩数据块
+ *        将 in_data 起始的 in_len 字节压缩后写入 out_data，
+ *        最多写入 out_len 字节。
  *
- * If the output buffer is not large enough or any error occurs return 0,
- * otherwise return the number of bytes used, which might be considerably
- * more than in_len (but less than 104% of the original size), so it
- * makes sense to always use out_len == in_len - 1), to ensure _some_
- * compression, and store the data uncompressed otherwise (with a flag, of
- * course.
+ * 使用建议：
+ *   - 建议 out_len = in_len - 1，当压缩后结果不小于原始大小时返回 0，
+ *     调用方可将原始数据原样存储（加标志位区分压缩/非压缩）。
+ *   - 不同平台/运行时可能产生不同的压缩字节序列，但均可被 lzf_decompress 正确还原。
+ *   - 输入输出缓冲区不可重叠。
  *
- * lzf_compress might use different algorithms on different systems and
- * even different runs, thus might result in different compressed strings
- * depending on the phase of the moon or similar factors. However, all
- * these strings are architecture-independent and will result in the
- * original data when decompressed using lzf_decompress.
- *
- * The buffers must not be overlapping.
- *
- * If the option LZF_STATE_ARG is enabled, an extra argument must be
- * supplied which is not reflected in this header file. Refer to lzfP.h
- * and lzf_c.c.
- *
+ * @param in_data  输入数据指针
+ * @param in_len   输入数据长度（字节）
+ * @param out_data 输出缓冲区指针
+ * @param out_len  输出缓冲区容量（字节）
+ * @return 成功时返回压缩后字节数（> 0）；缓冲区不足或出错返回 0
  */
 size_t
 lzf_compress (const void *const in_data,  size_t in_len,
               void             *out_data, size_t out_len);
 
-/*
- * Decompress data compressed with some version of the lzf_compress
- * function and stored at location in_data and length in_len. The result
- * will be stored at out_data up to a maximum of out_len characters.
+/**
+ * @brief 解压由 lzf_compress 压缩的数据块
+ *        将 in_data 起始的 in_len 字节解压后写入 out_data，
+ *        最多写入 out_len 字节。
  *
- * If the output buffer is not large enough to hold the decompressed
- * data, a 0 is returned and errno is set to E2BIG. Otherwise the number
- * of decompressed bytes (i.e. the original length of the data) is
- * returned.
+ * 错误情况：
+ *   - 输出缓冲区不足：返回 0，errno 设为 E2BIG
+ *   - 压缩数据损坏：返回 0，errno 设为 EINVAL
  *
- * If an error in the compressed data is detected, a zero is returned and
- * errno is set to EINVAL.
- *
- * This function is very fast, about as fast as a copying loop.
+ * @param in_data  压缩数据指针
+ * @param in_len   压缩数据长度（字节）
+ * @param out_data 解压输出缓冲区指针
+ * @param out_len  输出缓冲区容量（字节）
+ * @return 成功时返回解压后原始字节数；失败返回 0
  */
 size_t
 lzf_decompress (const void *const in_data,  size_t in_len,
                 void             *out_data, size_t out_len);
 
+/**
+ * @brief 压缩自测函数（调试用）
+ * @return 压缩后字节数
+ */
 size_t hello_c();
+
+/**
+ * @brief 解压自测函数（调试用）
+ * @return 解压后字节数
+ */
 size_t hello_d();
+
 #endif //LATTE_C_LZF_H

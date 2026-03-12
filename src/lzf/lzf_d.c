@@ -1,3 +1,8 @@
+/**
+ * @file lzf_d.c
+ * @brief LZF解压缩算法实现
+ *        快速无损数据解压缩库，对应lzf_c.c的压缩实现
+ */
 //
 // Created by dong on 23-5-22.
 //
@@ -23,6 +28,15 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
+
+/**
+ * @brief LZF解压缩函数
+ * @param in_data 输入的压缩数据指针
+ * @param in_len 输入数据长度
+ * @param out_data 输出缓冲区指针
+ * @param out_len 输出缓冲区大小
+ * @return size_t 解压后的实际字节数，失败返回0
+ */
 size_t
 lzf_decompress (const void *const in_data,  size_t in_len,
                 void             *out_data, size_t out_len)

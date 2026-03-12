@@ -1,6 +1,17 @@
+/**
+ * @file flags.h
+ * @brief 文件系统 POSIX open 基础标志定义
+ *        声明所有 POSIX open 操作共用的基础标志变量 kOpenBaseFlags。
+ *        具体标志值（如 O_CLOEXEC）在对应平台的 .c 文件中定义。
+ */
 #ifndef __LATTE_FILE_FLAGS_H
 #define __LATTE_FILE_FLAGS_H
 
+/**
+ * @brief 所有 POSIX open 操作的基础标志集合
+ *        通常包含 O_CLOEXEC 等安全标志，确保 fork 后子进程不继承文件描述符。
+ *        在 posix_file.c 或 file.c 中初始化，使用前应确保已完成平台检测。
+ */
 extern int kOpenBaseFlags;
 // Common flags defined for all posix open operations
 

@@ -1,3 +1,8 @@
+/**
+ * @file file.c
+ * @brief 文件操作工具函数库，提供文件的创建、读写、锁定等功能
+ */
+
 #include "file.h"
 #include <stdbool.h>
 #include <fcntl.h>
@@ -7,14 +12,23 @@
 #include "flags.h"
 #include <stdio.h>
 #if defined(HAVE_O_CLOEXEC)
-    int kOpenBaseFlags = O_CLOEXEC;
+    int kOpenBaseFlags = O_CLOEXEC;  // 支持close-on-exec标志
 #else
     int kOpenBaseFlags = 0;
 #endif  // defined(HAVE_O_CLOEXEC)
+
+/**
+ * @brief 打开文件
+ * @param filename 文件名
+ * @param fd 返回的文件描述符指针
+ * @param flag 打开标志
+ * @param mode 文件权限模式
+ * @return 成功返回&Ok，失败返回错误信息
+ */
 Error* openFile(char* filename, int* fd, int flag, mode_t mode) {
     *fd = open(filename, flag, mode);
     if (*fd < 0) {
-        return errno_io_new(filename); 
+        return errno_io_new(filename);  // 返回IO错误
     }
     return &Ok;
 }
@@ -40,62 +54,118 @@ l_pid字段通常由内核填充，用于存储持有锁的进程ID。
 如果你想等待锁被释放，可以使用F_SETLKW命令，它会阻塞进程直到锁变为可用。这可以防止死锁的情况，但同时也增加了进程的等待时间。
 文件锁是处理并发文件访问的重要工具，特别是在多线程或多进程环境中，它们可以确保文件数据在修改时不会被破坏。不过，使用文件锁时需要小心，避免死锁和资源争用的情况。
  */
+/**
+ * @brief 对文件进行加锁或解锁操作
+ * @param fd 文件描述符
+ * @param lock true为加锁，false为解锁
+ * @return 成功返回0，失败返回-1
+ *
+ * 使用fcntl的F_SETLK命令进行文件锁操作。加锁时使用写锁(F_WRLCK)，
+ * 锁定整个文件(l_start=0, l_len=0)。这是非阻塞操作，如果无法获取
+ * 锁会立即返回EWOULDBLOCK错误。
+ */
 int lockOrUnlock(int fd, bool lock) {
   errno = 0;
   struct flock file_lock_info;
   memset(&file_lock_info, 0, sizeof(file_lock_info));
-  file_lock_info.l_type = (lock ? F_WRLCK : F_UNLCK);
-  file_lock_info.l_whence = SEEK_SET;
-  file_lock_info.l_start = 0;
-  file_lock_info.l_len = 0;  // Lock/unlock entire file.
+  file_lock_info.l_type = (lock ? F_WRLCK : F_UNLCK);  // 写锁或解锁
+  file_lock_info.l_whence = SEEK_SET;  // 从文件开始处计算偏移
+  file_lock_info.l_start = 0;          // 偏移量为0
+  file_lock_info.l_len = 0;            // 锁定整个文件
   return fcntl(fd, F_SETLK, &file_lock_info);
 }
 
+/**
+ * @brief 对文件加锁
+ * @param fd 文件描述符
+ * @return 成功返回0，失败返回-1
+ */
 int lockFile(int fd) {
     return lockOrUnlock(fd, true);
 }
 
+/**
+ * @brief 对文件解锁
+ * @param fd 文件描述符
+ * @return 成功返回0，失败返回-1
+ */
 int unlockFile(int fd) {
     return lockOrUnlock(fd, false);
 }
 
+/**
+ * @brief 关闭文件
+ * @param fd 文件描述符
+ * @return 成功返回0，失败返回-1
+ */
 int closeFile(int fd) {
     return close(fd);
 }
 
+/**
+ * @brief 删除文件
+ * @param file 文件路径
+ * @return 成功返回0，失败返回-1
+ */
 int removeFile(char* file) {
     return unlink(file);
 }
 
+/**
+ * @brief 重命名文件
+ * @param from 原文件名
+ * @param to 新文件名
+ * @return 成功返回0，失败返回-1
+ */
 int renameFile(sds_t from, sds_t to) {
     return rename(from, to);
 }
 
+/**
+ * @brief 创建文件锁对象
+ * @param fd 文件描述符
+ * @param filename 文件名
+ * @return 新创建的文件锁对象指针
+ */
 FileLock* fileLockCreate(int fd, char* filename) {
     FileLock* fl = zmalloc(sizeof(FileLock));
     fl->fd = fd;
-    fl->filename = sds_new(filename);
+    fl->filename = sds_new(filename);  // 复制文件名字符串
     return fl;
 }
 
+/**
+ * @brief 释放文件锁对象
+ * @param lock 文件锁对象指针
+ */
 void fileLockRelease(FileLock* lock) {
-    sds_delete(lock->filename);
-    zfree(lock);
+    sds_delete(lock->filename);  // 释放文件名字符串
+    zfree(lock);                 // 释放锁对象内存
 }
 
-//判断某个文件是否存在
+/**
+ * @brief 判断文件是否存在
+ * @param filename 文件名
+ * @return 文件存在返回true，否则返回false
+ */
 bool fileExists(sds_t filename) {
-    return access(filename, F_OK) == 0;
+    return access(filename, F_OK) == 0;  // F_OK检查文件存在性
 }
 
-//创建一个写文件，如果原来有数据则清空数据， 
+/**
+ * @brief 创建可写文件，如果文件已存在则清空内容
+ * @param filename 文件名
+ * @param result 返回的可写文件对象指针
+ * @return 成功返回&Ok，失败返回错误信息
+ *
+ * 使用的打开标志说明：
+ * - O_TRUNC: 如果文件存在则截断为零长度(清空内容)
+ * - O_WRONLY: 只写模式打开
+ * - O_CREAT: 如果文件不存在则创建
+ * - kOpenBaseFlags: 基础标志，可能包含O_CLOEXEC等
+ */
 Error* writableFileCreate(sds_t filename,
                          WritableFile** result)  {
-    //O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags: 这是一个位或运算表达式，用于设置open函数的标志参数。这些标志决定了文件的打开模式和行为：
-    //O_TRUNC: 如果文件已存在，那么在打开时会被截断至零长度，即清空文件内容。如果文件不存在，此标志将被忽略。
-    //O_WRONLY: 请求以只写模式打开文件。如果文件不存在，O_CREAT标志的存在将导致文件被创建。
-    //O_CREAT: 请求创建文件，如果文件不存在的话。与O_WRONLY结合使用时，将创建一个可写的空文件。
-    //kOpenBaseFlags: 这是一个预定义的宏或变量，它可能包含其他的open标志，具体取决于其定义。例如，它可能包含O_BINARY或O_LARGEFILE等，这取决于你的具体需求和平台支持。
     int fd ;
     Error* error = openFile(filename, &fd,
                     O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);
@@ -104,76 +174,139 @@ Error* writableFileCreate(sds_t filename,
     }
     if (fd < 0) {
       *result = NULL;
-      return errno_io_new(filename);
+      return errno_io_new(filename);  // 文件描述符无效
     }
 
     *result = (WritableFile*)posixWritableFileCreate(filename, fd);
     return &Ok;
   }
 
+/**
+ * @brief 向可写文件追加SDS字符串数据
+ * @param file 可写文件对象指针
+ * @param data SDS字符串数据
+ * @return 成功返回&Ok，失败返回错误信息
+ */
 Error* writableFileAppendSds(WritableFile* file, sds_t data) {
     return writableFileAppend(file, data, sds_len(data));
-}  
+}
 
+/**
+ * @brief 向可写文件追加数据
+ * @param file 可写文件对象指针
+ * @param buf 数据缓冲区
+ * @param len 数据长度
+ * @return 成功返回&Ok，失败返回错误信息
+ */
 Error* writableFileAppend(WritableFile* file, char* buf, size_t len) {
     return posixWriteableFileAppend((PosixWritableFile*)file, buf, len);
 }
 
+/**
+ * @brief 刷新可写文件缓冲区
+ * @param file 可写文件对象指针
+ * @return 成功返回&Ok，失败返回错误信息
+ */
 Error* writableFileFlush(WritableFile* file) {
     return posixWritableFileFlush((PosixWritableFile*)file);
 }
 
+/**
+ * @brief 同步可写文件到磁盘
+ * @param file 可写文件对象指针
+ * @return 成功返回&Ok，失败返回错误信息
+ */
 Error* writableFileSync(WritableFile* file) {
     return posixWritableFileSync((PosixWritableFile*)file);
 }
 
+/**
+ * @brief 关闭可写文件
+ * @param file 可写文件对象指针
+ * @return 成功返回&Ok，失败返回错误信息
+ */
 Error* writableFileClose(WritableFile* file) {
     return posixWritableFileClose((PosixWritableFile*)file);
 }
 
+/**
+ * @brief 向可写文件追加slice数据
+ * @param file 可写文件对象指针
+ * @param data slice数据指针
+ * @return 成功返回&Ok，失败返回错误信息
+ */
 Error* writableFileAppendSlice(WritableFile* file, slice_t* data) {
     return writableFileAppend(file, data->p, data->len);
 }
 
+/**
+ * @brief 释放可写文件对象
+ * @param file 可写文件对象指针
+ */
 void writableFileRelease(WritableFile* file) {
     return posixWritableFileRelease((PosixWritableFile*)file);
 }
 
 
-// ================ SequentialFile =============
+// ================ SequentialFile ============= 顺序文件操作
 
-//创建顺序读文件
+/**
+ * @brief 创建顺序读文件
+ * @param filename 文件名
+ * @param file 返回的顺序文件对象指针
+ * @return 成功返回&Ok，失败返回错误信息
+ */
 Error* sequentialFileCreate(sds_t filename, SequentialFile** file) {
     return posixSequentialFileCreate(filename, (PosixSequentialFile**)file);
 }
 
-//sequentialFile
-// 从文件中读取最多“n”个字节。“scratch[0..n-1]”可能
-// 由此例程写入。将“*result”设置为已
-// 读取的数据（包括成功读取少于“n”个字节的情况）。
-// 可以将“*result”设置为指向“scratch[0..n-1]”中的数据，因此
-// 使用“*result”时，“scratch[0..n-1]”必须处于活动状态。
-// 如果遇到错误，则返回非 OK 状态。
-//
-// 需要：外部同步(不是线程安全的访问方式)
+/**
+ * @brief 从顺序文件读取数据
+ * @param file 顺序文件对象指针
+ * @param n 要读取的最大字节数
+ * @param result 返回读取到的数据slice
+ * @return 成功返回&Ok，失败返回错误信息
+ *
+ * 从文件中读取最多n个字节。result指向读取到的数据，
+ * 包括成功读取少于n个字节的情况。需要外部同步，
+ * 不是线程安全的访问方式。
+ */
 Error* sequentialFileRead(SequentialFile* file,size_t n, slice_t* result) {
     return posixSequentialFileRead((PosixSequentialFile*)file, n, result);
 }
 
-// 从文件中跳过“n”个字节。这保证不会比读取相同数据慢，但可能会更快。
-// 如果到达文件末尾，跳过将在文件末尾停止，并且 Skip 将返回 OK。
-// 需要：外部同步(不是线程安全的访问方式)
+/**
+ * @brief 跳过顺序文件中的指定字节数
+ * @param file 顺序文件对象指针
+ * @param n 要跳过的字节数
+ * @return 成功返回&Ok，失败返回错误信息
+ *
+ * 从文件中跳过n个字节。这保证不会比读取相同数据慢，
+ * 但可能会更快。如果到达文件末尾，跳过将在文件末尾停止。
+ * 需要外部同步，不是线程安全的访问方式。
+ */
 Error* sequentialFileSkip(SequentialFile* file,uint64_t n) {
     return posixSequentialFileSkip((PosixSequentialFile*)file, n);
 }
 
+/**
+ * @brief 释放顺序文件对象
+ * @param file 顺序文件对象指针
+ */
 void sequentialFileRelease(SequentialFile* file) {
     posixSequentialFileRelease((PosixSequentialFile*)file);
 }
 
+/**
+ * @brief 从顺序文件读取数据到SDS字符串
+ * @param file 顺序文件对象指针
+ * @param n 要读取的最大字节数
+ * @param data 返回的SDS字符串指针
+ * @return 成功返回&Ok，失败返回错误信息
+ */
 Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* data) {
     slice_t slice = {
-        .p = sds_empty_len(n),
+        .p = sds_empty_len(n),  // 创建指定长度的空SDS
         .len = 0
     };
     Error* error = posixSequentialFileRead((PosixSequentialFile*)file, n, &slice);
@@ -181,6 +314,6 @@ Error* sequentialFileReadSds(SequentialFile* file,size_t n, sds* data) {
         return error;
     }
     *data = slice.p;
-    sds_set_len(slice.p, slice.len);
+    sds_set_len(slice.p, slice.len);  // 设置实际读取的长度
     return error;
 }

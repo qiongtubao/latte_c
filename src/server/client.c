@@ -8,6 +8,16 @@
 sds_t latte_client_info_to_sds(latte_client_t* client);
 
 
+/**
+ * @brief 异步 IO 写请求完成回调
+ *
+ * 当异步 IO 写操作完成时由 async_io 层调用：
+ *   1. 从 clients_async_pending_write 链表中移除此客户端节点
+ *   2. 记录结束时间并调用 client->end 回调（若存在）
+ *   3. 重置 request 的 len 和 is_finished 状态，以便下次复用
+ *
+ * @param request 已完成的异步 IO 请求指针，ctx 字段指向 latte_client_t
+ */
 void client_async_io_write_finished(async_io_request_t* request) {
     latte_client_t* client = request->ctx;
     list_del_node(client->server->clients_async_pending_write, client->async_io_client_node);
@@ -25,7 +35,13 @@ void client_async_io_write_finished(async_io_request_t* request) {
     LATTE_LIB_LOG(LOG_DEBUG, "client_async_io_write_finished %d", request->len);
 }
 
-/**client **/
+/**
+ * @brief 初始化客户端的受保护字段（在 createClient 后、connAccept 前调用）
+ *
+ * 清零/初始化：查询缓冲区、回复链表、输出缓冲位置、发送偏移、
+ * 异步 IO 缓存请求（预分配 CLIENT_ASYNC_IO_MAX_SIZE 字节缓冲区）。
+ * @param client 目标客户端指针
+ */
 void protected_init_latte_client(latte_client_t* client) {
     client->qb_pos = 0;
     client->querybuf = sds_empty();
@@ -45,6 +61,11 @@ void protected_init_latte_client(latte_client_t* client) {
 }
 
 
+/**
+ * @brief 连接接受完成回调（connAccept 异步完成后调用）
+ * 检查连接是否成功（CONN_STATE_CONNECTED），失败时异步释放客户端。
+ * @param conn 已完成握手的连接对象
+ */
 void clientAcceptHandler(connection *conn) {
     latte_client_t *c = connGetPrivateData(conn);
 
@@ -55,6 +76,18 @@ void clientAcceptHandler(connection *conn) {
     }
 }
 
+/**
+ * @brief 完成客户端初始化：合并 flags 并调用 connAccept 触发握手
+ *
+ * connAccept 可能同步（立刻调用 clientAcceptHandler）或
+ * 异步（调度后调用），因此本函数返回后不可再访问 conn。
+ * 握手失败时直接释放客户端。
+ *
+ * @param el    事件循环指针
+ * @param c     目标客户端指针
+ * @param conn  底层连接对象
+ * @param flags 追加到 c->flags 的初始标志
+ */
 void init_latte_client(struct ae_event_loop_t* el, latte_client_t* c, struct connection* conn, int flags) {
     /* Last chance to keep flags */
     c->flags |= flags;
@@ -79,6 +112,11 @@ void init_latte_client(struct ae_event_loop_t* el, latte_client_t* c, struct con
     }
 }
 
+/**
+ * @brief 销毁客户端内部资源（释放 querybuf）
+ * 不释放 client 指针本身，由上层 freeClient 负责。
+ * @param client 目标客户端指针
+ */
 void destory_latte_client(latte_client_t* client) {
     if (client->querybuf != NULL) {
         sds_delete(client->querybuf);
@@ -88,6 +126,14 @@ void destory_latte_client(latte_client_t* client) {
 
 
 
+/**
+ * @brief 将客户端链接到服务器的客户端列表和 ID 索引
+ *
+ * 追加到 server->clients 尾部，记录链表节点指针（用于 O(1) 移除），
+ * 同时以大端序 ID 为键插入 clients_index 基数树。
+ * @param server 目标服务器指针
+ * @param c      要链接的客户端指针
+ */
 void link_latte_client(latte_server_t* server, latte_client_t* c) {
     LATTE_LIB_LOG(LOG_DEBUG,"link_latte_client %d", c->conn->fd);
     list_add_node_tail(server->clients, c);
@@ -97,12 +143,11 @@ void link_latte_client(latte_server_t* server, latte_client_t* c) {
     raxInsert(server->clients_index,(unsigned char*)&id,sizeof(id),c,NULL);
 }
 /**
- * @brief 
- * 
- * @param client 
- * 从可能引用客户端的全局列表中移除指定的客户端，
- * 不包括发布/订阅通道。
- * 这是由freeClient()和replicationCacheMaster()使用的。
+ * @brief 从服务器全局列表和索引中移除客户端并关闭连接
+ *
+ * 从 server->clients 链表移除（O(1)），从 clients_index 基数树移除，
+ * 然后关闭底层连接。不释放 client 内存，由 free_latte_client 负责。
+ * @param c 目标客户端指针
  */
 void unlink_latte_client(latte_client_t* c) {
     LATTE_LIB_LOG(LOG_DEBUG,"unlink_latte_client %d", c->conn->fd);
@@ -120,6 +165,10 @@ void unlink_latte_client(latte_client_t* c) {
     }
 }
 
+/**
+ * @brief 同步释放客户端：unlink → 销毁内部资源 → 调用 server->freeClient
+ * @param c 目标客户端指针
+ */
 void free_latte_client(latte_client_t *c) {
     LATTE_LIB_LOG(LOG_DEBUG,"freeClient %d\n", c->conn->fd);
     latte_server_t* server = c->server;
@@ -128,13 +177,28 @@ void free_latte_client(latte_client_t *c) {
     server->freeClient(c);
 }
 
-/* 放入异步删除队列 */
+/**
+ * @brief 异步释放客户端（当前实现直接同步释放，TODO：实现真正的异步延迟释放）
+ * @param c 目标客户端指针
+ */
 void free_latte_client_async(latte_client_t *c) {
     struct latte_server_t* server = c->server;
     //TODO
     free_latte_client(c);
 }
 
+/**
+ * @brief 连接可读事件回调：从 socket 读取数据并执行命令
+ *
+ * 执行流程：
+ *   1. 记录 start_time，调用 start 回调
+ *   2. 扩容 querybuf，调用 conn_read 读取数据
+ *   3. 读取失败/连接断开时异步释放客户端
+ *   4. 调用 exec 回调解析并执行命令，完成后重置 querybuf
+ *   5. 尝试异步 IO 写回复，记录 exec_end_time
+ *
+ * @param conn 触发可读事件的连接对象，私有数据为 latte_client_t*
+ */
 void read_query_from_client(connection *conn) { 
     latte_client_t *c = connGetPrivateData(conn);
     c->start_time = ustime();
@@ -197,6 +261,16 @@ void read_query_from_client(connection *conn) {
 }
 
 
+/**
+ * @brief 尝试将回复数据写入固定输出缓冲区 buf[]
+ *
+ * 条件：CLIENT_CLOSE_AFTER_REPLY 标志未设置、reply 链表为空、
+ * buf[] 剩余空间足够。满足则 memcpy 并更新 bufpos。
+ * @param c   目标客户端指针
+ * @param s   回复数据指针
+ * @param len 回复数据长度
+ * @return int 成功写入返回 0，条件不满足返回 -1
+ */
 int _add_reply_to_buffer(latte_client_t* c, const char* s, size_t len) {
     size_t available = sizeof(c->buf)-c->bufpos;
     //已经关闭的client 直接返回成功
@@ -211,6 +285,16 @@ int _add_reply_to_buffer(latte_client_t* c, const char* s, size_t len) {
     return 0;
 }
 
+/**
+ * @brief 将回复数据追加到 reply 链表（固定缓冲区溢出时使用）
+ *
+ * 优先填满链表尾部块的剩余空间，若仍有剩余则分配新的
+ * client_reply_block_t（至少 PROTO_REPLY_CHUNK_BYTES 大小），
+ * 并更新 reply_bytes 统计。
+ * @param c   目标客户端指针
+ * @param s   回复数据指针
+ * @param len 回复数据长度
+ */
 void _add_reply_proto_to_list(latte_client_t* c, const char* s, size_t len) {
     if (c->flags & CLIENT_CLOSE_AFTER_REPLY) return ;
 
@@ -240,6 +324,15 @@ void _add_reply_proto_to_list(latte_client_t* c, const char* s, size_t len) {
 }
 
 
+/**
+ * @brief 尝试通过异步 IO 发送缓存的回复数据
+ *
+ * 若 async_io_request_cache->len > 0，提交异步 IO 写请求：
+ *   - 成功：客户端加入 clients_async_pending_write 队列，返回 1
+ *   - 失败：降级到同步路径，数据写入 clients_pending_write，返回 0
+ * @param c 目标客户端指针
+ * @return int 异步 IO 提交成功返回 1，否则返回 0
+ */
 int async_io_try_write(latte_client_t* c) {
     if (c->async_io_request_cache->len > 0) {
         if (async_io_net_write(c->async_io_request_cache)) {
@@ -258,6 +351,16 @@ int async_io_try_write(latte_client_t* c) {
     return 0;
 }
 
+/**
+ * @brief 向客户端追加回复数据（自动选择异步 IO / 同步缓冲路径）
+ *
+ * 若服务器启用异步 IO 或已有异步 IO 缓存数据，且总长度未超过
+ * CLIENT_ASYNC_IO_MAX_SIZE，则追加到 async_io_request_cache；
+ * 否则写入 clients_pending_write 队列，依次尝试固定缓冲区和链表。
+ * @param c   目标客户端指针
+ * @param s   回复数据指针
+ * @param len 回复数据长度
+ */
 #define max(a, b) ((a) > (b) ? (a) : (b))
 void add_reply_proto(latte_client_t* c, const char* s, size_t len) {
     //TODO use async_io 
@@ -288,17 +391,26 @@ void add_reply_proto(latte_client_t* c, const char* s, size_t len) {
 }
 
 
+/**
+ * @brief 检查客户端是否有待发送的回复数据
+ * @param c 目标客户端指针
+ * @return int 有待发数据（bufpos > 0 或 reply 非空）返回非 0，否则返回 0
+ */
 int client_has_pending_replies(latte_client_t *c) {
     return c->bufpos || list_length(c->reply);
 }
-/* Write data in output buffers to client. Return C_OK if the client
- * is still valid after the call, C_ERR if it was freed because of some
- * error.  If handler_installed is set, it will attempt to clear the
- * write event.
+/**
+ * @brief 将客户端输出缓冲区数据写入连接 socket
  *
- * This function is called by threads, but always with handler_installed
- * set to 0. So when handler_installed is set to 0 the function must be
- * thread safe. */
+ * 先发送固定缓冲区 buf[]，再发送 reply 链表中的块。
+ * 每个块发送完毕后从链表移除。发送完所有数据后若设置了
+ * CLIENT_CLOSE_AFTER_REPLY 则异步关闭客户端。
+ * 此函数可被 IO 线程调用（handler_installed=0 时线程安全）。
+ *
+ * @param c                 目标客户端指针
+ * @param handler_installed 非 0 时写完后卸载写事件处理器
+ * @return int 正常返回 0，连接断开或出错返回 -1
+ */
 int write_to_client(latte_client_t *c, int handler_installed) {
     // LATTE_LIB_LOG(LOG_DEBUG, "write_to_client %d", c->conn->fd);
     /* Update total number of writes on server */
@@ -401,6 +513,11 @@ int write_to_client(latte_client_t *c, int handler_installed) {
 
 
 
+/**
+ * @brief 获取客户端名称字符串
+ * @param c 目标客户端指针
+ * @return sds 客户端名称（可能为 NULL）
+ */
 sds client_get_name(latte_client_t* c) {
     return c->name;
 }
@@ -417,6 +534,13 @@ void gen_client_addr_string(latte_client_t* c, char* addr, size_t addr_len, int 
     // }
 }
 
+/**
+ * @brief 获取客户端对端地址字符串（懒加载）
+ * 首次调用时通过 conn_format_addr 生成 "ip:port" 格式的 SDS 字符串，
+ * 后续调用直接返回缓存结果。
+ * @param c 目标客户端指针
+ * @return sds 对端地址字符串
+ */
 sds client_get_peer_id(latte_client_t* c) {
     if (c->peer_id == NULL) {
         char peer_id[NET_ADDR_STR_LEN] = {0};

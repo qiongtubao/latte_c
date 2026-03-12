@@ -1,3 +1,10 @@
+/**
+ * @file config.c
+ * @brief 配置管理系统实现
+ *        提供完整的配置文件读取、解析、验证和保存功能
+ *        支持多种数据类型：数值、字符串、枚举、布尔、数组、字典等
+ */
+
 #include "config.h"
 #include "zmalloc/zmalloc.h"
 #include "dict/dict.h"
@@ -9,6 +16,12 @@
 #include "log/log.h"
 #define UNUSED(x) (void)(x)
 
+/**
+ * @brief 删除配置规则的回调函数
+ *        用于字典删除时自动释放配置规则资源
+ * @param dict 字典实例（未使用）
+ * @param rule 要删除的配置规则
+ */
 void dict_delete_config_rule(dict_t* dict, void* rule) {
     UNUSED(dict);
     config_rule_delete(rule);
@@ -22,17 +35,33 @@ dict_func_t rule_dict_type_func = {
     .valDestructor = dict_delete_config_rule,
 };
 
+/**
+ * @brief 创建配置管理器
+ *        初始化配置规则字典用于存储所有配置项
+ * @return 新创建的配置管理器实例；失败返回NULL
+ */
 config_manager_t* config_manager_new(void) {
     config_manager_t* manager = zmalloc(sizeof(config_manager_t));
     manager->rules = dict_new(&rule_dict_type_func);
     return manager;
 }
 
+/**
+ * @brief 删除配置管理器
+ *        释放所有配置规则和相关资源
+ * @param manager 要删除的配置管理器
+ */
 void config_manager_delete(config_manager_t* manager) {
     dict_delete(manager->rules);
     zfree(manager);
 }
 
+/**
+ * @brief 初始化所有配置数据
+ *        遍历所有配置规则，为有默认值的配置项设置初始值
+ * @param manager 配置管理器实例
+ * @return 成功初始化的配置项数量；失败返回0
+ */
 int config_init_all_data(config_manager_t* manager) {
     latte_iterator_t* iter = dict_get_latte_iterator(manager->rules);
     int result = 0;
@@ -81,14 +110,36 @@ end:
     return result;
 }
 
+/**
+ * @brief 添加配置规则
+ *        将配置规则添加到管理器中
+ * @param manager 配置管理器实例
+ * @param key 配置项键名
+ * @param rule 配置规则
+ * @return 0 成功；非0 失败
+ */
 int config_add_rule(config_manager_t* manager, char* key, config_rule_t* rule) {
     return dict_add(manager->rules, sds_new(key), rule);
 }
 
+/**
+ * @brief 获取配置规则
+ *        根据键名查找对应的配置规则
+ * @param manager 配置管理器实例
+ * @param key 配置项键名
+ * @return 配置规则；未找到返回NULL
+ */
 config_rule_t* config_get_rule(config_manager_t* manager, char* key) {
     return dict_fetch_value(manager->rules, key);
 }
 
+/**
+ * @brief 移除配置规则
+ *        从管理器中删除指定的配置规则
+ * @param manager 配置管理器实例
+ * @param key 要删除的配置项键名
+ * @return 0 成功；非0 失败
+ */
 int config_remove_rule(config_manager_t* manager, char* key) {
     return dict_delete_key(manager->rules, key);
 }
@@ -165,6 +216,13 @@ int _config_load_file(config_manager_t* manager, dict_t* config_value, char* fil
     return result;
 }
 
+/**
+ * @brief 从文件加载配置
+ *        读取指定配置文件并解析配置项
+ * @param manager 配置管理器实例
+ * @param filename 配置文件路径
+ * @return 1 成功；0 失败
+ */
 int config_load_file(config_manager_t* manager, char* filename) {
     return _config_load_file(manager, NULL, filename);
 }

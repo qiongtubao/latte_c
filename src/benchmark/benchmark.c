@@ -1,3 +1,9 @@
+/**
+ * @file benchmark.c
+ * @brief 基准测试框架实现
+ *        基于 ae 事件循环和多线程的客户端基准测试工具，
+ *        支持多线程并发测试、异步读写和吞吐量统计。
+ */
 #include "benchmark.h"
 #include "ae/ae.h"
 #include "zmalloc/zmalloc.h"
@@ -30,10 +36,17 @@ typedef ssize_t *(*readConnFunc)(void *context);
 
 
 
+/**
+ * @brief 释放单个基准测试线程及其事件循环
+ * @param thread 要释放的线程对象指针
+ */
 static void freeBenchmarkThread(benchmarkThread *thread) {
     if (thread->el) aeDeleteEventLoop(thread->el);
     zfree(thread);
 }
+/**
+ * @brief 释放所有基准测试线程
+ */
 static void freeBenchmarkThreads() {
     int i = 0;
     for (; i < config.num_threads; i++) {
@@ -44,10 +57,22 @@ static void freeBenchmarkThreads() {
     config.threads = NULL;
 }
 
+/**
+ * @brief 定时事件回调：显示当前吞吐量统计信息
+ * @param eventLoop 事件循环指针
+ * @param id        定时器 id
+ * @param clientData 用户数据（未使用）
+ * @return 下次触发的毫秒间隔
+ */
 int showThroughput(struct aeEventLoop *eventLoop, long long id, void *clientData) {
     /*TODO 显示吞吐量*/
 }
 
+/**
+ * @brief 创建一个基准测试线程并初始化其事件循环
+ * @param index 线程索引编号
+ * @return 新建的 benchmarkThread 指针；内存分配失败返回 NULL
+ */
 static benchmarkThread *createBenchmarkThread(int index) {
     benchmarkThread *thread = zmalloc(sizeof(*thread));
     if (thread == NULL) return NULL;
@@ -57,6 +82,9 @@ static benchmarkThread *createBenchmarkThread(int index) {
     return thread;
 }
 
+/**
+ * @brief 初始化所有基准测试线程（若已存在则先释放重建）
+ */
 static void initBenchmarkThreads() {
     int i;
     if (config.threads) freeBenchmarkThreads();
@@ -67,11 +95,19 @@ static void initBenchmarkThreads() {
     }
 }
 
+/**
+ * @brief 基准测试线程入口函数，运行 ae 事件循环
+ * @param ptr benchmarkThread 指针
+ * @return NULL
+ */
 static void *execBenchmarkThread(void *ptr) {
     benchmarkThread *thread = (benchmarkThread *) ptr;
     aeMain(thread->el);
     return NULL;
 }
+/**
+ * @brief 启动所有基准测试线程并等待它们全部完成
+ */
 static void startBenchmarkThreads() {
     int i;
     for (i = 0; i < config.num_threads; i++) {
@@ -84,6 +120,12 @@ static void startBenchmarkThreads() {
     for (i = 0; i < config.num_threads; i++)
         pthread_join(config.threads[i]->thread, NULL);
 }
+/**
+ * @brief 创建到服务器的基准测试上下文连接
+ * @param ip   服务器 IP 地址
+ * @param port 服务器端口号
+ * @return 新建的 benchmarkContext 指针
+ */
 benchmarkContext* createContext(char* ip, int port) {
     benchmarkContext* context = zmalloc(sizeof(benchmarkContext));
     
@@ -93,14 +135,32 @@ benchmarkContext* createContext(char* ip, int port) {
 #define CLIENT_GET_EVENTLOOP(c) \
     (c->thread_id >= 0 ? config.threads[c->thread_id]->el : config.el)
 
+/**
+ * @brief 释放客户端连接及其关联的事件注册
+ * @param c 要释放的客户端指针
+ */
 static void freeClient(client c) {
     aeEventLoop *el = CLIENT_GET_EVENTLOOP(c);
 }
 
+/**
+ * @brief ae 可读事件回调：处理服务器响应数据
+ * @param el       事件循环指针
+ * @param fd       可读文件描述符
+ * @param privdata 客户端私有数据
+ * @param mask     触发的事件掩码
+ */
 static void readHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
 
 }
 
+/**
+ * @brief 向服务器写入数据
+ * @param c       基准测试上下文
+ * @param buf     要发送的数据缓冲区
+ * @param buf_len 数据长度
+ * @return 实际写入的字节数
+ */
 ssize_t writeConn(benchmarkContext *c, const char *buf, size_t buf_len){
     return 0;
 }
@@ -114,6 +174,15 @@ ssize_t writeConn(benchmarkContext *c, const char *buf, size_t buf_len){
 //     return ust;
 // }
 
+/**
+ * @brief ae 可写事件回调：向服务器发送命令数据
+ *        首次写入时初始化请求内容；循环写直到全部发出，
+ *        完成后切换为可读事件等待响应。
+ * @param el       事件循环指针
+ * @param fd       可写文件描述符
+ * @param privdata 客户端私有数据
+ * @param mask     触发的事件掩码
+ */
 static void writeHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     client c = privdata;
     /* Initialize request when nothing was written. */
@@ -148,6 +217,14 @@ static void writeHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
         }
     }
 }
+/**
+ * @brief 创建客户端并注册写事件，准备发送基准测试命令
+ * @param cmd       要发送的命令字符串
+ * @param len       命令长度
+ * @param from      参考客户端（可为 NULL）
+ * @param thread_id 绑定的线程 id（-1 表示使用主事件循环）
+ * @return 新建的 client 指针
+ */
 static client createClient(char *cmd, size_t len, client from, int thread_id) {
     client c = zmalloc(sizeof(struct _client));
     c->obuf = sds_empty();
@@ -181,6 +258,11 @@ static client createClient(char *cmd, size_t len, client from, int thread_id) {
 
 
 /* benchmark method */
+/**
+ * @brief 初始化 benchmark 结构体
+ * @param be 要初始化的 benchmark 指针
+ * @return 1 成功
+ */
 int initBenchmark(struct benchmark* be) {
     be->clients = list_new();
     be->threads = NULL;
@@ -189,6 +271,14 @@ int initBenchmark(struct benchmark* be) {
     return 1;
 }
 
+/**
+ * @brief 启动基准测试：创建客户端并运行事件循环或多线程
+ * @param be    benchmark 实例
+ * @param title 测试标题（用于统计输出）
+ * @param cmd   要发送的基准测试命令
+ * @param len   命令长度
+ * @return 0 成功（TODO: 完善返回值）
+ */
 int startBenchmark(struct benchmark* be, char *title, char *cmd, int len) {
     client c;
 

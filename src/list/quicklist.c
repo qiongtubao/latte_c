@@ -1,3 +1,8 @@
+/**
+ * @file quicklist.c
+ * @brief 快速链表实现模块
+ *        结合双链表和紧凑存储的混合数据结构，支持压缩和大元素处理
+ */
 #include <stdio.h>
 #include "quicklist.h"
 #include "utils/utils.h"
@@ -8,43 +13,31 @@
 #include <stdlib.h>
 #include "lzf/lzfP.h"
 
-/* packed_threshold is initialized to 1gb*/
+/* packed_threshold 初始化为1GB */
 static size_t packed_threshold = (1 << 30);
 
-/* set threshold for PLAIN nodes, the real limit is 4gb */
+/* 设置PLAIN节点的阈值，真实限制是4GB */
 #define isLargeElement(size) ((size) >= packed_threshold)
 
 #define SIZE_ESTIMATE_OVERHEAD 8
 
-/* Minimum listpack size in bytes for attempting compression. */
+/* 尝试压缩的listpack最小字节数 */
 #define MIN_COMPRESS_BYTES 48
-// int quick_listisSetPackedThreshold(size_t sz) {
-//     if (sz > (1ull<<32) - (1 << 20)) {
-//         return 0;
-//     } else if (sz == 0) {
-//         sz = (1 << 30);
-//     }
-//     packed_threshold = sz;
-//     return 1;
-// }
 
 #define sizeMeetsSafetyLimit(sz) ((sz) <= SIZE_SAFETY_LIMIT)
 
-/* Maximum size in bytes of any multi-element listpack.
- * Larger values will live in their own isolated listpacks.
- * This is used only if we're limited by record count. when we're limited by
- * size, the maximum limit is bigger, but still safe.
- * 8k is a recommended / default size limit */
+/* 任何多元素listpack的最大字节大小
+ * 较大的值将存储在独立的listpack中
+ * 这仅在受记录数限制时使用，当受大小限制时，最大限制更大但仍然安全
+ * 推荐的默认大小限制是8k */
 #define SIZE_SAFETY_LIMIT 8192
 
-/* Minimum size reduction in bytes to store compressed quick_listNode data.
- * This also prevents us from storing compression if the compression
- * resulted in a larger size than the original data. */
+/* 存储压缩quicklist节点数据的最小字节大小减少量
+ * 这也防止我们在压缩结果比原始数据更大时存储压缩 */
 #define MIN_COMPRESS_IMPROVE 8
 
-/* Optimization levels for size-based filling.
- * Note that the largest possible limit is 64k, so even if each record takes
- * just one byte, it still won't overflow the 16 bit count field. */
+/* 基于大小填充的优化级别
+ * 注意最大可能限制是64k，因此即使每条记录只占一个字节，也不会溢出16位计数字段 */
 static const size_t optimization_level[] = {4096, 8192, 16384, 32768, 65536};
 
 #define quick_listNodeUpdateSz(node)                                            \
@@ -52,6 +45,12 @@ static const size_t optimization_level[] = {4096, 8192, 16384, 32768, 65536};
         (node)->sz = lp_bytes((node)->entry);                                   \
     } while (0)
 
+/**
+ * @brief 创建一个新的PLAIN类型节点（用于存储大元素）
+ * @param value 要存储的数据指针
+ * @param sz 数据大小
+ * @return quick_list_node_t* 新创建的节点指针
+ */
 static quick_list_node_t* __quick_list_newPlainNode(void *value, size_t sz) {
     quick_list_node_t *new_node = quick_list_new_node();
     new_node->entry = zmalloc(sz);
@@ -62,31 +61,32 @@ static quick_list_node_t* __quick_list_newPlainNode(void *value, size_t sz) {
     return new_node;
 }
 
-/* Compress the listpack in 'node' and update encoding details.
- * Returns 1 if listpack compressed successfully.
- * Returns 0 if compression failed or if listpack too small to compress. */
+/**
+ * @brief 压缩节点中的listpack并更新编码详细信息
+ * @param node 要压缩的节点指针
+ * @return int 成功压缩返回1，压缩失败或listpack太小无法压缩返回0
+ */
 int __quick_listCompressNode(quick_list_node_t *node) {
 #ifdef REDIS_TEST
     node->attempted_compress = 1;
 #endif
     if (node->dont_compress) return 0;
 
-    /* validate that the node is neither
-     * tail nor head (it has prev and next)*/
+    /* 验证节点既不是尾部也不是头部（它有前一个和后一个节点） */
     assert(node->prev && node->next);
 
     node->recompress = 0;
-    /* Don't bother compressing small values */
+    /* 不要压缩小值 */
     if (node->sz < MIN_COMPRESS_BYTES)
         return 0;
 
     quick_list_LZF_t *lzf = zmalloc(sizeof(*lzf) + node->sz);
 
-    /* Cancel if compression fails or doesn't compress small enough */
+    /* 如果压缩失败或压缩效果不够好则取消压缩 */
     if (((lzf->sz = lzf_compress(node->entry, node->sz, lzf->compressed,
                                  node->sz)) == 0) ||
         lzf->sz + MIN_COMPRESS_IMPROVE >= node->sz) {
-        /* lzf_compress aborts/rejects compression if value not compressible. */
+        /* lzf_compress在值不可压缩时中止/拒绝压缩 */
         zfree(lzf);
         return 0;
     }
@@ -97,7 +97,7 @@ int __quick_listCompressNode(quick_list_node_t *node) {
     return 1;
 }
 
-/* Compress only uncompressed nodes. */
+/* 仅压缩未压缩的节点 */
 #define quick_listCompressNode(_node)                                           \
     do {                                                                       \
         if ((_node) && (_node)->encoding == quick_list_NODE_ENCODING_RAW) {     \
@@ -108,8 +108,11 @@ int __quick_listCompressNode(quick_list_node_t *node) {
 
 #define quick_listAllowsCompression(_ql) ((_ql)->compress != 0)
 
-/* Uncompress the listpack in 'node' and update encoding details.
- * Returns 1 on successful decode, 0 on failure to decode. */
+/**
+ * @brief 解压节点中的listpack并更新编码详细信息
+ * @param node 要解压的节点指针
+ * @return int 成功解码返回1，解码失败返回0
+ */
 int __quick_listDecompressNode(quick_list_node_t *node) {
 #ifdef REDIS_TEST
     node->attempted_compress = 0;
@@ -342,19 +345,28 @@ int _quick_listNodeAllowInsert(const quick_list_node_t *node,
 }
 
 
+/**
+ * @brief 创建一个新的快速链表
+ * @return struct quick_list_t* 新创建的快速链表指针
+ */
 struct quick_list_t *quick_list_create(void) {
     struct quick_list_t *quick_list;
     quick_list = zmalloc(sizeof(*quick_list));
-    quick_list->head = quick_list->tail = NULL;
-    quick_list->len = 0;
-    quick_list->count = 0;
-    quick_list->compress = 0;
-    quick_list->fill = -2;
-    quick_list->bookmark_count = 0;
+    quick_list->head = quick_list->tail = NULL; /**< 初始化头尾指针为空 */
+    quick_list->len = 0; /**< 初始长度为0 */
+    quick_list->count = 0; /**< 初始元素计数为0 */
+    quick_list->compress = 0; /**< 默认不压缩 */
+    quick_list->fill = -2; /**< 默认填充策略 */
+    quick_list->bookmark_count = 0; /**< 书签计数为0 */
     return quick_list;
 }
 
 #define FILL_MAX ((1 << (QL_FILL_BITS-1))-1)
+/**
+ * @brief 设置快速链表的填充参数
+ * @param quicklist 目标快速链表
+ * @param fill 填充参数，正数表示每个节点最大元素数，负数表示字节大小限制
+ */
 void quick_list_set_fill(quick_list_t *quicklist, int fill) {
     if (fill > FILL_MAX) {
         fill = FILL_MAX;
@@ -365,6 +377,11 @@ void quick_list_set_fill(quick_list_t *quicklist, int fill) {
 }
 
 #define COMPRESS_MAX ((1 << QL_COMP_BITS)-1)
+/**
+ * @brief 设置快速链表的压缩深度
+ * @param quicklist 目标快速链表
+ * @param compress 压缩深度，0表示不压缩，>0表示从两端开始的不压缩节点数
+ */
 void quick_list_set_comress_depth(quick_list_t *quicklist, int compress) {
     if (compress > COMPRESS_MAX) {
         compress = COMPRESS_MAX;
@@ -374,49 +391,68 @@ void quick_list_set_comress_depth(quick_list_t *quicklist, int compress) {
     quicklist->compress = compress;
 }
 
+/**
+ * @brief 设置快速链表的填充和压缩选项
+ * @param quick_list 目标快速链表
+ * @param fill 填充参数
+ * @param compress 压缩深度
+ */
 void quick_list_set_options(quick_list_t* quick_list, int fill, int compress) {
     quick_list_set_fill(quick_list, fill);
     quick_list_set_comress_depth(quick_list, compress);
 }
 
+/**
+ * @brief 创建一个新的快速链表并设置参数
+ * @param fill 填充参数
+ * @param compress 压缩深度
+ * @return quick_list_t* 新创建的快速链表指针
+ */
 quick_list_t* quick_list_new(int fill, int compress) {
     quick_list_t* quick_list = quick_list_create();
     quick_list_set_options(quick_list, fill, compress);
     return quick_list;
 }
 
+/**
+ * @brief 创建一个新的快速链表节点
+ * @return struct quick_list_node_t* 新创建的节点指针
+ */
 struct quick_list_node_t *quick_list_new_node(void) {
     quick_list_node_t *node;
     node = zmalloc(sizeof(*node));
-    node->entry = NULL;
-    node->count = 0;
-    node->sz = 0;
-    node->next = node->prev = NULL;
-    node->encoding = quick_list_NODE_ENCODING_RAW;
-    node->container = quick_list_NODE_CONTAINER_PACKED;
-    node->recompress= 0;
-    node->dont_compress = 0;
+    node->entry = NULL; /**< 初始化数据指针为空 */
+    node->count = 0; /**< 初始元素计数为0 */
+    node->sz = 0; /**< 初始大小为0 */
+    node->next = node->prev = NULL; /**< 初始化前后指针为空 */
+    node->encoding = quick_list_NODE_ENCODING_RAW; /**< 默认未压缩编码 */
+    node->container = quick_list_NODE_CONTAINER_PACKED; /**< 默认紧凑容器 */
+    node->recompress= 0; /**< 不需要重压缩 */
+    node->dont_compress = 0; /**< 允许压缩 */
     return node;
 }
 
-
-/*添加新条目到快速列表的头节点。
-*
-*如果使用现有的头返回0。
-*如果创建了新的头部返回1。*/
+/**
+ * @brief 在快速链表头部添加新元素
+ * 如果使用现有头部节点则返回0，如果创建新头部节点则返回1
+ * @param quick_list 目标快速链表
+ * @param value 要添加的值指针
+ * @param sz 值的大小
+ * @return int 0表示使用现有头部，1表示创建了新头部
+ */
 int quick_list_push_head(quick_list_t *quick_list, void *value, size_t sz) {
     quick_list_node_t *orig_head = quick_list->head;
 
-    if (unlikely(isLargeElement(sz))) {
+    if (unlikely(isLargeElement(sz))) { /**< 如果是大元素，使用PLAIN节点 */
         __quick_listInsertPlainNode(quick_list, quick_list->head, value, sz, 0);
         return 1;
     }
 
     if (likely(
-            _quick_listNodeAllowInsert(quick_list->head, quick_list->fill, sz))) {
+            _quick_listNodeAllowInsert(quick_list->head, quick_list->fill, sz))) { /**< 如果头部节点可以插入 */
         quick_list->head->entry = lp_prepend(quick_list->head->entry, value, sz);
         quick_listNodeUpdateSz(quick_list->head);
-    } else {
+    } else { /**< 创建新的头部节点 */
         quick_list_node_t *node = quick_list_new_node();
         node->entry = lp_prepend(lp_new(0), value, sz);
 
@@ -428,22 +464,25 @@ int quick_list_push_head(quick_list_t *quick_list, void *value, size_t sz) {
     return (orig_head != quick_list->head);
 }
 
-/* Add new entry to tail node of quick_list.
- *
- * Returns 0 if used existing tail.
- * Returns 1 if new tail created. */
+/**
+ * @brief 在快速链表尾部添加新元素
+ * @param quick_list 目标快速链表
+ * @param value 要添加的值指针
+ * @param sz 值的大小
+ * @return int 0表示使用现有尾部，1表示创建了新尾部
+ */
 int quick_list_push_tail(quick_list_t *quick_list, void *value, size_t sz) {
     quick_list_node_t *orig_tail = quick_list->tail;
-    if (unlikely(isLargeElement(sz))) {
+    if (unlikely(isLargeElement(sz))) { /**< 如果是大元素，使用PLAIN节点 */
         __quick_listInsertPlainNode(quick_list, quick_list->tail, value, sz, 1);
         return 1;
     }
 
     if (likely(
-            _quick_listNodeAllowInsert(quick_list->tail, quick_list->fill, sz))) {
+            _quick_listNodeAllowInsert(quick_list->tail, quick_list->fill, sz))) { /**< 如果尾部节点可以插入 */
         quick_list->tail->entry = lp_append(quick_list->tail->entry, value, sz);
         quick_listNodeUpdateSz(quick_list->tail);
-    } else {
+    } else { /**< 创建新的尾部节点 */
         quick_list_node_t *node = quick_list_new_node();
         node->entry = lp_append(lp_new(0), value, sz);
 
@@ -455,6 +494,13 @@ int quick_list_push_tail(quick_list_t *quick_list, void *value, size_t sz) {
     return (orig_tail != quick_list->tail);
 }
 
+/**
+ * @brief 通用的推送函数，根据where参数决定插入位置
+ * @param quick_list 目标快速链表
+ * @param value 要添加的值指针
+ * @param sz 值的大小
+ * @param where 插入位置，quick_list_HEAD表示头部，其他值表示尾部
+ */
 void quick_list_push(quick_list_t *quick_list, void *value, const size_t sz,
                    int where) {
     if (quick_list->head) {
@@ -464,21 +510,26 @@ void quick_list_push(quick_list_t *quick_list, void *value, const size_t sz,
     if (quick_list->tail) {
         assert(quick_list->tail->encoding != quick_list_NODE_ENCODING_LZF);
     }
- 
-    if (where == quick_list_HEAD) {
+
+    if (where == quick_list_HEAD) { /**< 插入到头部 */
         quick_list_push_head(quick_list, value, sz);
-    } else {
+    } else { /**< 插入到尾部 */
         quick_list_push_tail(quick_list, value, sz);
     }
 }
 
-/* If we previously used quick_listDecompressNodeForUse(), just recompress. */
+/* 如果之前使用了quick_listDecompressNodeForUse()，只需重新压缩 */
 #define quick_listRecompressOnly(_node)                                         \
     do {                                                                       \
         if ((_node)->recompress)                                               \
             quick_listCompressNode((_node));                                    \
     } while (0)
 
+/**
+ * @brief 打印快速链表的调试信息
+ * @param ql 快速链表指针（作为unsigned char*传入）
+ * @param full 是否显示详细信息
+ */
 void quick_list_repr(unsigned  char* ql, int full) {
     int i = 0;
     quick_list_t *quick_list = (struct quick_list_t*) ql;
@@ -517,13 +568,20 @@ void quick_list_repr(unsigned  char* ql, int full) {
 
 }
 
+/**
+ * @brief 清空快速链表的书签
+ * @param ql 目标快速链表指针
+ */
 void quick_list_book_mark_clear(quick_list_t* ql) {
     while (ql->bookmark_count)
         zfree(ql->bookmarks[--ql->bookmark_count].name);
-    /* NOTE: We do not shrink (realloc) the quick list. main use case for this
-     * function is just before releasing the allocation. */
+    /* 注意：我们不缩减（重新分配）快速链表。此函数的主要用例是在释放分配之前 */
 }
 
+/**
+ * @brief 释放整个快速链表及其所有节点
+ * @param quick_list 要释放的快速链表指针
+ */
 void quick_list_release(quick_list_t* quick_list) {
     unsigned long len;
     quick_list_node_t* current, *next;

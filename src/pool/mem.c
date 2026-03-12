@@ -4,14 +4,21 @@
 #include "log/log.h"
 #include "utils/utils.h"
 
+/** @brief used 集合使用的哈希函数表（基于指针值哈希和比较） */
 hash_set_func_t used_set_func = {
     .hashFunction = dict_ptr_hash,
-    .keyCompare = dict_ptr_key_compare
+    .keyCompare   = dict_ptr_key_compare
 };
 
+/**
+ * @brief 创建一个新的内存池（仅分配结构体，需调用 mem_pool_init 初始化参数）
+ * @param name 内存池名称（SDS，由池持有）
+ * @return mem_pool_t* 成功返回池指针，互斥锁创建失败返回 NULL
+ */
 mem_pool_t* mem_pool_new(sds name) {
     mem_pool_t* pool = zmalloc(sizeof(mem_pool_t));
     if (pool == NULL) return NULL;
+    /* 使用递归互斥锁，支持 extend 内部递归调用 */
     pool->mutex = latte_recursive_mutex_new();
     if (pool->mutex == NULL) {
         zfree(pool);
@@ -23,29 +30,42 @@ mem_pool_t* mem_pool_new(sds name) {
     pool->item_num_per_pool = 0;
     pool->dynamic = false;
     pool->pools = NULL;
-    pool->used = NULL;
+    pool->used  = NULL;
     pool->frees = NULL;
     return pool;
 }
 
+/**
+ * @brief 销毁内存池：仅当所有对象已归还时才释放
+ * frees 长度 == size 表示没有泄漏，才允许销毁。
+ * @param pool 目标内存池
+ * @return int 成功销毁返回 1，仍有未归还对象返回 0
+ */
 int mem_pool_delete(mem_pool_t* pool) {
-    if(list_length(pool->frees) != pool->size) {
+    /* 确保没有泄漏的对象才能销毁 */
+    if (list_length(pool->frees) != pool->size) {
         return 0;
     }
-
     mem_pool_clean_up(pool);
     latte_mutex_delete(pool->mutex);
     zfree(pool);
     return 1;
 }
 
+/**
+ * @brief 扩容：分配一块大内存并拆分加入空闲列表
+ * 仅 dynamic=true 时允许调用，否则记录错误并返回 -1。
+ * 内部持有互斥锁期间完成分配和 pools/frees 链表更新。
+ * @param mem_pool 目标内存池
+ * @return int 成功返回 0，不可扩容或内存分配失败返回 -1
+ */
 int mem_pool_extend(mem_pool_t* mem_pool) {
     if (mem_pool->dynamic == false) {
         LATTE_LIB_LOG(LOG_ERROR, "Disable dynamic extend memory pool, but begin to extend, this->name:%s", mem_pool->name);
         return -1;
     }
     latte_mutex_lock(mem_pool->mutex);
-    //申请一块大内存
+    /* 分配一块连续大内存，大小 = item_num_per_pool * item_size */
     void* pool = zmalloc(mem_pool->item_num_per_pool * mem_pool->item_size);
     if (pool == NULL) {
         latte_mutex_unlock(mem_pool->mutex);
@@ -54,11 +74,11 @@ int mem_pool_extend(mem_pool_t* mem_pool) {
         return -1;
     }
 
-    //大内存块保存起来
+    /* 保存大内存块指针，用于后续统一释放 */
     list_add_node_tail(mem_pool->pools, pool);
     mem_pool->size += mem_pool->item_num_per_pool;
-    //把拆分成小对象添加到空闲组里
-    for(int i =0 ; i< mem_pool->item_num_per_pool;i++) {
+    /* 将大内存块按 item_size 拆分为小对象，逐一加入空闲列表 */
+    for (int i = 0; i < mem_pool->item_num_per_pool; i++) {
         list_add_node_tail(mem_pool->frees, pool + i * mem_pool->item_size);
     }
 
@@ -68,102 +88,142 @@ int mem_pool_extend(mem_pool_t* mem_pool) {
     return 0;
 }
 
+/**
+ * @brief 从内存池分配一个对象
+ * 空闲列表为空时：若 dynamic=false 则返回 NULL；否则自动扩容。
+ * 成功分配后将对象加入 used 集合用于合法性校验。
+ * @param mem_pool 目标内存池
+ * @return void* 成功返回对象指针，失败返回 NULL
+ */
 void* mem_pool_alloc(mem_pool_t* mem_pool) {
     void* result = NULL;
     latte_mutex_lock(mem_pool->mutex);
     if (list_length(mem_pool->frees) == 0) {
         if (mem_pool->dynamic == false) {
-            goto end;
+            goto end; /* 非动态模式，无法扩容，返回 NULL */
         }
         if (mem_pool_extend(mem_pool) < 0) {
-            goto end;
+            goto end; /* 扩容失败，返回 NULL */
         }
     }
+    /* 从空闲列表尾部取出一个对象 */
     result = list_rpop(mem_pool->frees);
+    /* 将对象加入 used 集合，用于 free 时的合法性校验 */
     latte_assert_with_info(set_add(mem_pool->used, result) == 1, "used add item fail");
 end:
     latte_mutex_unlock(mem_pool->mutex);
     return result;
 }
 
+/**
+ * @brief 将已分配对象归还到内存池空闲列表
+ * 从 used 集合中移除对象，若移除失败（非法指针或重复归还）则记录警告。
+ * @param mem_pool 目标内存池
+ * @param result   要归还的对象指针
+ */
 void mem_pool_free(mem_pool_t* mem_pool, void* result) {
     latte_mutex_lock(mem_pool->mutex);
-    int num = set_remove(mem_pool->used, result); //0 删除失败 1表示删除成功
+    /* 从 used 集合移除，返回 0 表示不在集合中（非法或重复归还） */
+    int num = set_remove(mem_pool->used, result);
     if (num == 0) {
-        //为了打印消息后结束提前解锁    这里可以写的优雅一点 以后改改
+        /* 提前解锁后打印警告，避免持锁期间日志阻塞 */
         latte_mutex_unlock(mem_pool->mutex);
         LATTE_LIB_LOG(LOG_WARN, "No entry of %p in %s.", result, mem_pool->name);
-        // print_stacktrace();
         return;
     }
-    list_add_node_tail(mem_pool->frees,result);
+    /* 对象归还到空闲列表尾部 */
+    list_add_node_tail(mem_pool->frees, result);
     latte_mutex_unlock(mem_pool->mutex);
     return;
 }
 
+/**
+ * @brief 清理内存池所有内部资源
+ * 释放顺序：used 集合 → frees 链表 → pools 链表（及其持有的大内存块）
+ * 注意：pools 链表中保存的是大内存块指针，list_delete 会遍历并 zfree 每个节点值。
+ * @param mem_pool 目标内存池
+ */
 void mem_pool_clean_up(mem_pool_t* mem_pool) {
-    if (list_length(mem_pool->pools) == 0) { //正常情况下应该有数据
-        LATTE_LIB_LOG(LOG_WARN,"Begin to do cleanup, but there is no memory pool, this->name:%s!", mem_pool->name);
-        return ;
+    if (list_length(mem_pool->pools) == 0) {
+        LATTE_LIB_LOG(LOG_WARN, "Begin to do cleanup, but there is no memory pool, this->name:%s!", mem_pool->name);
+        return;
     }
     latte_mutex_lock(mem_pool->mutex);
+    /* 释放 used 集合 */
     if (mem_pool->used != NULL) {
         set_delete(mem_pool->used);
         mem_pool->used = NULL;
     }
-    
+    /* 释放 frees 链表 */
     if (mem_pool->frees) {
         list_delete(mem_pool->frees);
         mem_pool->frees = NULL;
     }
-    
+    /* 释放 pools 链表（同时释放各大内存块） */
     if (mem_pool->pools) {
         list_delete(mem_pool->pools);
         mem_pool->pools = NULL;
     }
     mem_pool->size = 0;
     latte_mutex_unlock(mem_pool->mutex);
-    LATTE_LIB_LOG(LOG_INFO,"Successfully do cleanup, this->name:%s.", mem_pool->name);
+    LATTE_LIB_LOG(LOG_INFO, "Successfully do cleanup, this->name:%s.", mem_pool->name);
 }
 
+/**
+ * @brief 初始化内存池参数并预分配内存
+ * 依次创建 used 集合、pools 链表、frees 链表，再按 pool_num 次数调用 extend 预分配内存。
+ * 初始化期间临时将 dynamic 设为 true 以允许 extend，完成后恢复为传入的 dynamic 值。
+ * @param mem_pool         已由 mem_pool_new 创建的内存池
+ * @param item_size        每个对象字节大小（> 0）
+ * @param dynamic          是否允许动态扩容
+ * @param pool_num         初始预分配的 pool 块数量（> 0）
+ * @param item_num_per_pool 每块 pool 包含的对象数（> 0）
+ * @return int 成功返回 0，参数非法或内存失败返回 -1
+ */
 int mem_pool_init(mem_pool_t* mem_pool, int item_size, bool dynamic, int pool_num, int item_num_per_pool) {
     if (item_size <= 0 || pool_num <= 0 || item_num_per_pool <= 0) {
-        LATTE_LIB_LOG(LOG_ERROR,"Invalid arguments, item_size:%d, pool_num:%d, item_num_per_pool:%d, this->name:%s.",
-        item_size, pool_num, item_num_per_pool, mem_pool->name);
+        LATTE_LIB_LOG(LOG_ERROR, "Invalid arguments, item_size:%d, pool_num:%d, item_num_per_pool:%d, this->name:%s.",
+            item_size, pool_num, item_num_per_pool, mem_pool->name);
         return -1;
     }
-    
+
     mem_pool->item_size = item_size;
     mem_pool->item_num_per_pool = item_num_per_pool;
+    /* 初始化阶段强制允许 extend */
     mem_pool->dynamic = true;
+
+    /* 创建 used 集合（基于指针哈希的 hash_set） */
     mem_pool->used = hash_set_new(&used_set_func);
     if (mem_pool->used == NULL) {
         LATTE_LIB_LOG(LOG_ERROR, "mem_pool new used fail\n");
         return -1;
     }
+    /* 创建 pools 大内存块管理链表 */
     mem_pool->pools = list_new();
     if (mem_pool->pools == NULL) {
         LATTE_LIB_LOG(LOG_ERROR, "mem_pool new pools fail\n");
         mem_pool_clean_up(mem_pool);
         return -1;
     }
+    /* 创建 frees 空闲对象链表 */
     mem_pool->frees = list_new();
     if (mem_pool->frees == NULL) {
         LATTE_LIB_LOG(LOG_ERROR, "mem_pool new frees fail\n");
         mem_pool_clean_up(mem_pool);
         return -1;
     }
+    /* 预分配 pool_num 个内存块 */
     for (int i = 0; i < pool_num; i++) {
         if (mem_pool_extend(mem_pool) < 0) {
             mem_pool_clean_up(mem_pool);
             return -1;
         }
     }
-    mem_pool->dynamic  = dynamic;
+    /* 初始化完成，设置实际的 dynamic 值 */
+    mem_pool->dynamic = dynamic;
     LATTE_LIB_LOG(LOG_INFO, "Extend one pool, this->size:%d, item_size:%d, item_num_per_pool:%d, this->name:%s.",
       mem_pool->size, item_size, item_num_per_pool, mem_pool->name);
     return 0;
-
 }
 
 

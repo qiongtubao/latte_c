@@ -1,3 +1,12 @@
+/**
+ * @file lzfP.h
+ * @brief LZF 压缩算法内部实现配置头文件
+ *        定义 LZF 压缩/解压的各项编译期调优参数（哈希表大小、压缩速度/比率权衡、
+ *        对齐要求、偏移量模式等），以及内部数据类型（u8、u16、LZF_HSLOT、LZF_STATE）。
+ *        仅供 lzf_compress.c / lzf_decompress.c 内部使用，外部代码请包含 lzf.h。
+ *
+ * Copyright (c) 2000-2007 Marc Alexander Lehmann <schmorp@schmorp.de>
+ */
 //
 // Created by dong on 23-5-22.
 //

@@ -1,3 +1,10 @@
+/**
+ * @file crc64_redis.c
+ * @brief Redis风格的64位CRC校验算法实现
+ *        实现Redis使用的特定64位CRC算法，用于数据完整性校验
+ *        基于pycrc生成的代码，使用反射输入/输出和特定多项式
+ */
+
 #include "crc64.h"
 #include <stdint.h>
 
@@ -39,33 +46,39 @@ static uint64_t crc64_table[8][256] = {{0}};
  * \param data_len     The width of \a data expressed in number of bits.
  * \return             The reflected data.
  *****************************************************************************/
+/**
+ * @brief 反转数据字中所有位
+ * @param data 要反转的数据字
+ * @param data_len 以位数表示的数据宽度
+ * @return 反转后的数据
+ */
 static inline uint_fast64_t crc_reflect(uint_fast64_t data, size_t data_len) {
-    /* only ever called for data_len == 64 in this codebase
+    /* 在此代码库中只会为data_len == 64调用
      *
-     * Borrowed from bit twiddling hacks, original in the public domain.
+     * 借用位操作技巧，原始代码为公有领域。
      * https://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel
-     * Extended to 64 bits, and added byteswap for final 3 steps.
-     * 16-30x 64-bit operations, no comparisons (16 for native byteswap, 30 for pure C)
+     * 扩展到64位，并为最后3步添加了字节交换。
+     * 16-30次64位操作，无比较（原生字节交换16次，纯C 30次）
      */
 
     // assert(data_len <= 64);
-    /* swap odd and even bits */
+    /* 交换奇偶位 */
     data = ((data >> 1) & 0x5555555555555555ULL) | ((data & 0x5555555555555555ULL) << 1);
-    /* swap consecutive pairs */
+    /* 交换相邻的位对 */
     data = ((data >> 2) & 0x3333333333333333ULL) | ((data & 0x3333333333333333ULL) << 2);
-    /* swap nibbles ... */
+    /* 交换半字节... */
     data = ((data >> 4) & 0x0F0F0F0F0F0F0F0FULL) | ((data & 0x0F0F0F0F0F0F0F0FULL) << 4);
 #if defined(__GNUC__) || defined(__clang__)
     data = __builtin_bswap64(data);
 #else
-    /* swap bytes */
+    /* 交换字节 */
     data = ((data >> 8) & 0x00FF00FF00FF00FFULL) | ((data & 0x00FF00FF00FF00FFULL) << 8);
-    /* swap 2-byte long pairs */
+    /* 交换2字节长度的对 */
     data = ( data >> 16 &     0xFFFF0000FFFFULL) | ((data &     0xFFFF0000FFFFULL) << 16);
-    /* swap 4-byte quads */
+    /* 交换4字节四元组 */
     data = ( data >> 32 &         0xFFFFFFFFULL) | ((data &         0xFFFFFFFFULL) << 32);
 #endif
-    /* adjust for non-64-bit reversals */
+    /* 调整非64位反转 */
     return data >> (64 - data_len);
 }
 /**
@@ -76,6 +89,13 @@ static inline uint_fast64_t crc_reflect(uint_fast64_t data, size_t data_len) {
  * \param data_len Number of bytes in the \a data buffer.
  * \return         The updated crc value.
  ******************************************************************************/
+/**
+ * @brief 使用新数据更新CRC值
+ * @param crc 当前CRC值
+ * @param in_data 指向数据缓冲区的指针
+ * @param len 数据缓冲区中的字节数
+ * @return 更新后的CRC值
+ */
 uint64_t _crc64(uint_fast64_t crc, const void *in_data, const uint64_t len) {
     const uint8_t *data = in_data;
     unsigned long long bit;
@@ -103,17 +123,27 @@ uint64_t _crc64(uint_fast64_t crc, const void *in_data, const uint64_t len) {
 
 /******************** END GENERATED PYCRC FUNCTIONS ********************/
 
-/* Initializes the 16KB lookup tables. */
+/* 初始化16KB查找表 */
+/**
+ * @brief 初始化Redis风格的CRC64查找表
+ */
 void crc64_redis_init(void) {
     crcspeed64native_init(_crc64, crc64_table);
 }
 
 
-/* Compute crc64 */
+/* 计算CRC64 */
+/**
+ * @brief 计算Redis风格的CRC64校验值
+ * @param crc 初始CRC值
+ * @param s 输入数据缓冲区
+ * @param l 数据长度
+ * @return 计算得到的CRC64值
+ */
 uint64_t crc64_redis(uint64_t crc, const unsigned char *s, uint64_t l) {
-    static int crc64_redis_inited = 0;
+    static int crc64_redis_inited = 0;  // 静态变量，标记是否已初始化
     if (crc64_redis_inited == 0) {
-        crc64_redis_init();
+        crc64_redis_init();  // 首次调用时初始化查找表
         crc64_redis_inited = 1;
     }
     return crcspeed64native(crc64_table, crc, (void *) s, l);

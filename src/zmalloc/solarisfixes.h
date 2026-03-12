@@ -1,3 +1,12 @@
+/**
+ * @file solarisfixes.h
+ * @brief Solaris 平台兼容性修复
+ *        在 Solaris + GCC 环境下，修复 <math.h> 中 isnan/isfinite/isinf 宏
+ *        与 GCC 内置函数不兼容的问题，同时补充缺失的 u_int/u_int32_t 类型别名。
+ *        仅在 __sun 平台生效，其他平台此文件为空操作。
+ *
+ * Copyright (c) 2009-2012, Salvatore Sanfilippo <antirez at gmail dot com>
+ */
 /* Solaris specific fixes.
  *
  * Copyright (c) 2009-2012, Salvatore Sanfilippo <antirez at gmail dot com>
@@ -32,22 +41,38 @@
 
 #if defined(__GNUC__)
 #include <math.h>
+
+/**
+ * @brief Solaris/GCC 修复：使用 GCC 内置函数重定义 isnan
+ *        Solaris 的 isnan 宏与 GCC 内置不兼容，用 __builtin_expect 优化版本替换。
+ * @param x 待检测的浮点值
+ */
 #undef isnan
 #define isnan(x) \
      __extension__({ __typeof (x) __x_a = (x); \
      __builtin_expect(__x_a != __x_a, 0); })
 
+/**
+ * @brief Solaris/GCC 修复：使用 GCC 内置函数重定义 isfinite
+ * @param x 待检测的浮点值
+ */
 #undef isfinite
 #define isfinite(x) \
      __extension__ ({ __typeof (x) __x_f = (x); \
      __builtin_expect(!isnan(__x_f - __x_f), 1); })
 
+/**
+ * @brief Solaris/GCC 修复：使用 GCC 内置函数重定义 isinf
+ * @param x 待检测的浮点值
+ */
 #undef isinf
 #define isinf(x) \
      __extension__ ({ __typeof (x) __x_i = (x); \
      __builtin_expect(!isnan(__x_i) && !isfinite(__x_i), 0); })
 
+/** @brief Solaris 缺失的 u_int 类型别名 */
 #define u_int uint
+/** @brief Solaris 缺失的 u_int32_t 类型别名 */
 #define u_int32_t uint32_t
 #endif /* __GNUC__ */
 
