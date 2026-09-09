@@ -3,6 +3,7 @@ ifneq ($(USED_DICT), yes)
 include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/iterator/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/cmp/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/siphash/lib.mk
 FINAL_CC_CFLAGS+= -I../dict 
 
 

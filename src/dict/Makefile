@@ -1,5 +1,5 @@
 LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
-BUILD_OBJ?=dict.o siphash.o dict_plugins.o
+BUILD_OBJ?=dict.o dict_plugins.o
 LIB_OBJ?=
 TEST_MAIN?=dict_test
 MODULE?=dict
@@ -14,3 +14,4 @@ include $(LATTE_LIB_WORKSPACE)/src/zmalloc/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/iterator/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/sds/lib.mk
 include $(LATTE_LIB_WORKSPACE)/src/cmp/lib.mk
+include $(LATTE_LIB_WORKSPACE)/src/siphash/lib.mk
