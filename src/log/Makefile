@@ -2,7 +2,7 @@ LATTE_LIB_WORKSPACE?=$(CURDIR)/../..
 BUILD_OBJ?=log.o
 LIB_OBJ?=
 TEST_MAIN?=log_test
-LIB_MODULES?=zmalloc sds dict utils time
+LIB_MODULES?=zmalloc sds dict utils time debug
 MODULE?=log
 BUILD_INCLUDE=log.h
 

@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "time/localtime.h"
+#include "debug/latte_debug.h"
 
 struct logger_t* get_logger_by_tag(char* tag) {
   dict_entry_t* entry = dict_find(global_logger_factory.loggers, tag);
@@ -255,6 +256,10 @@ int log_add_callback(char* tag, log_func fn, void *udata, int level) {
 
 
 int log_add_file(char* tag, char* file, int level) {
+  /* Point the crash path (latte_assert/latte_panic) at the same file. It writes
+   * with raw write(2) instead of going through log_log, so it stays usable when
+   * the heap is already corrupted. */
+  if (strcmp(tag, LATTE_LIB) == 0) latte_debug_set_logfile(file);
   return log_add_callback(tag, file_callback, sds_new(file), level);
 }
 

@@ -50,7 +50,8 @@
 /* 空 tag 标记:全 0 即"该槽无 fingerprint"。注意:计算 tag 时若天然为 0 会 +1,避免与空槽混淆。 */
 #define CUCKOO_TAG_NULL 0
 
-/* 首表最小桶数。防止 estimated_keys 过小时桶数太小、负载率难以稳定。 */
+/* 首表最小桶数。防止 estimated_keys 过小时桶数太小、负载率难以稳定。
+ * 也是 cuckoo_filter_shrink 的缩容下限。 */
 #define CUCKOO_FILTER_TABLE_MIN_BUCKETS  16
 
 /* 用户传入的 tag 位宽枚举(数组下标)。实际位宽见 bits_per_tag_array。 */
@@ -68,10 +69,16 @@ typedef uint64_t (*cuckoo_hash_fn)(const void *key, int klen);
 
 /*
  * Victim Cache (受害者缓存) — 踢出失败时的兜底槽。
- * 每张表最多保留一个最近"踢出循环"也没地方放的 tag。
+ * 每张表最多保留一个"踢出循环"也没地方放的 tag。
  * 不变量:used == 0 时整个结构无意义;
  *        used == 1 时 (index, tag) 代表被暂存的那一个 fingerprint。
  * 任何新插入若直接命中该槽对应的两个候选桶,则认为该 key 已存在。
+ *
+ * used 还兼任"这张表已满"的标志位:一旦为 1,
+ * cuckoo_table_insert_kick_out_index_tag 会直接返回 CUCKOO_ERR 而不再尝试,
+ * 由上层触发扩容。这样 victim 里的 tag 永远不会被后来者覆盖,
+ * 从而保住 filter "不产生 false negative" 的承诺。
+ * 该标志只在 delete 成功腾出空槽时,由 try_eliminate_victim_cache 复位。
  */
 typedef struct cuckoo_victim_cache_t {
     int used;        /* 是否有暂存的 tag */
@@ -163,6 +170,66 @@ int cuckoo_filter_contains(cuckoo_filter_t* filter, const char *key, size_t klen
  * 返回 CUCKOO_OK 表示删除成功,CUCKOO_ERR 表示未找到。
  */
 int cuckoo_filter_delete(cuckoo_filter_t* filter, const char *key, size_t klen);
+
+/*
+ * 缩容 —— cuckoo_filter_expand 的逆操作。**一次调用只处理一张表。**
+ * 没有任何策略参数:说缩就缩,缩不动就返回 CUCKOO_ERR。
+ *
+ *   CUCKOO_OK  — 缩掉了一张表(或把唯一的表就地缩小了一档)
+ *   CUCKOO_ERR — 缩不动。filter 保持原样,一个字节都没变。
+ *
+ * 想缩到底就循环调用:
+ *
+ *     while (cuckoo_filter_shrink(filter) == CUCKOO_OK) ;
+ *     // 需要知道省了多少就自己前后比 cuckoo_filter_used_memory()
+ *
+ * 两条互斥分支,都要求 ntables > 1:
+ *   A. 末表为空 → 直接摘掉,零迁移成本,必定成功
+ *   B. 末表非空 → 把末表的 tag 并入前一张表,再摘掉末表
+ *
+ * ⚠️ 只摘表,绝不动基表。ntables == 1 时直接返回 CUCKOO_ERR,理由:
+ *   - tables[0] 的尺寸是调用方通过 estimated_keys 声明的容量意图;
+ *   - 它是阶梯的基准 —— expand 用"末表 × 4"算新表大小,改小了基表就再也
+ *     长不回原来的 nb0 / 4nb0 / 16nb0 / 64nb0,可逆性丢失,
+ *     4 张表的总容量上限也被永久压低;
+ *   - 缩基表不减少 ntables,对查询开销和 FPP 的表数因子毫无贡献。
+ * 想回收基表那部分内存只能重建 filter(用更小的 estimated_keys 新建并
+ * 重新插入还活着的 key),那是调用方的决策,不该由缩容偷偷做。
+ *
+ * 对查询没有影响:tag 迁进老表后仍然落在它自己的合法候选桶里,
+ * contains 照样找得到(不会产生 false negative),而且要扫的表少了一张。
+ *
+ * 为什么是"合并末表"而不是"每张表各自瘦身":
+ *   contains / delete 是 O(ntables) 逐表遍历,假阳性率也随表数近似线性上升
+ *   (FPP ≈ 1-(1-1/(2^f-1))^(8×ntables),8-bit 实测 1/2/3/4 张表分别约
+ *   3.0% / 6.0% / 8.9% / 11.7%)。表数才是主导代价,各表就地瘦身动不了它。
+ *   而且合并末表能守住 1:4:16:64 的等比阶梯,下一次 expand 会精确重建
+ *   刚摘掉的那张表,严格可逆。
+ *
+ * 为什么方向上做得到:
+ *   桶号是 (hv >> 32) & (nbuckets - 1),目标表桶数是源表的 1/4,
+ *   新桶号就是旧桶号的低位截断,光凭表内信息即可算出;
+ *   反过来扩容需要已经丢掉的高位,无法恢复。迁移时也不需要知道 tag 当前
+ *   在主桶还是备桶 —— 由 alt() 的对称性,两种情况推出的候选桶集合
+ *   { i & M', (i ^ h) & M' } 完全相同。推导见 cuckoo.c。
+ *   注意这和"把所有表合并成一张"不同:后者要求目标 ≤ 所有源表中最小的
+ *   那张(tables[0]),通常装不下,确实不可行。
+ *
+ * 语义保证:
+ *   - 事务性:每个分支要么完成,要么原状态一个字节都不变,绝不丢 tag。
+ *     因此调用前后都不会产生 false negative。
+ *   - 至少保留一张表(filter 必须始终持有 current table)。
+ *   - 内存和假阳性率之间没有免费午餐:摘表会降低 FPP 的表数因子,
+ *     但目标表负载率会上升。缩得越狠 FPP 越高,这是结构决定的。
+ *   - 只搬运,不做语义清理:既不去重,也不会清掉历史误删留下的陈旧 tag。
+ *
+ * 注意:
+ *   - 分支 B/C 是一次全量重建,开销 O(末表桶数),不要在写入高峰期反复调用;
+ *     适合"批量删除后进入稳定期"时手动触发。
+ *   - 只有 O(1) 的硬容量预检(装不下就不试),没有软阈值。所以数据较密时
+ *     可能白做一次 O(桶数) 的迁移才发现放不下,然后回滚返回 CUCKOO_ERR。
+ */
+int cuckoo_filter_shrink(cuckoo_filter_t* filter);
 
 /* 读取 filter 的统计信息,见 cuckoo_filter_stat_t。 */
 void cuckoo_filter_get_stat(cuckoo_filter_t* filter, cuckoo_filter_stat_t* stat);

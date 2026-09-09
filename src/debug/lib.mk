@@ -1,7 +1,8 @@
 
-ifneq ($(USED_DEBUG), yes) 
-include $(LATTE_LIB_WORKSPACE)/src/log/lib.mk
-FINAL_CC_CFLAGS+= -I../latte_debug 
+# debug is a dependency-free leaf module: it must be linkable from the lowest
+# layers of the library, so do NOT add module includes here.
+ifneq ($(USED_DEBUG), yes)
+FINAL_CC_CFLAGS+= -I../debug
 
 
 ../debug/latte_debug.o:
